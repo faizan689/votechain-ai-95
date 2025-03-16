@@ -12,6 +12,7 @@ type ConfirmationModalProps = {
     name: string;
     symbol: string;
     color: string;
+    logoPath: string;
   } | null;
 };
 
@@ -77,14 +78,18 @@ const ConfirmationModal = ({
                     </p>
                     
                     <div className="flex items-center justify-center mb-4">
-                      <div 
-                        className="w-16 h-16 rounded-full flex items-center justify-center text-white"
-                        style={{ backgroundColor: selectedParty?.color }}
-                      >
-                        <span className="text-2xl font-medium">
-                          {selectedParty?.symbol.charAt(0)}
-                        </span>
-                      </div>
+                      {selectedParty?.logoPath && (
+                        <div 
+                          className="w-20 h-20 rounded-full flex items-center justify-center bg-white overflow-hidden"
+                          style={{ border: `2px solid ${selectedParty?.color}` }}
+                        >
+                          <img 
+                            src={selectedParty?.logoPath} 
+                            alt={`${selectedParty?.name} logo`} 
+                            className="w-full h-full object-contain p-1"
+                          />
+                        </div>
+                      )}
                     </div>
                     
                     <h4 className="text-lg font-medium">{selectedParty?.name}</h4>

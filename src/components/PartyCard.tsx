@@ -9,6 +9,7 @@ type PartyCardProps = {
   name: string;
   symbol: string;
   color: string;
+  logoPath: string;
   selected: boolean;
   onSelect: (id: string) => void;
 };
@@ -18,6 +19,7 @@ const PartyCard = ({
   name, 
   symbol, 
   color, 
+  logoPath,
   selected, 
   onSelect 
 }: PartyCardProps) => {
@@ -54,10 +56,10 @@ const PartyCard = ({
       )}
       
       <motion.div 
-        className={`w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-white`}
-        style={{ backgroundColor: color }}
+        className={`w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center bg-white overflow-hidden`}
+        style={{ border: `2px solid ${color}` }}
       >
-        <span className="text-2xl md:text-3xl font-medium">{symbol.charAt(0)}</span>
+        <img src={logoPath} alt={`${name} logo`} className="w-full h-full object-contain p-1" />
       </motion.div>
       
       <div className="text-center">

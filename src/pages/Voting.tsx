@@ -12,6 +12,7 @@ type Party = {
   name: string;
   symbol: string;
   color: string;
+  logoPath: string;
 };
 
 const Voting = () => {
@@ -19,10 +20,34 @@ const Voting = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const parties: Party[] = [
-    { id: "bjp", name: "Bharatiya Janata Party", symbol: "Lotus", color: "#FF9933" },
-    { id: "inc", name: "Indian National Congress", symbol: "Hand", color: "#0078D7" },
-    { id: "aap", name: "Aam Aadmi Party", symbol: "Broom", color: "#019934" },
-    { id: "nota", name: "None of the Above", symbol: "NOTA", color: "#6B7280" }
+    { 
+      id: "bjp", 
+      name: "Bharatiya Janata Party", 
+      symbol: "Lotus", 
+      color: "#FF9933", 
+      logoPath: "/lovable-uploads/bd528e11-c547-4096-be22-973ccf0a7e69.png" 
+    },
+    { 
+      id: "inc", 
+      name: "Indian National Congress", 
+      symbol: "Hand", 
+      color: "#0078D7", 
+      logoPath: "/lovable-uploads/6d40bf13-e73a-4e1b-82fe-7c36e7663ad3.png" 
+    },
+    { 
+      id: "aap", 
+      name: "Aam Aadmi Party", 
+      symbol: "Broom", 
+      color: "#019934", 
+      logoPath: "/lovable-uploads/9a3952b9-53e0-4a7b-bb60-05c1b1687c20.png" 
+    },
+    { 
+      id: "nota", 
+      name: "None of the Above", 
+      symbol: "NOTA", 
+      color: "#6B7280", 
+      logoPath: "/lovable-uploads/893342f4-7eb9-4b71-9b23-dbd4445bf9a0.png" 
+    }
   ];
   
   const handlePartySelect = (id: string) => {
@@ -86,6 +111,7 @@ const Voting = () => {
                   name={party.name}
                   symbol={party.symbol}
                   color={party.color}
+                  logoPath={party.logoPath}
                   selected={selectedParty === party.id}
                   onSelect={handlePartySelect}
                 />
