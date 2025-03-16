@@ -94,3 +94,14 @@ export const tricolorGradient = {
   WebkitBackgroundClip: "text",
   WebkitTextFillColor: "transparent"
 };
+
+export const logoTransition = {
+  light: {
+    filter: "none",
+    transition: { duration: 0.3 }
+  },
+  dark: {
+    filter: "brightness(0) invert(1)",
+    transition: { duration: 0.3 }
+  }
+};

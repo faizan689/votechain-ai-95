@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Moon, Sun, Shield } from "lucide-react";
+import { letterAnimation, letterHover } from "@/lib/animations";
 
 const Header = () => {
   const [isDark, setIsDark] = useState(false);
@@ -33,29 +34,6 @@ const Header = () => {
   const isActive = (path: string) => {
     return location.pathname === path;
   };
-
-  // Animation variants for the text
-  const letterVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: (i: number) => ({
-      opacity: 1,
-      y: 0,
-      transition: {
-        delay: i * 0.05,
-        duration: 0.5,
-        repeat: 0,
-        repeatType: "reverse" as const,
-        repeatDelay: 10,
-      },
-    }),
-  };
-
-  const letterHover = {
-    scale: 1.1,
-    y: -5,
-    color: "#FF6B00",
-    transition: { duration: 0.2 }
-  };
   
   return (
     <motion.header 
@@ -70,8 +48,8 @@ const Header = () => {
     >
       <div className="container mx-auto px-6 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-r from-orange-500 via-white to-green-600 overflow-hidden">
-            <motion.img
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden bg-white dark:bg-transparent">
+            <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ 
@@ -80,10 +58,34 @@ const Header = () => {
                 damping: 20,
                 delay: 0.2 
               }}
-              src="/lovable-uploads/dda85faa-cf2c-40e4-af8a-391bbad9d86c.png"
-              alt="VoteGuard Logo"
-              className="w-full h-full object-contain"
-            />
+              className="w-full h-full relative"
+            >
+              <img 
+                src="/lovable-uploads/d0974539-57ce-49dc-977e-a395c82acfa1.png" 
+                alt="VoteGuard Logo"
+                className="w-full h-full object-contain"
+              />
+              {/* SVG overlay for dark mode color adjustment */}
+              <div className={`absolute inset-0 transition-opacity duration-300 ${isDark ? 'opacity-100' : 'opacity-0'}`}>
+                <svg width="0" height="0">
+                  <defs>
+                    <filter id="recolor" colorInterpolationFilters="sRGB">
+                      <feColorMatrix
+                        type="matrix"
+                        values="1 0 0 0 1
+                                0 1 0 0 1
+                                0 0 1 0 1
+                                0 0 0 1 0"
+                      />
+                    </filter>
+                  </defs>
+                </svg>
+                <div 
+                  className="w-full h-full"
+                  style={{ filter: 'url(#recolor)', mixBlendMode: 'overlay' }}
+                ></div>
+              </div>
+            </motion.div>
           </div>
           <motion.div 
             initial={{ opacity: 0, x: -10 }}
@@ -99,7 +101,7 @@ const Header = () => {
                   initial="hidden"
                   animate="visible"
                   whileHover={letterHover}
-                  variants={letterVariants}
+                  variants={letterAnimation}
                   className="text-xl"
                   style={{ display: "inline-block" }}
                 >
@@ -113,7 +115,7 @@ const Header = () => {
                   initial="hidden"
                   animate="visible"
                   whileHover={letterHover}
-                  variants={letterVariants}
+                  variants={letterAnimation}
                   className="text-xl text-primary"
                   style={{ display: "inline-block" }}
                 >
