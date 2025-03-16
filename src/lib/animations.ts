@@ -68,3 +68,29 @@ export const buttonTap = {
   scale: 0.98,
   transition: { duration: 0.1 }
 };
+
+export const letterAnimation: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.05,
+      duration: 0.5,
+    }
+  })
+};
+
+export const letterHover = {
+  scale: 1.1,
+  y: -3,
+  color: "#FF6B00",
+  transition: { duration: 0.2 }
+};
+
+export const tricolorGradient = {
+  backgroundImage: "linear-gradient(to right, #FF9933, #FFFFFF, #138808)",
+  backgroundClip: "text",
+  WebkitBackgroundClip: "text",
+  WebkitTextFillColor: "transparent"
+};

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Shield } from "lucide-react";
 
 const Header = () => {
   const [isDark, setIsDark] = useState(false);
@@ -33,6 +33,29 @@ const Header = () => {
   const isActive = (path: string) => {
     return location.pathname === path;
   };
+
+  // Animation variants for the text
+  const letterVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: {
+        delay: i * 0.05,
+        duration: 0.5,
+        repeat: 0,
+        repeatType: "reverse" as const,
+        repeatDelay: 10,
+      },
+    }),
+  };
+
+  const letterHover = {
+    scale: 1.1,
+    y: -5,
+    color: "#FF6B00",
+    transition: { duration: 0.2 }
+  };
   
   return (
     <motion.header 
@@ -57,9 +80,9 @@ const Header = () => {
                 damping: 20,
                 delay: 0.2 
               }}
-              src="/lovable-uploads/bd528e11-c547-4096-be22-973ccf0a7e69.png"
+              src="/lovable-uploads/dda85faa-cf2c-40e4-af8a-391bbad9d86c.png"
               alt="VoteGuard Logo"
-              className="w-8 h-8 object-contain"
+              className="w-full h-full object-contain"
             />
           </div>
           <motion.div 
@@ -68,8 +91,36 @@ const Header = () => {
             transition={{ delay: 0.3, duration: 0.5 }}
             className="font-display font-semibold tracking-tight"
           >
-            <span className="bg-gradient-to-r from-orange-500 via-white to-green-600 bg-clip-text text-transparent">Vote</span>
-            <span className="text-primary">Guard</span>
+            <div className="flex">
+              {Array.from("Vote").map((letter, i) => (
+                <motion.span
+                  key={`title-${i}`}
+                  custom={i}
+                  initial="hidden"
+                  animate="visible"
+                  whileHover={letterHover}
+                  variants={letterVariants}
+                  className="text-xl"
+                  style={{ display: "inline-block" }}
+                >
+                  {letter}
+                </motion.span>
+              ))}
+              {Array.from("Guard").map((letter, i) => (
+                <motion.span
+                  key={`subtitle-${i}`}
+                  custom={i + 4} // offset by 4 (length of "Vote")
+                  initial="hidden"
+                  animate="visible"
+                  whileHover={letterHover}
+                  variants={letterVariants}
+                  className="text-xl text-primary"
+                  style={{ display: "inline-block" }}
+                >
+                  {letter}
+                </motion.span>
+              ))}
+            </div>
           </motion.div>
         </Link>
         

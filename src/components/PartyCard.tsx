@@ -63,7 +63,12 @@ const PartyCard = ({
       </motion.div>
       
       <div className="text-center">
-        <h3 className="font-medium text-lg">{name}</h3>
+        <motion.h3 
+          whileHover={{ scale: 1.05 }}
+          className="font-medium text-lg"
+        >
+          {name}
+        </motion.h3>
         <p className="text-sm text-muted-foreground mt-1">{symbol}</p>
       </div>
       
