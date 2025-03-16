@@ -3,12 +3,14 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { User, Lock, ChevronRight, AlertCircle } from "lucide-react";
+import CameraVerification from "./CameraVerification";
 
 const AuthForm = () => {
   const [voterId, setVoterId] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
+  const [showCameraVerification, setShowCameraVerification] = useState(false);
   const navigate = useNavigate();
   
   const handleSubmitVoterId = (e: React.FormEvent) => {
@@ -37,7 +39,7 @@ const AuthForm = () => {
     
     // In a real app, we'd verify the OTP
     setError("");
-    navigate("/voting");
+    setShowCameraVerification(true);
   };
   
   // Format voter ID as user types (XXX-XXX-XXX)
@@ -54,6 +56,23 @@ const AuthForm = () => {
     
     setVoterId(formattedValue);
   };
+
+  const handleVerificationSuccess = () => {
+    navigate("/voting");
+  };
+  
+  const handleVerificationCancel = () => {
+    setShowCameraVerification(false);
+  };
+  
+  if (showCameraVerification) {
+    return (
+      <CameraVerification 
+        onSuccess={handleVerificationSuccess}
+        onCancel={handleVerificationCancel}
+      />
+    );
+  }
   
   return (
     <div className="w-full max-w-md mx-auto">
@@ -105,7 +124,7 @@ const AuthForm = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:opacity-90 transition-all"
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg px-4 py-2 hover:opacity-90 transition-all"
             >
               <span>Continue</span>
               <ChevronRight size={18} />
@@ -164,7 +183,7 @@ const AuthForm = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
-                className="flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-lg px-4 py-2 hover:opacity-90 transition-all"
+                className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg px-4 py-2 hover:opacity-90 transition-all"
               >
                 <span>Verify & Continue</span>
                 <ChevronRight size={18} />

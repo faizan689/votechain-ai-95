@@ -47,7 +47,7 @@ const Header = () => {
     >
       <div className="container mx-auto px-6 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
             <motion.div 
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -57,19 +57,29 @@ const Header = () => {
                 damping: 20,
                 delay: 0.2 
               }}
-              className="text-primary-foreground font-display font-bold"
+              className="indian-flag-logo w-full h-full"
             >
-              E
+              <div className="h-1/3 bg-[#FF9933]"></div>
+              <div className="h-1/3 bg-white flex items-center justify-center">
+                <div className="w-4 h-4 rounded-full border-2 border-[#000080]">
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="w-2 h-0.5 bg-[#000080] absolute"></div>
+                    <div className="h-2 w-0.5 bg-[#000080] absolute"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="h-1/3 bg-[#138808]"></div>
             </motion.div>
           </div>
-          <motion.span 
+          <motion.div 
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3, duration: 0.5 }}
             className="font-display font-semibold tracking-tight"
           >
-            E-Secure
-          </motion.span>
+            <span className="bg-gradient-to-r from-orange-500 via-white to-green-600 bg-clip-text text-transparent">Vote</span>
+            <span className="text-primary">Guard</span>
+          </motion.div>
         </Link>
         
         <nav className="hidden md:flex items-center space-x-8">
@@ -92,7 +102,7 @@ const Header = () => {
                 {isActive(path === '' ? '/' : `/${path}`) && (
                   <motion.div 
                     layoutId="activeTab"
-                    className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary rounded-full"
+                    className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-orange-500 via-white to-green-600 rounded-full"
                     transition={{ duration: 0.3 }}
                   />
                 )}

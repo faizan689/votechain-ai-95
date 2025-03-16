@@ -46,7 +46,7 @@ const Voting = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      <section className="flex-1 pt-32 pb-20">
+      <section className="flex-1 pt-32 pb-20 bg-gradient-to-b from-background to-secondary/30">
         <div className="container mx-auto px-6">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -55,7 +55,7 @@ const Voting = () => {
             className="text-center mb-12"
           >
             <h1 className="text-3xl font-display font-semibold mb-3">
-              Cast Your Vote
+              Cast Your <span className="bg-gradient-to-r from-orange-500 via-white to-green-600 bg-clip-text text-transparent">Vote</span>
             </h1>
             <p className="text-muted-foreground max-w-xl mx-auto">
               Select your preferred candidate or party from the options below.
@@ -107,7 +107,7 @@ const Voting = () => {
                   flex items-center justify-center gap-2 rounded-lg px-6 py-3 
                   transition-all duration-300 shadow-button
                   ${selectedParty 
-                    ? "bg-primary text-primary-foreground" 
+                    ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white" 
                     : "bg-secondary text-muted-foreground cursor-not-allowed"}
                 `}
               >
@@ -119,7 +119,7 @@ const Voting = () => {
         </div>
       </section>
       
-      <div className="py-6 border-t border-border bg-secondary/50">
+      <div className="py-6 border-t border-border bg-gradient-to-r from-orange-500/5 via-white/5 to-green-600/5">
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <ShieldCheck size={16} className="text-primary" />

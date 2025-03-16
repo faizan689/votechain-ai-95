@@ -24,7 +24,7 @@ const Index = () => {
             className="text-4xl md:text-5xl lg:text-6xl font-display font-semibold tracking-tight mb-6"
           >
             Secure. Transparent.{" "}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
+            <span className="bg-gradient-to-r from-orange-500 via-blue-600 to-green-600 bg-clip-text text-transparent">
               Democratic.
             </span>
           </motion.h1>
@@ -49,7 +49,7 @@ const Index = () => {
               <motion.button 
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                className="bg-primary text-primary-foreground rounded-lg px-6 py-3 flex items-center justify-center gap-2 shadow-button"
+                className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg px-6 py-3 flex items-center justify-center gap-2 shadow-button"
               >
                 <span>Start Voting</span>
                 <ArrowRight size={18} />
@@ -70,7 +70,7 @@ const Index = () => {
       </motion.section>
       
       {/* Features Section */}
-      <section className="py-20 bg-secondary/50">
+      <section className="py-20 bg-gradient-to-b from-secondary/30 to-secondary/70">
         <div className="container mx-auto px-6">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -79,7 +79,7 @@ const Index = () => {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl font-display font-semibold mb-4">Why Choose E-Secure?</h2>
+            <h2 className="text-3xl font-display font-semibold mb-4">Why Choose VoteGuard?</h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
               Our platform combines cutting-edge technology with a user-friendly interface 
               to create the most secure voting experience.
@@ -137,7 +137,7 @@ const Index = () => {
                   Ready to Experience Secure Digital Voting?
                 </h2>
                 <p className="text-muted-foreground mb-8 max-w-xl">
-                  Join millions of voters who trust our platform for secure, 
+                  Join millions of voters who trust VoteGuard for secure, 
                   transparent, and accessible democratic participation.
                 </p>
                 
@@ -145,7 +145,7 @@ const Index = () => {
                   <motion.button 
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
-                    className="bg-primary text-primary-foreground rounded-lg px-6 py-3 flex items-center justify-center gap-2 shadow-button"
+                    className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg px-6 py-3 flex items-center justify-center gap-2 shadow-button"
                   >
                     <span>Start the Process</span>
                     <ArrowRight size={18} />
@@ -153,15 +153,26 @@ const Index = () => {
                 </Link>
               </div>
               
-              <div className="lg:w-1/3 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center p-10">
+              <div className="lg:w-1/3 bg-gradient-to-br from-orange-500/10 via-white/10 to-green-600/10 flex items-center justify-center p-10">
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   whileInView={{ scale: 1, opacity: 1 }}
                   transition={{ duration: 0.5 }}
                   viewport={{ once: true }}
                 >
-                  <div className="w-24 h-24 bg-primary rounded-lg flex items-center justify-center">
-                    <span className="text-primary-foreground font-display text-4xl font-bold">E</span>
+                  <div className="w-24 h-24 rounded-lg flex items-center justify-center overflow-hidden">
+                    <div className="indian-flag-logo w-full h-full">
+                      <div className="h-1/3 bg-[#FF9933]"></div>
+                      <div className="h-1/3 bg-white flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full border-2 border-[#000080]">
+                          <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-4 h-0.5 bg-[#000080] absolute"></div>
+                            <div className="h-4 w-0.5 bg-[#000080] absolute"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="h-1/3 bg-[#138808]"></div>
+                    </div>
                   </div>
                 </motion.div>
               </div>
