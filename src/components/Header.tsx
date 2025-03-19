@@ -65,11 +65,11 @@ const Header = () => {
                 alt="VoteGuard Logo"
                 className="w-full h-full object-contain"
               />
-              {/* SVG overlay for dark mode color adjustment */}
+              {/* SVG filter for color adjustment based on theme */}
               <div className={`absolute inset-0 transition-opacity duration-300 ${isDark ? 'opacity-100' : 'opacity-0'}`}>
                 <svg width="0" height="0">
                   <defs>
-                    <filter id="recolor" colorInterpolationFilters="sRGB">
+                    <filter id="white-filter" colorInterpolationFilters="sRGB">
                       <feColorMatrix
                         type="matrix"
                         values="1 0 0 0 1
@@ -82,7 +82,28 @@ const Header = () => {
                 </svg>
                 <div 
                   className="w-full h-full"
-                  style={{ filter: 'url(#recolor)', mixBlendMode: 'overlay' }}
+                  style={{ filter: 'url(#white-filter)', mixBlendMode: 'overlay' }}
+                ></div>
+              </div>
+              
+              {/* Black checkmark in light mode */}
+              <div className={`absolute inset-0 transition-opacity duration-300 ${!isDark ? 'opacity-100' : 'opacity-0'}`}>
+                <svg width="0" height="0">
+                  <defs>
+                    <filter id="black-filter" colorInterpolationFilters="sRGB">
+                      <feColorMatrix
+                        type="matrix"
+                        values="0 0 0 0 0
+                                0 0 0 0 0
+                                0 0 0 0 0
+                                0 0 0 1 0"
+                      />
+                    </filter>
+                  </defs>
+                </svg>
+                <div 
+                  className="w-full h-full"
+                  style={{ filter: 'url(#black-filter)', mixBlendMode: 'normal' }}
                 ></div>
               </div>
             </motion.div>
