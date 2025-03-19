@@ -160,17 +160,34 @@ const Index = () => {
                   transition={{ duration: 0.5 }}
                   viewport={{ once: true }}
                 >
-                  <div className="w-24 h-24 rounded-lg flex items-center justify-center overflow-hidden">
-                    <div className="indian-flag-logo w-full h-full">
+                  <div className="w-32 h-24 relative overflow-hidden">
+                    {/* Indian Flag with proper Ashoka Chakra */}
+                    <div className="absolute inset-0 flex flex-col">
+                      {/* Saffron stripe */}
                       <div className="h-1/3 bg-[#FF9933]"></div>
-                      <div className="h-1/3 bg-white flex items-center justify-center">
-                        <div className="w-8 h-8 rounded-full border-2 border-[#000080]">
-                          <div className="w-full h-full flex items-center justify-center">
-                            <div className="w-4 h-0.5 bg-[#000080] absolute"></div>
-                            <div className="h-4 w-0.5 bg-[#000080] absolute"></div>
-                          </div>
+                      
+                      {/* White stripe with Ashoka Chakra */}
+                      <div className="h-1/3 bg-white flex items-center justify-center relative">
+                        {/* Navy blue Ashoka Chakra */}
+                        <div className="w-8 h-8 rounded-full bg-[#000080] relative flex items-center justify-center">
+                          {/* 24 spokes of the Ashoka Chakra */}
+                          {[...Array(24)].map((_, i) => (
+                            <div 
+                              key={i} 
+                              className="absolute w-[1px] h-4 bg-white" 
+                              style={{ 
+                                transformOrigin: 'bottom center',
+                                transform: `rotate(${i * 15}deg)` 
+                              }}
+                            ></div>
+                          ))}
+                          
+                          {/* Center circle */}
+                          <div className="w-1 h-1 rounded-full bg-white"></div>
                         </div>
                       </div>
+                      
+                      {/* Green stripe */}
                       <div className="h-1/3 bg-[#138808]"></div>
                     </div>
                   </div>
