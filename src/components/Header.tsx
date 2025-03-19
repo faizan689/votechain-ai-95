@@ -61,11 +61,11 @@ const Header = () => {
               className="w-full h-full relative"
             >
               <img 
-                src="/lovable-uploads/d0974539-57ce-49dc-977e-a395c82acfa1.png" 
+                src="/lovable-uploads/b3247747-899f-4284-b90c-573fff211d07.png" 
                 alt="VoteGuard Logo"
                 className="w-full h-full object-contain"
               />
-              {/* SVG filter for color adjustment based on theme */}
+              {/* SVG filter for color adjustment in dark mode - white shield */}
               <div className={`absolute inset-0 transition-opacity duration-300 ${isDark ? 'opacity-100' : 'opacity-0'}`}>
                 <svg width="0" height="0">
                   <defs>
@@ -86,7 +86,7 @@ const Header = () => {
                 ></div>
               </div>
               
-              {/* Black checkmark in light mode */}
+              {/* Black shield in light mode */}
               <div className={`absolute inset-0 transition-opacity duration-300 ${!isDark ? 'opacity-100' : 'opacity-0'}`}>
                 <svg width="0" height="0">
                   <defs>

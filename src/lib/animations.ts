@@ -1,4 +1,3 @@
-
 import { Variants } from "framer-motion";
 
 export const fadeIn: Variants = {
@@ -84,7 +83,7 @@ export const letterAnimation: Variants = {
 export const letterHover = {
   scale: 1.1,
   y: -3,
-  color: "#FF6B00",
+  color: "#000000",
   transition: { duration: 0.2 }
 };
 
