@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Shield, Lock, Layers } from "lucide-react";
@@ -159,38 +158,14 @@ const Index = () => {
                   whileInView={{ scale: 1, opacity: 1 }}
                   transition={{ duration: 0.5 }}
                   viewport={{ once: true }}
+                  className="w-full h-full flex items-center justify-center"
                 >
-                  <div className="w-32 h-24 relative overflow-hidden">
-                    {/* Indian Flag with proper Ashoka Chakra */}
-                    <div className="absolute inset-0 flex flex-col">
-                      {/* Saffron stripe */}
-                      <div className="h-1/3 bg-[#FF9933]"></div>
-                      
-                      {/* White stripe with Ashoka Chakra */}
-                      <div className="h-1/3 bg-white flex items-center justify-center relative">
-                        {/* Navy blue Ashoka Chakra */}
-                        <div className="w-8 h-8 rounded-full bg-[#000080] relative flex items-center justify-center">
-                          {/* 24 spokes of the Ashoka Chakra */}
-                          {[...Array(24)].map((_, i) => (
-                            <div 
-                              key={i} 
-                              className="absolute w-[1px] h-4 bg-white" 
-                              style={{ 
-                                transformOrigin: 'bottom center',
-                                transform: `rotate(${i * 15}deg)` 
-                              }}
-                            ></div>
-                          ))}
-                          
-                          {/* Center circle */}
-                          <div className="w-1 h-1 rounded-full bg-white"></div>
-                        </div>
-                      </div>
-                      
-                      {/* Green stripe */}
-                      <div className="h-1/3 bg-[#138808]"></div>
-                    </div>
-                  </div>
+                  <img 
+                    src="/lovable-uploads/f7781719-a512-4751-a903-e45289b1d07e.png" 
+                    alt="Indian Flag"
+                    className="max-w-full max-h-full object-contain shadow-lg rounded-md"
+                    style={{ width: 'auto', maxHeight: '180px' }}
+                  />
                 </motion.div>
               </div>
             </div>
