@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Moon, Sun, Shield } from "lucide-react";
 import { letterAnimation, letterHover } from "@/lib/animations";
@@ -9,11 +9,17 @@ const Header = () => {
   const [isDark, setIsDark] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   
   // Toggle dark mode
   const toggleDarkMode = () => {
     setIsDark(!isDark);
     document.documentElement.classList.toggle("dark");
+  };
+  
+  // Navigate to admin panel
+  const goToAdmin = () => {
+    navigate('/admin');
   };
   
   // Track scroll position for header styling
@@ -177,6 +183,18 @@ const Header = () => {
         </nav>
         
         <div className="flex items-center gap-4">
+          {/* Admin Panel Icon */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={goToAdmin}
+            className="p-2 rounded-full bg-secondary text-secondary-foreground transition-colors"
+            aria-label="Admin Panel"
+          >
+            <Shield size={18} />
+          </motion.button>
+          
+          {/* Dark Mode Toggle */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
