@@ -3,7 +3,14 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Moon, Sun, Shield } from "lucide-react";
-import { letterAnimation, letterHover } from "@/lib/animations";
+import { 
+  letterAnimation, 
+  letterHover, 
+  saffronLetterAnimation, 
+  whiteLetterAnimation, 
+  greenLetterAnimation, 
+  flagWaveAnimation 
+} from "@/lib/animations";
 
 const Header = () => {
   const [isDark, setIsDark] = useState(false);
@@ -40,6 +47,15 @@ const Header = () => {
   const isActive = (path: string) => {
     return location.pathname === path;
   };
+  
+  // Divide the text for Indian flag animation
+  const voteText = "Vote";
+  const guardText = "Guard";
+  
+  // Split into tricolor sections
+  const saffronLetters = "Vo"; // First two letters for saffron
+  const whiteLetters = "teG";  // Middle four letters for white
+  const greenLetters = "uard"; // Last four letters for green
   
   return (
     <motion.header 
@@ -120,36 +136,50 @@ const Header = () => {
             transition={{ delay: 0.3, duration: 0.5 }}
             className="font-display font-semibold tracking-tight"
           >
-            <div className="flex">
-              {Array.from("Vote").map((letter, i) => (
+            <motion.div 
+              className="flex"
+              variants={flagWaveAnimation}
+              initial="initial"
+              animate="animate"
+            >
+              {/* Saffron (orange) section */}
+              {Array.from(saffronLetters).map((letter, i) => (
                 <motion.span
-                  key={`title-${i}`}
-                  custom={i}
-                  initial="hidden"
-                  animate="visible"
-                  whileHover={letterHover}
-                  variants={letterAnimation}
-                  className="text-xl"
+                  key={`saffron-${i}`}
+                  variants={saffronLetterAnimation}
+                  className="text-xl relative"
                   style={{ display: "inline-block" }}
                 >
                   {letter}
                 </motion.span>
               ))}
-              {Array.from("Guard").map((letter, i) => (
+              
+              {/* White section */}
+              {Array.from(whiteLetters).map((letter, i) => (
                 <motion.span
-                  key={`subtitle-${i}`}
-                  custom={i + 4} // offset by 4 (length of "Vote")
-                  initial="hidden"
-                  animate="visible"
-                  whileHover={letterHover}
-                  variants={letterAnimation}
-                  className="text-xl text-primary"
+                  key={`white-${i}`}
+                  variants={whiteLetterAnimation}
+                  className={`text-xl relative ${
+                    i >= 2 ? "text-primary" : ""
+                  }`}
                   style={{ display: "inline-block" }}
                 >
                   {letter}
                 </motion.span>
               ))}
-            </div>
+              
+              {/* Green section */}
+              {Array.from(greenLetters).map((letter, i) => (
+                <motion.span
+                  key={`green-${i}`}
+                  variants={greenLetterAnimation}
+                  className="text-xl text-primary relative"
+                  style={{ display: "inline-block" }}
+                >
+                  {letter}
+                </motion.span>
+              ))}
+            </motion.div>
           </motion.div>
         </Link>
         

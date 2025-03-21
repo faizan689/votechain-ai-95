@@ -1,3 +1,4 @@
+
 import { Variants } from "framer-motion";
 
 export const fadeIn: Variants = {
@@ -85,6 +86,84 @@ export const letterHover = {
   y: -3,
   color: "#000000",
   transition: { duration: 0.2 }
+};
+
+// Indian flag wave animation
+export const flagWaveAnimation = {
+  animate: {
+    transition: {
+      staggerChildren: 0.1,
+      repeat: Infinity,
+      repeatType: "loop" as const,
+      duration: 5,
+    },
+  },
+};
+
+// Animation variants for each letter in the Indian flag effect
+export const saffronLetterAnimation: Variants = {
+  initial: { color: "inherit" },
+  animate: {
+    color: ["inherit", "#FF9933", "#FF9933", "inherit"],
+    y: [0, -3, 0, 0],
+    transition: {
+      color: {
+        repeat: Infinity,
+        duration: 6,
+        ease: "easeInOut",
+        times: [0, 0.2, 0.8, 1],
+      },
+      y: {
+        repeat: Infinity,
+        duration: 2.5,
+        ease: "easeInOut",
+      },
+    },
+  },
+};
+
+export const whiteLetterAnimation: Variants = {
+  initial: { color: "inherit" },
+  animate: {
+    color: ["inherit", "#FFFFFF", "#FFFFFF", "inherit"],
+    y: [0, -2, 0, 0],
+    transition: {
+      color: {
+        repeat: Infinity,
+        duration: 6,
+        ease: "easeInOut",
+        times: [0, 0.3, 0.7, 1],
+      },
+      y: {
+        repeat: Infinity,
+        duration: 2.5,
+        delay: 0.1,
+        ease: "easeInOut",
+      },
+    },
+  },
+};
+
+export const greenLetterAnimation: Variants = {
+  initial: { color: "inherit" },
+  animate: {
+    color: ["inherit", "#138808", "#138808", "inherit"],
+    y: [0, -3, 0, 0],
+    transition: {
+      color: {
+        repeat: Infinity,
+        duration: 6,
+        ease: "easeInOut",
+        times: [0, 0.2, 0.8, 1],
+      },
+      y: {
+        repeat: Infinity,
+        duration: 2.5,
+        delay: 0.2,
+        ease: "easeInOut",
+      },
+    },
+  },
 };
 
 export const tricolorGradient = {
