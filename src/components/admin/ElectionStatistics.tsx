@@ -177,7 +177,14 @@ const DemographicsTab = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer className="h-80">
+          <ChartContainer 
+            config={{ 
+              male: { color: "#0078D7" },
+              female: { color: "#FF9933" },
+              nonbinary: { color: "#019934" }
+            }} 
+            className="h-80"
+          >
             <PieChart>
               <Pie
                 data={genderData}

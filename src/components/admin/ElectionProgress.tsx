@@ -36,6 +36,14 @@ const pollingStations = [
 ];
 
 const ElectionProgress = () => {
+  // Calculate rates ahead of time
+  const votingRates = voteData.map((entry, index) => {
+    if (index === 0) return { time: entry.time, rate: 0 };
+    const current = entry.bjp + entry.inc + entry.aap + entry.nota;
+    const previous = voteData[index - 1].bjp + voteData[index - 1].inc + voteData[index - 1].aap + voteData[index - 1].nota;
+    return { time: entry.time, rate: current - previous };
+  });
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -153,20 +161,15 @@ const ElectionProgress = () => {
               }} 
               className="h-80"
             >
-              <LineChart data={voteData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+              <LineChart data={votingRates} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis dataKey="time" />
                 <YAxis />
                 <Tooltip />
                 <Line 
-                  type="monotone" 
-                  name="Votes per hour"
-                  dataKey={(entry, index) => {
-                    if (index === 0) return 0;
-                    const current = entry.bjp + entry.inc + entry.aap + entry.nota;
-                    const previous = voteData[index - 1].bjp + voteData[index - 1].inc + voteData[index - 1].aap + voteData[index - 1].nota;
-                    return current - previous;
-                  }}
+                  type="monotone"
+                  name="Votes per hour" 
+                  dataKey="rate"
                   stroke="#FF9933" 
                   strokeWidth={2}
                   dot={{ r: 4 }}
