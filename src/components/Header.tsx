@@ -42,6 +42,12 @@ const Header = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Check for dark mode on component mount
+  useEffect(() => {
+    const isDarkMode = document.documentElement.classList.contains("dark");
+    setIsDark(isDarkMode);
+  }, []);
   
   // Check if route is active
   const isActive = (path: string) => {
@@ -160,7 +166,7 @@ const Header = () => {
                   key={`white-${i}`}
                   variants={whiteLetterAnimation}
                   className={`text-xl relative ${
-                    i >= 2 ? "text-primary" : ""
+                    i >= 2 ? "text-primary dark:text-white" : ""
                   }`}
                   style={{ display: "inline-block" }}
                 >
@@ -173,7 +179,7 @@ const Header = () => {
                 <motion.span
                   key={`green-${i}`}
                   variants={greenLetterAnimation}
-                  className="text-xl text-primary relative"
+                  className="text-xl text-primary dark:text-white relative"
                   style={{ display: "inline-block" }}
                 >
                   {letter}

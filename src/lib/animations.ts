@@ -1,4 +1,3 @@
-
 import { Variants } from "framer-motion";
 
 export const fadeIn: Variants = {
@@ -102,9 +101,9 @@ export const flagWaveAnimation = {
 
 // Animation variants for each letter in the Indian flag effect
 export const saffronLetterAnimation: Variants = {
-  initial: { color: "inherit" },
+  initial: { color: "#000000" },
   animate: {
-    color: ["inherit", "#FF9933", "#FF9933", "inherit"],
+    color: ["#000000", "#FF9933", "#FF9933", "#000000"],
     y: [0, -3, 0, 0],
     transition: {
       color: {
@@ -123,9 +122,9 @@ export const saffronLetterAnimation: Variants = {
 };
 
 export const whiteLetterAnimation: Variants = {
-  initial: { color: "inherit" },
+  initial: { color: "#000000" },
   animate: {
-    color: ["inherit", "#FFFFFF", "#FFFFFF", "inherit"],
+    color: ["#000000", "#FFFFFF", "#FFFFFF", "#000000"],
     y: [0, -2, 0, 0],
     transition: {
       color: {
@@ -145,9 +144,9 @@ export const whiteLetterAnimation: Variants = {
 };
 
 export const greenLetterAnimation: Variants = {
-  initial: { color: "inherit" },
+  initial: { color: "#000000" },
   animate: {
-    color: ["inherit", "#138808", "#138808", "inherit"],
+    color: ["#000000", "#138808", "#138808", "#000000"],
     y: [0, -3, 0, 0],
     transition: {
       color: {
