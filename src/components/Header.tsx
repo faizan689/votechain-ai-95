@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Moon, Sun, Shield } from "lucide-react";
+import { Moon, Sun, Shield, Check } from "lucide-react";
 import { 
   letterAnimation, 
   letterHover, 
@@ -102,8 +102,17 @@ const Header = () => {
                 initial={{ rotate: 0 }}
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, delay: 0.2 }}
+                className="relative"
               >
                 <Shield className="w-6 h-6 text-black dark:text-white" strokeWidth={2.5} />
+                <motion.div 
+                  className="absolute inset-0 flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.3, delay: 0.8 }}
+                >
+                  <Check className="w-3 h-3 text-black dark:text-white" strokeWidth={3} />
+                </motion.div>
               </motion.div>
             </motion.div>
           </motion.div>
