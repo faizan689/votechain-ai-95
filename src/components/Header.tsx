@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -9,7 +8,8 @@ import {
   saffronLetterAnimation, 
   whiteLetterAnimation, 
   greenLetterAnimation, 
-  flagWaveAnimation 
+  flagWaveAnimation,
+  logoTransition
 } from "@/lib/animations";
 
 const Header = () => {
@@ -76,66 +76,37 @@ const Header = () => {
     >
       <div className="container mx-auto px-6 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden bg-white dark:bg-transparent">
+          <motion.div 
+            className="w-10 h-10 flex items-center justify-center overflow-hidden rounded-lg"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ 
+              type: "spring", 
+              stiffness: 260, 
+              damping: 20,
+              delay: 0.1 
+            }}
+            whileHover={{ 
+              scale: 1.05,
+              transition: { duration: 0.2 } 
+            }}
+          >
             <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ 
-                type: "spring", 
-                stiffness: 260, 
-                damping: 20,
-                delay: 0.2 
-              }}
               className="w-full h-full relative"
+              variants={logoTransition}
+              animate={isDark ? "dark" : "light"}
             >
               <img 
                 src="/lovable-uploads/b3247747-899f-4284-b90c-573fff211d07.png" 
                 alt="VoteGuard Logo"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain drop-shadow-md"
+                style={{ 
+                  filter: `drop-shadow(0 2px 4px rgba(0,0,0,0.1))`,
+                }}
               />
-              {/* SVG filter for color adjustment in dark mode - white shield */}
-              <div className={`absolute inset-0 transition-opacity duration-300 ${isDark ? 'opacity-100' : 'opacity-0'}`}>
-                <svg width="0" height="0">
-                  <defs>
-                    <filter id="white-filter" colorInterpolationFilters="sRGB">
-                      <feColorMatrix
-                        type="matrix"
-                        values="1 0 0 0 1
-                                0 1 0 0 1
-                                0 0 1 0 1
-                                0 0 0 1 0"
-                      />
-                    </filter>
-                  </defs>
-                </svg>
-                <div 
-                  className="w-full h-full"
-                  style={{ filter: 'url(#white-filter)', mixBlendMode: 'overlay' }}
-                ></div>
-              </div>
-              
-              {/* Black shield in light mode */}
-              <div className={`absolute inset-0 transition-opacity duration-300 ${!isDark ? 'opacity-100' : 'opacity-0'}`}>
-                <svg width="0" height="0">
-                  <defs>
-                    <filter id="black-filter" colorInterpolationFilters="sRGB">
-                      <feColorMatrix
-                        type="matrix"
-                        values="0 0 0 0 0
-                                0 0 0 0 0
-                                0 0 0 0 0
-                                0 0 0 1 0"
-                      />
-                    </filter>
-                  </defs>
-                </svg>
-                <div 
-                  className="w-full h-full"
-                  style={{ filter: 'url(#black-filter)', mixBlendMode: 'normal' }}
-                ></div>
-              </div>
             </motion.div>
-          </div>
+          </motion.div>
+          
           <motion.div 
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
@@ -148,7 +119,6 @@ const Header = () => {
               initial="initial"
               animate="animate"
             >
-              {/* Saffron (orange) section */}
               {Array.from(saffronLetters).map((letter, i) => (
                 <motion.span
                   key={`saffron-${i}`}
@@ -160,7 +130,6 @@ const Header = () => {
                 </motion.span>
               ))}
               
-              {/* White section */}
               {Array.from(whiteLetters).map((letter, i) => (
                 <motion.span
                   key={`white-${i}`}
@@ -174,7 +143,6 @@ const Header = () => {
                 </motion.span>
               ))}
               
-              {/* Green section */}
               {Array.from(greenLetters).map((letter, i) => (
                 <motion.span
                   key={`green-${i}`}
@@ -219,7 +187,6 @@ const Header = () => {
         </nav>
         
         <div className="flex items-center gap-4">
-          {/* Admin Panel Icon */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -230,7 +197,6 @@ const Header = () => {
             <Shield size={18} />
           </motion.button>
           
-          {/* Dark Mode Toggle */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
