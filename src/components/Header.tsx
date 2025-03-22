@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -19,18 +18,15 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Toggle dark mode
   const toggleDarkMode = () => {
     setIsDark(!isDark);
     document.documentElement.classList.toggle("dark");
   };
   
-  // Navigate to admin panel
   const goToAdmin = () => {
     navigate('/admin');
   };
   
-  // Track scroll position for header styling
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -43,26 +39,22 @@ const Header = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  // Check for dark mode on component mount
+  
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains("dark");
     setIsDark(isDarkMode);
   }, []);
   
-  // Check if route is active
   const isActive = (path: string) => {
     return location.pathname === path;
   };
   
-  // Divide the text for Indian flag animation
   const voteText = "Vote";
   const guardText = "Guard";
   
-  // Split into tricolor sections
-  const saffronLetters = "Vo"; // First two letters for saffron
-  const whiteLetters = "teG";  // Middle four letters for white
-  const greenLetters = "uard"; // Last four letters for green
+  const saffronLetters = "Vo";
+  const whiteLetters = "teG";
+  const greenLetters = "uard";
   
   return (
     <motion.header 
