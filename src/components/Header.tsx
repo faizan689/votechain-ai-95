@@ -103,7 +103,7 @@ const Header = () => {
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1, delay: 0.2 }}
               >
-                <Shield className="w-6 h-6 text-primary" />
+                <Shield className="w-6 h-6 text-black dark:text-white" strokeWidth={2.5} />
               </motion.div>
             </motion.div>
           </motion.div>
