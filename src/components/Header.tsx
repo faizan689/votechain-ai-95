@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -77,7 +78,7 @@ const Header = () => {
       <div className="container mx-auto px-6 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <motion.div 
-            className="w-10 h-10 flex items-center justify-center overflow-hidden rounded-lg"
+            className="w-10 h-10 flex items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-orange-500 via-white to-green-600 shadow-md"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ 
@@ -88,22 +89,22 @@ const Header = () => {
             }}
             whileHover={{ 
               scale: 1.05,
+              boxShadow: "0 0 8px rgba(255,153,51,0.6)",
               transition: { duration: 0.2 } 
             }}
           >
             <motion.div
-              className="w-full h-full relative"
+              className="w-8 h-8 relative flex items-center justify-center"
               variants={logoTransition}
               animate={isDark ? "dark" : "light"}
             >
-              <img 
-                src="/lovable-uploads/b3247747-899f-4284-b90c-573fff211d07.png" 
-                alt="VoteGuard Logo"
-                className="w-full h-full object-contain drop-shadow-md"
-                style={{ 
-                  filter: `drop-shadow(0 2px 4px rgba(0,0,0,0.1))`,
-                }}
-              />
+              <motion.div
+                initial={{ rotate: 0 }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, delay: 0.2 }}
+              >
+                <Shield className="w-6 h-6 text-primary" />
+              </motion.div>
             </motion.div>
           </motion.div>
           
