@@ -122,7 +122,7 @@ router.post('/facial-verification', authenticateToken, async (req: any, res) => 
     
     // Get voter information from database
     const result = await req.db.query(
-      'SELECT name, district, has_voted FROM voters WHERE voter_id = $1',
+      'SELECT name, district, has_voted, facial_verification_attempts FROM voters WHERE voter_id = $1',
       [voterId]
     );
     
@@ -136,20 +136,59 @@ router.post('/facial-verification', authenticateToken, async (req: any, res) => 
       return res.status(403).json({ success: false, error: 'You have already cast your vote' });
     }
     
-    // In a real app, perform facial recognition here
-    // For demo purposes, always succeed
+    // Check if voter has exceeded maximum facial verification attempts
+    const maxAttempts = 3;
+    if (voter.facial_verification_attempts >= maxAttempts) {
+      return res.status(403).json({ 
+        success: false, 
+        error: `Maximum verification attempts (${maxAttempts}) exceeded. Please contact support.` 
+      });
+    }
     
-    // Return success response with voter information
-    return res.status(200).json({
-      success: true,
-      message: 'Facial verification successful',
-      voter: {
-        id: voterId,
-        name: voter.name,
-        district: voter.district,
-        hasVoted: voter.has_voted
-      }
-    });
+    // In a real application, perform facial recognition here
+    // For demo purposes, we'll simulate verification
+    
+    // Here we'll assume 90% success rate for demo
+    const isVerified = Math.random() < 0.9;
+    
+    if (isVerified) {
+      // Reset verification attempts on success
+      await req.db.query(
+        'UPDATE voters SET facial_verification_attempts = 0 WHERE voter_id = $1',
+        [voterId]
+      );
+      
+      // Return success response with voter information
+      return res.status(200).json({
+        success: true,
+        message: 'Facial verification successful',
+        voter: {
+          id: voterId,
+          name: voter.name,
+          district: voter.district,
+          hasVoted: voter.has_voted
+        }
+      });
+    } else {
+      // Increment verification attempts
+      await req.db.query(
+        'UPDATE voters SET facial_verification_attempts = facial_verification_attempts + 1 WHERE voter_id = $1',
+        [voterId]
+      );
+      
+      // Get updated attempts count
+      const updatedResult = await req.db.query(
+        'SELECT facial_verification_attempts FROM voters WHERE voter_id = $1',
+        [voterId]
+      );
+      
+      const attemptsLeft = maxAttempts - updatedResult.rows[0].facial_verification_attempts;
+      
+      return res.status(401).json({
+        success: false,
+        error: `Facial verification failed. ${attemptsLeft} attempts remaining.`
+      });
+    }
   } catch (error) {
     console.error('Error during facial verification:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });

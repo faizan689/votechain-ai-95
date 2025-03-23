@@ -4,28 +4,49 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { User, Lock, ChevronRight, AlertCircle } from "lucide-react";
 import CameraVerification from "./CameraVerification";
+import { authService } from "@/services/authService";
+import { toast } from "@/components/ui/use-toast";
 
 const AuthForm = () => {
   const [voterId, setVoterId] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [showCameraVerification, setShowCameraVerification] = useState(false);
   const navigate = useNavigate();
   
-  const handleSubmitVoterId = (e: React.FormEvent) => {
+  const handleSubmitVoterId = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!voterId) {
       setError("Please enter your Voter ID");
       return;
     }
     
-    // In a real app, we'd verify the voter ID and send OTP
+    setIsLoading(true);
     setError("");
-    setStep(2);
+    
+    try {
+      // Verify voter ID with the server
+      const response = await authService.verifyVoterId(voterId);
+      
+      if (response.success) {
+        toast({
+          title: "OTP Sent",
+          description: "A one-time password has been sent to your registered mobile number",
+        });
+        setStep(2);
+      } else {
+        setError(response.error || "Voter ID verification failed");
+      }
+    } catch (error: any) {
+      setError(error.message || "An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  const handleSubmitOTP = (e: React.FormEvent) => {
+  const handleSubmitOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp) {
       setError("Please enter the OTP");
@@ -37,9 +58,24 @@ const AuthForm = () => {
       return;
     }
     
-    // In a real app, we'd verify the OTP
+    setIsLoading(true);
     setError("");
-    setShowCameraVerification(true);
+    
+    try {
+      // Verify OTP with the server
+      const response = await authService.verifyOTP(voterId, otp);
+      
+      if (response.success) {
+        // Move to facial verification
+        setShowCameraVerification(true);
+      } else {
+        setError(response.error || "Invalid OTP. Please try again.");
+      }
+    } catch (error: any) {
+      setError(error.message || "An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   // Format voter ID as user types (XXX-XXX-XXX)
@@ -105,6 +141,7 @@ const AuthForm = () => {
                   placeholder="XXX-XXX-XXX"
                   className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all bg-background"
                   maxLength={11}
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -124,10 +161,17 @@ const AuthForm = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
+              disabled={isLoading}
               className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg px-4 py-2 hover:opacity-90 transition-all"
             >
-              <span>Continue</span>
-              <ChevronRight size={18} />
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <span>Continue</span>
+                  <ChevronRight size={18} />
+                </>
+              )}
             </motion.button>
           </motion.form>
         ) : (
@@ -155,6 +199,7 @@ const AuthForm = () => {
                   placeholder="6-digit OTP"
                   className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all bg-background"
                   maxLength={6}
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -175,6 +220,7 @@ const AuthForm = () => {
                 type="button" 
                 onClick={() => setStep(1)}
                 className="text-sm text-primary hover:underline"
+                disabled={isLoading}
               >
                 Back
               </button>
@@ -183,10 +229,17 @@ const AuthForm = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
+                disabled={isLoading}
                 className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg px-4 py-2 hover:opacity-90 transition-all"
               >
-                <span>Verify & Continue</span>
-                <ChevronRight size={18} />
+                {isLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <span>Verify & Continue</span>
+                    <ChevronRight size={18} />
+                  </>
+                )}
               </motion.button>
             </div>
           </motion.form>

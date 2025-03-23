@@ -3,6 +3,10 @@ import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Camera, Check, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { 
+  initFacialRecognition, 
+  processFacialVerification 
+} from "@/services/facialRecognitionService";
 
 type CameraVerificationProps = {
   onSuccess: () => void;
@@ -15,17 +19,42 @@ const CameraVerification = ({ onSuccess, onCancel }: CameraVerificationProps) =>
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<"idle" | "processing" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const navigate = useNavigate();
 
+  // Initialize facial recognition models
+  useEffect(() => {
+    async function loadModels() {
+      try {
+        setIsInitializing(true);
+        const success = await initFacialRecognition();
+        setModelsLoaded(success);
+        if (!success) {
+          setErrorMessage("Failed to initialize facial recognition. Please refresh the page and try again.");
+        }
+      } catch (error) {
+        console.error("Error loading facial recognition models:", error);
+        setErrorMessage("Failed to initialize facial recognition. Please refresh the page and try again.");
+      } finally {
+        setIsInitializing(false);
+      }
+    }
+
+    loadModels();
+  }, []);
+
   // Initialize camera on component mount
   useEffect(() => {
-    startCamera();
+    if (modelsLoaded) {
+      startCamera();
+    }
     return () => {
       stopCamera();
     };
-  }, []);
+  }, [modelsLoaded]);
 
   const startCamera = async () => {
     try {
@@ -79,16 +108,15 @@ const CameraVerification = ({ onSuccess, onCancel }: CameraVerificationProps) =>
     setIsCapturing(false);
   };
 
-  const verifyImage = () => {
-    if (!capturedImage) return;
+  const verifyImage = async () => {
+    if (!videoRef.current) return;
     
     setVerificationStatus("processing");
     
-    // Simulate verification process
-    setTimeout(() => {
-      const isSuccess = true; // In a real app, this would be the result of AI verification
+    try {
+      const result = await processFacialVerification(videoRef.current);
       
-      if (isSuccess) {
+      if (result.success) {
         setVerificationStatus("success");
         // Wait a moment to show success before proceeding
         setTimeout(() => {
@@ -96,9 +124,13 @@ const CameraVerification = ({ onSuccess, onCancel }: CameraVerificationProps) =>
         }, 1500);
       } else {
         setVerificationStatus("error");
-        setErrorMessage("Verification failed. Please try again.");
+        setErrorMessage(result.message);
       }
-    }, 2000);
+    } catch (error) {
+      console.error("Error during verification:", error);
+      setVerificationStatus("error");
+      setErrorMessage("Verification failed. Please try again.");
+    }
   };
 
   const retakePhoto = () => {
@@ -106,6 +138,45 @@ const CameraVerification = ({ onSuccess, onCancel }: CameraVerificationProps) =>
     setVerificationStatus("idle");
     setErrorMessage("");
   };
+
+  if (isInitializing) {
+    return (
+      <div className="w-full max-w-md mx-auto">
+        <div className="glass border border-border rounded-2xl p-6 overflow-hidden flex flex-col items-center justify-center py-12">
+          <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+          <h2 className="text-xl font-display font-semibold mb-2 text-center">
+            Initializing Facial Recognition
+          </h2>
+          <p className="text-sm text-muted-foreground text-center">
+            Please wait while we load the facial recognition models...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!modelsLoaded) {
+    return (
+      <div className="w-full max-w-md mx-auto">
+        <div className="glass border border-border rounded-2xl p-6 overflow-hidden">
+          <h2 className="text-xl font-display font-semibold mb-4 text-center text-destructive">
+            Facial Recognition Failed to Initialize
+          </h2>
+          <p className="text-sm text-muted-foreground mb-6 text-center">
+            We couldn't load the required facial recognition models. Please check your internet connection and try again.
+          </p>
+          <div className="flex justify-center">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 rounded-lg border border-border"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-md mx-auto">
