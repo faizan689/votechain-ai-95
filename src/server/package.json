@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only index.ts",
     "init-db": "ts-node db/init-db.ts",
-    "postinstall": "npm run build"
+    "postinstall": "npm run build",
+    "install-deps": "npm install"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
