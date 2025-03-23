@@ -1,6 +1,6 @@
 
 import express from 'express';
-import { generateOTP, verifyVoterExists, hashPassword, comparePassword } from '../utils/auth';
+import { generateOTP, verifyVoterExists, hashPassword, comparePassword, generateToken } from '../utils/auth';
 import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
