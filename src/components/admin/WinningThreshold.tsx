@@ -1,61 +1,43 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Target, Trophy, Percent, TrendingUp } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Trophy, Settings, Check, Info } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ChartContainer } from "@/components/ui/chart";
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
-
-const partyColors = {
-  bjp: "#FF9933",
-  inc: "#0078D7",
-  aap: "#019934",
-  nota: "#6B7280",
-};
-
-const currentResults = [
-  { name: "BJP", value: 125000, color: partyColors.bjp },
-  { name: "INC", value: 104000, color: partyColors.inc },
-  { name: "AAP", value: 68000, color: partyColors.aap },
-  { name: "NOTA", value: 19000, color: partyColors.nota },
-];
-
-const totalVotes = currentResults.reduce((sum, item) => sum + item.value, 0);
-const totalRegisteredVoters = 854291;
-const votesCast = totalVotes;
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { useQuery } from "@tanstack/react-query";
+import { adminService } from "@/services/adminService";
 
 const WinningThreshold = () => {
-  const calculateLeadingMargin = () => {
-    const sortedResults = [...currentResults].sort((a, b) => b.value - a.value);
-    const leadingParty = sortedResults[0];
-    const secondParty = sortedResults[1];
-    
-    return {
-      party: leadingParty.name,
-      votes: leadingParty.value,
-      margin: leadingParty.value - secondParty.value,
-      marginPercent: ((leadingParty.value - secondParty.value) / votesCast * 100).toFixed(2),
-      color: leadingParty.color
-    };
-  };
+  const [threshold, setThreshold] = useState(50);
+  const [customThreshold, setCustomThreshold] = useState(false);
   
-  const leadingData = calculateLeadingMargin();
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['adminStats'],
+    queryFn: adminService.getElectionStats,
+  });
   
-  // Majority threshold is 50% of votes cast + 1
-  const majorityThreshold = Math.floor(votesCast / 2) + 1;
-  const remainingForMajority = Math.max(0, majorityThreshold - leadingData.votes);
+  const stats = data?.stats;
   
-  // If no one has majority, calculate what's needed to reach it
-  const needsForMajority = remainingForMajority > 0 
-    ? { votes: remainingForMajority, percent: (remainingForMajority / votesCast * 100).toFixed(2) }
-    : null;
-
-  // Calculate percentages for each party
-  const resultsWithPercentage = currentResults.map(result => ({
-    ...result,
-    percentage: ((result.value / votesCast) * 100).toFixed(2)
-  }));
+  const leadingParty = stats?.partywiseVotes?.[0];
+  const secondParty = stats?.partywiseVotes?.[1];
+  
+  const voteGap = leadingParty && secondParty 
+    ? leadingParty.votes - secondParty.votes
+    : 0;
+  
+  const percentageNeeded = 
+    stats?.totalRegisteredVoters && stats?.totalVotesCast
+      ? Math.ceil((threshold / 100) * stats.totalRegisteredVoters - stats.totalVotesCast)
+      : 0;
+  
+  const votesNeededToWin = 
+    leadingParty && secondParty
+      ? secondParty.votes > 0 
+        ? Math.max(0, secondParty.votes - leadingParty.votes + 1)
+        : 0
+      : 0;
 
   return (
     <motion.div
@@ -64,169 +46,193 @@ const WinningThreshold = () => {
       transition={{ duration: 0.5 }}
       className="space-y-6"
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
+      <div className="flex flex-col md:flex-row gap-6">
+        <Card className="w-full md:w-2/3">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-primary" />
-              Majority Threshold
+              <Trophy className="h-5 w-5 text-primary" />
+              Winning Threshold Analysis
             </CardTitle>
             <CardDescription>
-              Votes needed to secure a majority
+              Track votes needed to achieve victory
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{majorityThreshold.toLocaleString()}</div>
-            <div className="text-sm text-muted-foreground mt-1">
-              {(majorityThreshold / votesCast * 100).toFixed(2)}% of total votes cast
-            </div>
-            
-            <div className="mt-6 space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <div className="text-sm font-medium">{leadingData.party} (Current lead)</div>
-                  <div className="text-sm text-muted-foreground">
-                    {leadingData.votes.toLocaleString()} votes ({(leadingData.votes / votesCast * 100).toFixed(2)}%)
+          <CardContent className="space-y-6">
+            {isLoading ? (
+              <div className="flex justify-center p-6">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              </div>
+            ) : error ? (
+              <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+                <p>Failed to load threshold data</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium mb-2">Current Vote Gap</h3>
+                    <div className="text-3xl font-bold">{voteGap.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Between leading and second party
+                    </p>
+                  </div>
+                  
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium mb-2">Votes Needed to Win</h3>
+                    <div className="text-3xl font-bold">
+                      {votesNeededToWin === 0 
+                        ? <span className="flex items-center text-green-600">
+                            <Check className="mr-1 h-5 w-5" /> Leading
+                          </span>
+                        : votesNeededToWin.toLocaleString()
+                      }
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      To overtake the current leader
+                    </p>
                   </div>
                 </div>
-                <Progress 
-                  value={(leadingData.votes / majorityThreshold) * 100} 
-                  className="h-2"
-                  style={{ backgroundColor: 'rgba(100, 100, 100, 0.2)' }}
-                />
-              </div>
-
-              <div className="bg-secondary/30 p-4 rounded-lg">
-                {needsForMajority ? (
-                  <>
-                    <div className="text-sm font-medium mb-2">Votes needed for majority</div>
-                    <div className="flex items-baseline">
-                      <div className="text-xl font-bold">{needsForMajority.votes.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground ml-2">
-                        additional votes ({needsForMajority.percent}%)
-                      </div>
+                
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-sm font-medium">Threshold Percentage</h3>
+                    <span className="bg-secondary px-2 py-1 rounded text-xs font-medium">
+                      {threshold}%
+                    </span>
+                  </div>
+                  <Slider
+                    value={[threshold]}
+                    min={1}
+                    max={100}
+                    step={1}
+                    onValueChange={(values) => setThreshold(values[0])}
+                    disabled={!customThreshold}
+                  />
+                  <div className="flex justify-between mt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => { 
+                        setCustomThreshold(false); 
+                        setThreshold(50); 
+                      }}
+                      className={!customThreshold ? "bg-primary/20" : ""}
+                    >
+                      Simple Majority (50%)
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => { 
+                        setCustomThreshold(false); 
+                        setThreshold(67); 
+                      }}
+                      className={!customThreshold && threshold === 67 ? "bg-primary/20" : ""}
+                    >
+                      Super Majority (67%)
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setCustomThreshold(true)}
+                      className={customThreshold ? "bg-primary/20" : ""}
+                    >
+                      Custom
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="bg-muted/30 p-4 rounded-lg space-y-4">
+                  <h3 className="text-sm font-medium">Threshold Analysis</h3>
+                  
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span>Current Turnout</span>
+                      <span>{stats?.voterTurnoutPercentage.toFixed(1)}%</span>
                     </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-sm font-medium mb-2">Majority already secured</div>
-                    <div className="flex items-center text-green-600">
-                      <Trophy className="h-4 w-4 mr-2" />
-                      <span className="text-xl font-bold">{leadingData.party}</span>
+                    <Progress value={stats?.voterTurnoutPercentage} className="h-2" />
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span>Target Threshold</span>
+                      <span>{threshold}%</span>
                     </div>
-                  </>
-                )}
-              </div>
-            </div>
+                    <Progress value={threshold} className="h-2" />
+                  </div>
+                  
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-sm font-medium">Additional Votes Needed</h4>
+                      <p className="text-xs text-muted-foreground">
+                        To reach {threshold}% threshold
+                      </p>
+                    </div>
+                    <div className="text-xl font-bold">
+                      {percentageNeeded > 0 
+                        ? percentageNeeded.toLocaleString() 
+                        : <span className="flex items-center text-green-600 text-sm">
+                            <Check className="mr-1 h-4 w-4" /> Threshold Reached
+                          </span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="w-full md:w-1/3">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Percent className="h-5 w-5 text-primary" />
-              Current Vote Share
+              <Settings className="h-5 w-5 text-primary" />
+              Threshold Settings
             </CardTitle>
             <CardDescription>
-              Distribution of votes by percentage
+              Configure winning conditions
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-[320px] flex items-center justify-center">
-            <ChartContainer 
-              config={{ 
-                bjp: { color: partyColors.bjp },
-                inc: { color: partyColors.inc },
-                aap: { color: partyColors.aap },
-                nota: { color: partyColors.nota } 
-              }} 
-              className="h-full"
-            >
-              <PieChart>
-                <Pie
-                  data={resultsWithPercentage}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={90}
-                  paddingAngle={2}
-                  dataKey="value"
-                  nameKey="name"
-                  label={({ name, percentage }) => `${name}: ${percentage}%`}
-                  labelLine={true}
-                >
-                  {resultsWithPercentage.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value: number) => [`${value.toLocaleString()} votes (${((value / votesCast) * 100).toFixed(2)}%)`, 'Votes']}
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="font-medium">Victory Type</div>
+                <select className="bg-background border border-input rounded-md px-2 py-1 text-sm">
+                  <option>First Past the Post</option>
+                  <option>Absolute Majority</option>
+                  <option>Qualified Majority</option>
+                </select>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="font-medium">Minimum Voter Turnout</div>
+                <Slider
+                  value={[40]}
+                  min={0}
+                  max={100}
+                  step={5}
+                  disabled
                 />
-                <Legend />
-              </PieChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Leading Margin
-            </CardTitle>
-            <CardDescription>
-              Current lead and victory projection
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-4">
-              <div
-                className="inline-flex items-center justify-center w-20 h-20 rounded-full text-2xl font-bold"
-                style={{ 
-                  backgroundColor: `${leadingData.color}20`,
-                  color: leadingData.color
-                }}
-              >
-                {leadingData.party}
-              </div>
-              
-              <div className="mt-4">
-                <div className="text-2xl font-bold">{leadingData.votes.toLocaleString()}</div>
-                <div className="text-sm text-muted-foreground">Total votes</div>
-              </div>
-            </div>
-            
-            <div className="space-y-4 mt-4">
-              <div className="p-4 bg-secondary/30 rounded-lg">
-                <div className="text-sm font-medium mb-1">Current lead</div>
-                <div className="flex items-baseline">
-                  <div className="text-xl font-bold">{leadingData.margin.toLocaleString()}</div>
-                  <div className="text-sm text-muted-foreground ml-2">
-                    votes ({leadingData.marginPercent}%)
-                  </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>0%</span>
+                  <span>40%</span>
+                  <span>100%</span>
                 </div>
               </div>
               
-              <div className="p-4 bg-secondary/30 rounded-lg">
-                <div className="text-sm font-medium mb-1">Votes remaining to count</div>
-                <div className="flex items-baseline">
-                  <div className="text-xl font-bold">
-                    {(totalRegisteredVoters - votesCast).toLocaleString()}
-                  </div>
-                  <div className="text-sm text-muted-foreground ml-2">
-                    potential votes
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-4 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
-                <div className="text-sm font-medium mb-1">Victory prediction</div>
-                <div className="flex items-center">
-                  <Trophy className="h-4 w-4 mr-2" />
-                  <span>{leadingData.party} – 92% probability</span>
+              <div className="pt-4 border-t border-border">
+                <div className="bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 p-3 rounded-md flex items-start gap-2 text-sm">
+                  <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  <p>
+                    In First Past the Post elections, a candidate needs only a plurality of votes (more than any other) to win.
+                  </p>
                 </div>
               </div>
             </div>
           </CardContent>
+          <CardFooter className="flex justify-end">
+            <Button disabled>Save Settings</Button>
+          </CardFooter>
         </Card>
       </div>
     </motion.div>
