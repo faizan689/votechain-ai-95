@@ -39,7 +39,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
       setIsLoading(false);
       toast.success('OTP verified successfully!');
       localStorage.setItem('isVerified', 'true');
-      navigate('/vote');
+      navigate('/voting'); // Changed from /vote to /voting
     }, 1000);
   };
 
