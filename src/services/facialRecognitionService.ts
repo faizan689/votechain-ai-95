@@ -10,6 +10,7 @@ let faceLandmarksDetector: faceLandmarksDetection.FaceLandmarksDetector | null =
 
 // Face detection configurations
 const FACE_DETECTION_CONFIG = {
+  runtime: 'tfjs' as const,
   modelType: 'short' as const,
   minDetectionConfidence: 0.5
 };
@@ -130,10 +131,11 @@ export async function processFacialVerification(videoElement: HTMLVideoElement):
     // Get image data as base64 string
     const imageData = canvas.toDataURL('image/jpeg', 0.8);
     
-    // 4. Send to server for verification
-    const verificationResult = await authService.facialVerification(imageData);
+    // 4. In this version without a backend, we'll simulate verification locally
+    // Simulate 90% success rate for demo purposes
+    const isVerified = Math.random() < 0.9;
     
-    if (verificationResult.success) {
+    if (isVerified) {
       return {
         success: true,
         message: 'Facial verification successful'
@@ -141,7 +143,7 @@ export async function processFacialVerification(videoElement: HTMLVideoElement):
     } else {
       return {
         success: false,
-        message: verificationResult.error || 'Facial verification failed'
+        message: 'Facial verification failed. Please try again.'
       };
     }
   } catch (error) {

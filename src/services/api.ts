@@ -1,10 +1,7 @@
 
 /**
- * API utilities for the VoteGuard application
+ * API utilities for the VoteGuard application (mock implementation)
  */
-
-// Base API configuration
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 // Storage keys
 export const TOKEN_STORAGE_KEY = "voteguard_auth_token";
@@ -40,41 +37,170 @@ export function removeAdminToken(): void {
   localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
 }
 
-// API request helper
+// Mock API request helper
 export async function apiRequest<T>(
   endpoint: string,
   method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
   data?: any,
   isAdmin: boolean = false
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  // For a frontend-only app, we'll simulate API responses
+  console.log(`Mock API request: ${method} ${endpoint}`, data);
   
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
+  // Add a small delay to simulate network latency
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Return mock data based on the endpoint
+  return mockApiResponses(endpoint, method, data) as T;
+}
+
+// Mock API responses
+function mockApiResponses(endpoint: string, method: string, data?: any): any {
+  // Simulate different API endpoints
+  if (endpoint === '/auth/verify-voter-id' && method === 'POST') {
+    return {
+      success: true,
+      message: 'OTP sent to registered mobile number'
+    };
+  }
+  
+  if (endpoint === '/auth/verify-otp' && method === 'POST') {
+    return {
+      success: true,
+      message: 'OTP verified successfully',
+      token: 'mock-jwt-token-' + Math.random().toString(36).substring(2)
+    };
+  }
+  
+  if (endpoint === '/voting/parties' && method === 'GET') {
+    return {
+      success: true,
+      parties: [
+        {
+          id: 'PTY-001',
+          name: 'Progressive Alliance',
+          symbol: 'Star',
+          color: '#1E88E5',
+          logoPath: '/logos/progressive-alliance.png'
+        },
+        {
+          id: 'PTY-002',
+          name: 'Conservative Union',
+          symbol: 'Tree',
+          color: '#43A047',
+          logoPath: '/logos/conservative-union.png'
+        },
+        {
+          id: 'PTY-003',
+          name: 'Liberty Party',
+          symbol: 'Eagle',
+          color: '#FDD835',
+          logoPath: '/logos/liberty-party.png'
+        },
+        {
+          id: 'PTY-004',
+          name: 'National Front',
+          symbol: 'Lion',
+          color: '#F4511E',
+          logoPath: '/logos/national-front.png'
+        },
+        {
+          id: 'PTY-005',
+          name: 'Unity Coalition',
+          symbol: 'Handshake',
+          color: '#8E24AA',
+          logoPath: '/logos/unity-coalition.png'
+        }
+      ]
+    };
+  }
+  
+  if (endpoint === '/voting/cast-vote' && method === 'POST') {
+    return {
+      success: true,
+      message: 'Vote cast successfully',
+      transactionId: 'tx-' + Math.random().toString(36).substring(2)
+    };
+  }
+  
+  if (endpoint === '/admin/stats' && method === 'GET') {
+    return {
+      success: true,
+      stats: {
+        totalRegisteredVoters: 5000,
+        totalVotesCast: 3245,
+        voterTurnoutPercentage: 64.9,
+        partywiseVotes: [
+          {
+            partyId: 'PTY-001',
+            partyName: 'Progressive Alliance',
+            votes: 1245,
+            percentage: 38.4
+          },
+          {
+            partyId: 'PTY-002',
+            partyName: 'Conservative Union',
+            votes: 987,
+            percentage: 30.4
+          },
+          {
+            partyId: 'PTY-003',
+            partyName: 'Liberty Party',
+            votes: 568,
+            percentage: 17.5
+          },
+          {
+            partyId: 'PTY-004',
+            partyName: 'National Front',
+            votes: 312,
+            percentage: 9.6
+          },
+          {
+            partyId: 'PTY-005',
+            partyName: 'Unity Coalition',
+            votes: 133,
+            percentage: 4.1
+          }
+        ],
+        districtWiseTurnout: [
+          {
+            district: 'North District',
+            totalVoters: 1200,
+            votesCast: 876,
+            turnout: 73.0
+          },
+          {
+            district: 'South District',
+            totalVoters: 980,
+            votesCast: 654,
+            turnout: 66.7
+          },
+          {
+            district: 'East District',
+            totalVoters: 1100,
+            votesCast: 712,
+            turnout: 64.7
+          },
+          {
+            district: 'West District',
+            totalVoters: 920,
+            votesCast: 543,
+            turnout: 59.0
+          },
+          {
+            district: 'Central District',
+            totalVoters: 800,
+            votesCast: 460,
+            turnout: 57.5
+          }
+        ]
+      }
+    };
+  }
+  
+  // Default response for unhandled endpoints
+  return {
+    success: false,
+    error: 'Endpoint not implemented in mock API'
   };
-  
-  // Add auth token if available
-  const token = isAdmin ? getAdminToken() : getAuthToken();
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  
-  try {
-    const response = await fetch(url, {
-      method,
-      headers,
-      body: data ? JSON.stringify(data) : undefined,
-    });
-    
-    const responseData = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(responseData.error || "Something went wrong");
-    }
-    
-    return responseData as T;
-  } catch (error) {
-    console.error(`API ${method} request failed:`, error);
-    throw error;
-  }
 }

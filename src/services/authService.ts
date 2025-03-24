@@ -33,14 +33,28 @@ export const authService = {
   },
   
   /**
-   * Perform facial verification
+   * Perform facial verification (mock implementation)
    */
   facialVerification: async (imageData: string): Promise<VoterVerificationResponse> => {
-    return await apiRequest<VoterVerificationResponse>(
-      '/auth/facial-verification',
-      "POST",
-      { imageData },
-      false // Use voter token
-    );
+    // For a frontend-only app, we'll simulate verification with a 90% success rate
+    const isVerified = Math.random() < 0.9;
+    
+    if (isVerified) {
+      return {
+        success: true,
+        message: 'Facial verification successful',
+        voter: {
+          id: 'VOTER-' + Math.random().toString(36).substring(2),
+          name: 'John Doe',
+          district: 'Central District',
+          hasVoted: false
+        }
+      };
+    } else {
+      return {
+        success: false,
+        error: 'Facial verification failed. Please try again.'
+      };
+    }
   }
 };

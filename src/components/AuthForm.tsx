@@ -1,251 +1,102 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
+import { Label } from './ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from './ui/input-otp';
+import { RotateCw } from 'lucide-react';
+import { toast } from 'sonner';
+import { initFacialRecognition } from '@/services/facialRecognitionService';
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import { User, Lock, ChevronRight, AlertCircle } from "lucide-react";
-import CameraVerification from "./CameraVerification";
-import { authService } from "@/services/authService";
-import { toast } from "@/components/ui/use-toast";
+interface AuthFormProps {
+  onVerificationSuccess?: () => void;
+}
 
-const AuthForm = () => {
-  const [voterId, setVoterId] = useState("");
-  const [otp, setOtp] = useState("");
-  const [step, setStep] = useState(1);
-  const [error, setError] = useState("");
+const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
+  const [voterId, setVoterId] = useState('');
+  const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showCameraVerification, setShowCameraVerification] = useState(false);
+  const [isOTPSent, setIsOTPSent] = useState(false);
   const navigate = useNavigate();
-  
-  const handleSubmitVoterId = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!voterId) {
-      setError("Please enter your Voter ID");
-      return;
-    }
-    
+
+  const handleVoterIdSubmit = async () => {
     setIsLoading(true);
-    setError("");
-    
-    try {
-      // Verify voter ID with the server
-      const response = await authService.verifyVoterId(voterId);
-      
-      if (response.success) {
-        toast({
-          title: "OTP Sent",
-          description: "A one-time password has been sent to your registered mobile number",
-        });
-        setStep(2);
-      } else {
-        setError(response.error || "Voter ID verification failed");
-      }
-    } catch (error: any) {
-      setError(error.message || "An error occurred. Please try again.");
-    } finally {
+    // Simulate API call
+    setTimeout(() => {
+      setIsOTPSent(true);
       setIsLoading(false);
-    }
-  };
-  
-  const handleSubmitOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!otp) {
-      setError("Please enter the OTP");
-      return;
-    }
-    
-    if (otp.length !== 6) {
-      setError("OTP must be 6 digits");
-      return;
-    }
-    
-    setIsLoading(true);
-    setError("");
-    
-    try {
-      // Verify OTP with the server
-      const response = await authService.verifyOTP(voterId, otp);
-      
-      if (response.success) {
-        // Move to facial verification
-        setShowCameraVerification(true);
-      } else {
-        setError(response.error || "Invalid OTP. Please try again.");
-      }
-    } catch (error: any) {
-      setError(error.message || "An error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Format voter ID as user types (XXX-XXX-XXX)
-  const handleVoterIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^A-Za-z0-9]/g, "");
-    let formattedValue = "";
-    
-    for (let i = 0; i < value.length && i < 10; i++) {
-      if (i === 3 || i === 6) {
-        formattedValue += "-";
-      }
-      formattedValue += value[i];
-    }
-    
-    setVoterId(formattedValue);
+      toast.success('OTP sent successfully!');
+    }, 1000);
   };
 
-  const handleVerificationSuccess = () => {
-    navigate("/voting");
+  const handleOTPVerification = async () => {
+    setIsLoading(true);
+    // Simulate API call
+    setTimeout(() => {
+      setIsLoading(false);
+      toast.success('OTP verified successfully!');
+      localStorage.setItem('isVerified', 'true');
+      navigate('/vote');
+    }, 1000);
   };
-  
-  const handleVerificationCancel = () => {
-    setShowCameraVerification(false);
-  };
-  
-  if (showCameraVerification) {
-    return (
-      <CameraVerification 
-        onSuccess={handleVerificationSuccess}
-        onCancel={handleVerificationCancel}
-      />
-    );
-  }
-  
+
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="glass border border-border rounded-2xl p-8 md:p-10">
-        <h2 className="text-2xl font-display font-semibold mb-6 text-center">
-          {step === 1 ? "Voter Authentication" : "Enter OTP"}
-        </h2>
-        
-        {step === 1 ? (
-          <motion.form 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onSubmit={handleSubmitVoterId}
-            className="space-y-6"
-          >
+    <Card className="w-[350px]">
+      <CardHeader>
+        <CardTitle>Authentication</CardTitle>
+        <CardDescription>Enter your Voter ID and OTP to proceed.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="voterId" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="voterId">Voter ID</TabsTrigger>
+            <TabsTrigger value="otp" disabled={!isOTPSent}>OTP</TabsTrigger>
+          </TabsList>
+          <TabsContent value="voterId">
             <div className="space-y-2">
-              <label htmlFor="voterId" className="text-sm font-medium">
-                Voter ID
-              </label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  <User size={18} />
-                </div>
-                <input
-                  id="voterId"
-                  type="text"
-                  value={voterId}
-                  onChange={handleVoterIdChange}
-                  placeholder="XXX-XXX-XXX"
-                  className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all bg-background"
-                  maxLength={11}
-                  disabled={isLoading}
-                />
-              </div>
+              <Label htmlFor="voterId">Voter ID</Label>
+              <Input
+                id="voterId"
+                placeholder="Enter your Voter ID"
+                value={voterId}
+                onChange={(e) => setVoterId(e.target.value)}
+              />
             </div>
-            
-            {error && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2 text-destructive text-sm"
-              >
-                <AlertCircle size={16} />
-                <span>{error}</span>
-              </motion.div>
-            )}
-            
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg px-4 py-2 hover:opacity-90 transition-all"
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  <span>Continue</span>
-                  <ChevronRight size={18} />
-                </>
-              )}
-            </motion.button>
-          </motion.form>
-        ) : (
-          <motion.form 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onSubmit={handleSubmitOTP}
-            className="space-y-6"
-          >
+            <CardFooter className="justify-between">
+              <Button variant="link">Forgot Voter ID?</Button>
+              <Button onClick={handleVoterIdSubmit} disabled={isLoading}>
+                {isLoading ? <RotateCw className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Send OTP
+              </Button>
+            </CardFooter>
+          </TabsContent>
+          <TabsContent value="otp">
             <div className="space-y-2">
-              <label htmlFor="otp" className="text-sm font-medium">
-                Enter the OTP sent to your registered mobile
-              </label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  <Lock size={18} />
-                </div>
-                <input
-                  id="otp"
-                  type="text"
-                  inputMode="numeric"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="6-digit OTP"
-                  className="w-full pl-10 pr-4 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all bg-background"
-                  maxLength={6}
-                  disabled={isLoading}
-                />
-              </div>
+              <Label htmlFor="otp">OTP Code</Label>
+              <InputOTPGroup>
+                <InputOTPSlot>
+                  <InputOTP
+                    id="otp"
+                    placeholder="Enter OTP"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                  />
+                </InputOTPSlot>
+              </InputOTPGroup>
             </div>
-            
-            {error && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2 text-destructive text-sm"
-              >
-                <AlertCircle size={16} />
-                <span>{error}</span>
-              </motion.div>
-            )}
-            
-            <div className="flex items-center justify-between">
-              <button 
-                type="button" 
-                onClick={() => setStep(1)}
-                className="text-sm text-primary hover:underline"
-                disabled={isLoading}
-              >
-                Back
-              </button>
-              
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                disabled={isLoading}
-                className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg px-4 py-2 hover:opacity-90 transition-all"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <span>Verify & Continue</span>
-                    <ChevronRight size={18} />
-                  </>
-                )}
-              </motion.button>
-            </div>
-          </motion.form>
-        )}
-      </div>
-    </div>
+            <CardFooter className="justify-between">
+              <Button variant="link">Resend OTP</Button>
+              <Button onClick={handleOTPVerification} disabled={isLoading}>
+                {isLoading ? <RotateCw className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Verify OTP
+              </Button>
+            </CardFooter>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };
 
