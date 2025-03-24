@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
@@ -75,16 +76,13 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
           <TabsContent value="otp">
             <div className="space-y-2">
               <Label htmlFor="otp">OTP Code</Label>
-              <InputOTPGroup>
-                <InputOTPSlot>
-                  <InputOTP
-                    id="otp"
-                    placeholder="Enter OTP"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                  />
-                </InputOTPSlot>
-              </InputOTPGroup>
+              <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                <InputOTPGroup>
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <InputOTPSlot key={index} index={index} />
+                  ))}
+                </InputOTPGroup>
+              </InputOTP>
             </div>
             <CardFooter className="justify-between">
               <Button variant="link">Resend OTP</Button>
