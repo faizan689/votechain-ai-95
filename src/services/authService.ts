@@ -29,6 +29,14 @@ export const authService = {
       setAuthToken(response.token);
     }
     
+    // Check if the user is an admin (in a real app, this would come from the backend)
+    // For demo purposes, we'll set a specific voter ID as an admin
+    if (voterId === 'ADMIN123') {
+      localStorage.setItem('isAdmin', 'true');
+    } else {
+      localStorage.setItem('isAdmin', 'false');
+    }
+    
     return response;
   },
   
@@ -56,5 +64,21 @@ export const authService = {
         error: 'Facial verification failed. Please try again.'
       };
     }
+  },
+  
+  /**
+   * Check if user is admin
+   */
+  isAdmin: (): boolean => {
+    return localStorage.getItem('isAdmin') === 'true';
+  },
+  
+  /**
+   * Log out the user
+   */
+  logout: (): void => {
+    localStorage.removeItem('isVerified');
+    localStorage.removeItem('isAdmin');
+    setAuthToken('');
   }
 };

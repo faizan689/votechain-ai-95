@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Header from "@/components/Header";
@@ -12,15 +12,33 @@ import ElectionStatistics from "@/components/admin/ElectionStatistics";
 import FraudDetection from "@/components/admin/FraudDetection";
 import Reports from "@/components/admin/Reports";
 import AdminHeader from "@/components/admin/AdminHeader";
+import { Navigate } from "react-router-dom";
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("turnout");
+  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  // Check if user is authorized on component mount
+  useEffect(() => {
+    const checkAuth = () => {
+      // Check if user has admin role
+      const isAdmin = localStorage.getItem("isAdmin") === "true";
+      setIsAuthorized(isAdmin);
+    };
+
+    checkAuth();
+  }, []);
+
+  // If not authorized, redirect to home page
+  if (!isAuthorized) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
-      <main className="flex-grow py-8">
+      <main className="flex-grow py-8 mt-20">
         <div className="container mx-auto px-4">
           <AdminHeader />
           

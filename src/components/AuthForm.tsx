@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from './ui/input-otp';
 import { RotateCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { initFacialRecognition } from '@/services/facialRecognitionService';
+import { authService } from '@/services/authService';
 
 interface AuthFormProps {
   onVerificationSuccess?: () => void;
@@ -20,27 +20,59 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOTPSent, setIsOTPSent] = useState(false);
+  const [activeTab, setActiveTab] = useState("voterId");
   const navigate = useNavigate();
 
   const handleVoterIdSubmit = async () => {
+    if (!voterId.trim()) {
+      toast.error('Please enter a valid Voter ID');
+      return;
+    }
+
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsOTPSent(true);
+    
+    try {
+      // Simulate API call - in a real app, use authService.verifyVoterId
+      setTimeout(() => {
+        setIsOTPSent(true);
+        setActiveTab("otp");
+        setIsLoading(false);
+        toast.success('OTP sent successfully!');
+      }, 1000);
+    } catch (error) {
       setIsLoading(false);
-      toast.success('OTP sent successfully!');
-    }, 1000);
+      toast.error('Failed to send OTP. Please try again.');
+    }
   };
 
   const handleOTPVerification = async () => {
+    if (otp.length < 6) {
+      toast.error('Please enter a valid 6-digit OTP');
+      return;
+    }
+
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    
+    try {
+      // Simulate API call - in a real app, use authService.verifyOTP
+      setTimeout(() => {
+        setIsLoading(false);
+        toast.success('OTP verified successfully!');
+        
+        // Special case for admin login
+        if (voterId === 'ADMIN123') {
+          localStorage.setItem('isAdmin', 'true');
+          navigate('/admin');
+        } else {
+          localStorage.setItem('isAdmin', 'false');
+          localStorage.setItem('isVerified', 'true');
+          navigate('/voting');
+        }
+      }, 1000);
+    } catch (error) {
       setIsLoading(false);
-      toast.success('OTP verified successfully!');
-      localStorage.setItem('isVerified', 'true');
-      navigate('/voting'); // Changed from /vote to /voting
-    }, 1000);
+      toast.error('OTP verification failed. Please try again.');
+    }
   };
 
   return (
@@ -50,7 +82,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
         <CardDescription>Enter your Voter ID and OTP to proceed.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="voterId" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
             <TabsTrigger value="voterId">Voter ID</TabsTrigger>
             <TabsTrigger value="otp" disabled={!isOTPSent}>OTP</TabsTrigger>
@@ -64,8 +96,11 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
                 value={voterId}
                 onChange={(e) => setVoterId(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                For admin access, use: ADMIN123
+              </p>
             </div>
-            <CardFooter className="justify-between">
+            <CardFooter className="justify-between pt-4 px-0">
               <Button variant="link">Forgot Voter ID?</Button>
               <Button onClick={handleVoterIdSubmit} disabled={isLoading}>
                 {isLoading ? <RotateCw className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -78,14 +113,14 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
               <Label htmlFor="otp">OTP Code</Label>
               <InputOTP maxLength={6} value={otp} onChange={setOtp}>
                 <InputOTPGroup>
-                  {Array.from({ length: 6 }).map((_, index) => (
-                    <InputOTPSlot key={index} index={index} />
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <InputOTPSlot key={i} index={i} />
                   ))}
                 </InputOTPGroup>
               </InputOTP>
             </div>
-            <CardFooter className="justify-between">
-              <Button variant="link">Resend OTP</Button>
+            <CardFooter className="justify-between pt-4 px-0">
+              <Button variant="link" onClick={() => handleVoterIdSubmit()}>Resend OTP</Button>
               <Button onClick={handleOTPVerification} disabled={isLoading}>
                 {isLoading ? <RotateCw className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Verify OTP

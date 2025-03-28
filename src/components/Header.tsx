@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -15,8 +16,15 @@ import {
 const Header = () => {
   const [isDark, setIsDark] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  
+  useEffect(() => {
+    // Check admin status
+    const adminStatus = localStorage.getItem("isAdmin") === "true";
+    setIsAdmin(adminStatus);
+  }, []);
   
   const toggleDarkMode = () => {
     setIsDark(!isDark);
@@ -189,15 +197,17 @@ const Header = () => {
         </nav>
         
         <div className="flex items-center gap-4">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={goToAdmin}
-            className="p-2 rounded-full bg-secondary text-secondary-foreground transition-colors"
-            aria-label="Admin Panel"
-          >
-            <Shield size={18} />
-          </motion.button>
+          {isAdmin && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={goToAdmin}
+              className="p-2 rounded-full bg-secondary text-secondary-foreground transition-colors"
+              aria-label="Admin Panel"
+            >
+              <Shield size={18} />
+            </motion.button>
+          )}
           
           <motion.button
             whileHover={{ scale: 1.05 }}
