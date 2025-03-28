@@ -32,7 +32,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
     setIsLoading(true);
     
     try {
-      // Simulate API call - in a real app, use authService.verifyVoterId
+      // In a real app, this would call the API
       setTimeout(() => {
         setIsOTPSent(true);
         setActiveTab("otp");
@@ -54,7 +54,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
     setIsLoading(true);
     
     try {
-      // Simulate API call - in a real app, use authService.verifyOTP
+      // In a real app, use authService.verifyOTP
       setTimeout(() => {
         setIsLoading(false);
         toast.success('OTP verified successfully!');
@@ -62,6 +62,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
         // Special case for admin login
         if (voterId === 'ADMIN123') {
           localStorage.setItem('isAdmin', 'true');
+          localStorage.setItem('isVerified', 'true');
           navigate('/admin');
         } else {
           localStorage.setItem('isAdmin', 'false');

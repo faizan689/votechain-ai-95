@@ -29,12 +29,13 @@ export const authService = {
       setAuthToken(response.token);
     }
     
-    // Check if the user is an admin (in a real app, this would come from the backend)
-    // For demo purposes, we'll set a specific voter ID as an admin
+    // Check if the user is an admin
     if (voterId === 'ADMIN123') {
       localStorage.setItem('isAdmin', 'true');
+      localStorage.setItem('isVerified', 'true');
     } else {
       localStorage.setItem('isAdmin', 'false');
+      localStorage.setItem('isVerified', 'true');
     }
     
     return response;

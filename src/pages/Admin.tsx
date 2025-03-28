@@ -13,10 +13,12 @@ import FraudDetection from "@/components/admin/FraudDetection";
 import Reports from "@/components/admin/Reports";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { Navigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("turnout");
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Check if user is authorized on component mount
   useEffect(() => {
@@ -24,10 +26,20 @@ const Admin = () => {
       // Check if user has admin role
       const isAdmin = localStorage.getItem("isAdmin") === "true";
       setIsAuthorized(isAdmin);
+      setIsLoading(false);
+      
+      if (!isAdmin) {
+        toast.error("You don't have permission to access the admin panel");
+      }
     };
 
     checkAuth();
   }, []);
+
+  // If still loading, show nothing (prevent flash of unauthorized content)
+  if (isLoading) {
+    return null;
+  }
 
   // If not authorized, redirect to home page
   if (!isAuthorized) {

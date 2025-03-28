@@ -24,7 +24,28 @@ const Header = () => {
     // Check admin status
     const adminStatus = localStorage.getItem("isAdmin") === "true";
     setIsAdmin(adminStatus);
+    
+    // We need to listen for storage events to update the header when admin status changes
+    const handleStorageChange = () => {
+      const currentAdminStatus = localStorage.getItem("isAdmin") === "true";
+      setIsAdmin(currentAdminStatus);
+    };
+    
+    window.addEventListener("storage", handleStorageChange);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
+  
+  // Let's also check localStorage on every render since React events 
+  // might not trigger the storage event listener
+  useEffect(() => {
+    const adminStatus = localStorage.getItem("isAdmin") === "true";
+    if (adminStatus !== isAdmin) {
+      setIsAdmin(adminStatus);
+    }
+  });
   
   const toggleDarkMode = () => {
     setIsDark(!isDark);
