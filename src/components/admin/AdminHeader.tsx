@@ -168,7 +168,6 @@ const StatCard = ({ icon, title, value, change, isPositive, highlight }: StatCar
         highlight ? "bg-gradient-to-br from-orange-500/10 to-green-600/10" : ""
       }`}
       whileHover={{ scale: 1.02 }}
-      transition={{ type: "spring", stiffness: 400, damping: 10 }}
     >
       <div className="flex items-center gap-2 mb-1">
         {icon && <span className="text-primary">{icon}</span>}

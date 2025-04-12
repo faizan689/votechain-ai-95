@@ -1,10 +1,10 @@
 
-import { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Tilt } from "react-parallax-tilt";
 
-type PartyCardProps = {
+interface PartyCardProps {
   id: string;
   name: string;
   symbol: string;
@@ -12,76 +12,68 @@ type PartyCardProps = {
   logoPath: string;
   selected: boolean;
   onSelect: (id: string) => void;
-};
+}
 
-const PartyCard = ({ 
-  id, 
-  name, 
-  symbol, 
-  color, 
-  logoPath,
-  selected, 
-  onSelect 
-}: PartyCardProps) => {
-  const [isHovered, setIsHovered] = useState(false);
-  
+const PartyCard = ({ id, name, symbol, color, logoPath, selected, onSelect }: PartyCardProps) => {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      whileHover={{ y: -5 }}
-      whileTap={{ scale: 0.98 }}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      onClick={() => onSelect(id)}
-      className={cn(
-        "relative p-6 rounded-2xl cursor-pointer transition-all duration-300",
-        "border border-border hover:border-primary/20",
-        "glass flex flex-col items-center justify-center gap-4",
-        "h-44 md:h-56 w-full overflow-hidden",
-        selected ? "ring-2 ring-primary" : ""
-      )}
+    <Tilt
+      tiltMaxAngleX={10}
+      tiltMaxAngleY={10}
+      scale={1.05}
+      transitionSpeed={1500}
+      tiltReverse={true}
+      className="h-full"
     >
-      {selected && (
-        <div className="absolute top-3 right-3 z-10">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center"
-          >
-            <Check size={14} />
-          </motion.div>
-        </div>
-      )}
-      
-      <motion.div 
-        className={`w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center bg-white overflow-hidden`}
-        style={{ border: `2px solid ${color}` }}
-      >
-        <img src={logoPath} alt={`${name} logo`} className="w-full h-full object-contain p-1" />
-      </motion.div>
-      
-      <div className="text-center">
-        <motion.h3 
-          whileHover={{ scale: 1.05 }}
-          className="font-medium text-lg"
-        >
-          {name}
-        </motion.h3>
-        <p className="text-sm text-muted-foreground mt-1">{symbol}</p>
-      </div>
-      
       <motion.div
-        initial={false}
-        animate={{ opacity: selected || isHovered ? 1 : 0, scale: selected || isHovered ? 1 : 0.8 }}
-        className="absolute inset-0 pointer-events-none"
+        whileHover={{ y: -5 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => onSelect(id)}
+        className={`
+          relative h-full rounded-xl overflow-hidden transition-all duration-300 
+          ${selected 
+            ? "ring-2 ring-primary shadow-lg shadow-primary/20" 
+            : "ring-1 ring-border hover:ring-primary/50 shadow-sm"}
+        `}
         style={{ 
-          background: `radial-gradient(circle at center, ${color}20 0%, transparent 70%)`,
-          zIndex: -1
+          background: selected 
+            ? `linear-gradient(45deg, ${color}30, transparent)` 
+            : "var(--background)" 
         }}
-      />
-    </motion.div>
+      >
+        <div className="p-6 h-full flex flex-col">
+          <div className="flex justify-center mb-4">
+            <div 
+              className="w-24 h-24 rounded-full flex items-center justify-center bg-white shadow-sm overflow-hidden"
+            >
+              <motion.img 
+                src={logoPath} 
+                alt={name} 
+                className="w-20 h-20 object-contain" 
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              />
+            </div>
+          </div>
+          
+          <div className="text-center">
+            <h3 className="font-medium mb-1">{name}</h3>
+            <p className="text-sm text-muted-foreground">Symbol: {symbol}</p>
+          </div>
+          
+          {selected && (
+            <motion.div 
+              className="absolute top-3 right-3 bg-primary rounded-full p-1"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1, rotate: 360 }}
+              transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            >
+              <Check className="w-4 h-4 text-white" />
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
+    </Tilt>
   );
 };
 

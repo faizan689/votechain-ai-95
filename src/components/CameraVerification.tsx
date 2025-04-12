@@ -1,318 +1,325 @@
-
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Camera, Check, AlertCircle, Loader2, RefreshCw } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { 
-  initFacialRecognition, 
-  processFacialVerification 
-} from "@/services/facialRecognitionService";
+import {
+  Camera,
+  UserSearch,
+  ScanFace,
+  Loader2,
+  Check,
+  X,
+  RefreshCcw,
+  Key,
+  CheckCircle
+} from "lucide-react";
+import { facialRecognitionService } from "@/services/facialRecognitionService";
+import LivenessGuide from "./LivenessGuide";
+import FaceScanningOverlay from "./FaceScanningOverlay";
 
-type CameraVerificationProps = {
+interface CameraVerificationProps {
   onSuccess: () => void;
-  onCancel: () => void;
-};
+  onFailure: () => void;
+}
 
-const CameraVerification = ({ onSuccess, onCancel }: CameraVerificationProps) => {
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [verificationStatus, setVerificationStatus] = useState<"idle" | "processing" | "success" | "error">("idle");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [modelsLoaded, setModelsLoaded] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
+const CameraVerification = ({ onSuccess, onFailure }: CameraVerificationProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const navigate = useNavigate();
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(true);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationSuccess, setVerificationSuccess] = useState(false);
+  const [verificationFailed, setVerificationFailed] = useState(false);
+  const [scanningProgress, setScanningProgress] = useState(0);
 
-  // Initialize facial recognition models
   useEffect(() => {
-    async function loadModels() {
+    let stream: MediaStream | null = null;
+    
+    const enableCamera = async () => {
+      setCameraLoading(true);
+      setCameraError(null);
+      
       try {
-        setIsInitializing(true);
-        const success = await initFacialRecognition();
-        setModelsLoaded(success);
-        if (!success) {
-          setErrorMessage("Failed to initialize facial recognition. Please refresh the page and try again.");
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+        });
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          setCameraActive(true);
         }
-      } catch (error) {
-        console.error("Error loading facial recognition models:", error);
-        setErrorMessage("Failed to initialize facial recognition. Please refresh the page and try again.");
+      } catch (error: any) {
+        console.error("Error accessing camera:", error);
+        setCameraError("Failed to access camera. Please check your permissions and try again.");
+        setCameraActive(false);
       } finally {
-        setIsInitializing(false);
+        setCameraLoading(false);
       }
-    }
-
-    loadModels();
-  }, []);
-
-  // Initialize camera on component mount
-  useEffect(() => {
-    if (modelsLoaded) {
-      startCamera();
-    }
-    return () => {
-      stopCamera();
     };
-  }, [modelsLoaded]);
-
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: "user",
-          width: { ideal: 1280 },
-          height: { ideal: 720 } 
-        } 
-      });
-      
-      setCameraStream(stream);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+    
+    enableCamera();
+    
+    // Add scanning progress simulation
+    let progressInterval: NodeJS.Timeout;
+    if (isVerifying) {
+      setScanningProgress(0);
+      progressInterval = setInterval(() => {
+        setScanningProgress((prev) => {
+          const newProgress = prev + Math.random() * 5;
+          return newProgress > 95 ? 95 : newProgress;
+        });
+      }, 200);
+    }
+    
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
       }
-    } catch (err) {
-      console.error("Error accessing camera:", err);
-      setErrorMessage("Camera access denied. Please allow camera access to continue.");
+      if (progressInterval) clearInterval(progressInterval);
+    };
+  }, [isVerifying]);
+  
+  // On verification complete, jump to 100%
+  useEffect(() => {
+    if (verificationSuccess || verificationFailed) {
+      setScanningProgress(100);
     }
-  };
+  }, [verificationSuccess, verificationFailed]);
 
-  const stopCamera = () => {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
-      setCameraStream(null);
-    }
-  };
-
-  const captureImage = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-    
-    setIsCapturing(true);
-    
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext("2d");
-    
-    if (!context) return;
-    
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    // Draw video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Convert canvas to image data URL
-    const imageDataUrl = canvas.toDataURL("image/png");
-    setCapturedImage(imageDataUrl);
-    setIsCapturing(false);
-  };
-
-  const verifyImage = async () => {
+  const handleVerifyFace = async () => {
     if (!videoRef.current) return;
     
-    setVerificationStatus("processing");
+    setIsVerifying(true);
+    setVerificationSuccess(false);
+    setVerificationFailed(false);
     
     try {
-      const result = await processFacialVerification(videoRef.current);
+      const result = await facialRecognitionService.verifyFace(videoRef.current);
       
-      if (result.success) {
-        setVerificationStatus("success");
-        // Wait a moment to show success before proceeding
-        setTimeout(() => {
-          onSuccess();
-        }, 1500);
+      if (result?.success) {
+        setVerificationSuccess(true);
+        setTimeout(onSuccess, 1500); // Delay to show success state
       } else {
-        setVerificationStatus("error");
-        setErrorMessage(result.message);
+        setVerificationFailed(true);
       }
     } catch (error) {
-      console.error("Error during verification:", error);
-      setVerificationStatus("error");
-      setErrorMessage("Verification failed. Please try again.");
+      console.error("Facial verification error:", error);
+      setVerificationFailed(true);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+  
+  const startVerification = () => {
+    if (cameraActive) {
+      handleVerifyFace();
+    } else {
+      // Re-enable camera if it's not active
+      setCameraLoading(true);
+      setCameraError(null);
+      
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+        .then((stream) => {
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            setCameraActive(true);
+          }
+        })
+        .catch((error: any) => {
+          console.error("Error re-enabling camera:", error);
+          setCameraError("Failed to access camera. Please check your permissions and try again.");
+          setCameraActive(false);
+        })
+        .finally(() => {
+          setCameraLoading(false);
+        });
     }
   };
 
-  const retakePhoto = () => {
-    setCapturedImage(null);
-    setVerificationStatus("idle");
-    setErrorMessage("");
-  };
-
-  if (isInitializing) {
-    return (
-      <div className="w-full max-w-md mx-auto">
-        <div className="glass border border-border rounded-2xl p-6 overflow-hidden flex flex-col items-center justify-center py-12">
-          <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-          <h2 className="text-xl font-display font-semibold mb-2 text-center">
-            Initializing Facial Recognition
-          </h2>
-          <p className="text-sm text-muted-foreground text-center">
-            Please wait while we load the facial recognition models...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!modelsLoaded) {
-    return (
-      <div className="w-full max-w-md mx-auto">
-        <div className="glass border border-border rounded-2xl p-6 overflow-hidden">
-          <h2 className="text-xl font-display font-semibold mb-4 text-center text-destructive">
-            Facial Recognition Failed to Initialize
-          </h2>
-          <p className="text-sm text-muted-foreground mb-6 text-center">
-            We couldn't load the required facial recognition models. Please check your internet connection and try again.
-          </p>
-          <div className="flex justify-center">
-            <button
-              onClick={onCancel}
-              className="px-4 py-2 rounded-lg border border-border"
-            >
-              Go Back
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full max-w-md mx-auto">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass border border-border rounded-2xl p-6 overflow-hidden"
-      >
-        <h2 className="text-xl font-display font-semibold mb-4 text-center">
-          Face Verification
-        </h2>
-        
-        <p className="text-sm text-muted-foreground mb-6 text-center">
-          Please look directly at the camera for identity verification
-        </p>
-        
-        <div className="relative mb-6 rounded-xl overflow-hidden aspect-[4/3] bg-black">
-          {!capturedImage ? (
+    <div className="flex flex-col items-center">
+      <div className="relative w-full max-w-md">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="relative rounded-xl overflow-hidden shadow-lg border border-border bg-card"
+        >
+          {/* Camera view */}
+          <div className="relative aspect-[4/3] bg-black">
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted
-              className="w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover"
             />
-          ) : (
-            <img 
-              src={capturedImage} 
-              alt="Captured" 
-              className="w-full h-full object-cover" 
+            
+            {/* Face scanning overlay */}
+            <FaceScanningOverlay 
+              isScanning={isVerifying && !verificationSuccess && !verificationFailed} 
+              progress={scanningProgress} 
             />
-          )}
-          
-          {/* Face outline guide */}
-          {!capturedImage && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-40 h-40 border-2 border-dashed border-white/50 rounded-full"></div>
-            </div>
-          )}
-          
-          {/* Processing overlay */}
-          {verificationStatus === "processing" && (
-            <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
-              <Loader2 className="w-10 h-10 text-white animate-spin mb-2" />
-              <p className="text-white text-sm">Verifying identity...</p>
-            </div>
-          )}
-          
-          {/* Success overlay */}
-          {verificationStatus === "success" && (
-            <div className="absolute inset-0 bg-green-500/30 flex flex-col items-center justify-center">
+            
+            {/* Verification status indicators */}
+            {verificationSuccess && (
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="absolute inset-0 flex items-center justify-center bg-green-500/80 backdrop-blur-sm"
               >
-                <Check className="w-8 h-8 text-white" />
-              </motion.div>
-              <p className="text-white text-sm mt-2">Verification successful!</p>
-            </div>
-          )}
-          
-          <canvas ref={canvasRef} className="hidden" />
-        </div>
-        
-        {errorMessage && (
-          <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex items-center gap-2 text-destructive">
-            <AlertCircle className="w-5 h-5" />
-            <p className="text-sm">{errorMessage}</p>
-          </div>
-        )}
-        
-        <div className="flex items-center justify-center gap-4">
-          {!capturedImage ? (
-            <>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onCancel}
-                className="px-4 py-2 rounded-lg border border-border"
-              >
-                Cancel
-              </motion.button>
-              
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={captureImage}
-                disabled={isCapturing || !cameraStream}
-                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground flex items-center gap-2"
-              >
-                <Camera className="w-4 h-4" />
-                <span>Capture</span>
-              </motion.button>
-            </>
-          ) : (
-            <>
-              {verificationStatus === "idle" && (
-                <>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={retakePhoto}
-                    className="px-4 py-2 rounded-lg border border-border flex items-center gap-2"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    <span>Retake</span>
-                  </motion.button>
-                  
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={verifyImage}
-                    className="px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white flex items-center gap-2"
-                  >
-                    <Check className="w-4 h-4" />
-                    <span>Verify</span>
-                  </motion.button>
-                </>
-              )}
-              
-              {verificationStatus === "error" && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={retakePhoto}
-                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground flex items-center gap-2"
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ repeat: 2, duration: 0.5 }}
                 >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Try Again</span>
+                  <Check className="w-16 h-16 text-white" />
+                </motion.div>
+              </motion.div>
+            )}
+            
+            {verificationFailed && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="absolute inset-0 flex items-center justify-center bg-red-500/80 backdrop-blur-sm"
+              >
+                <motion.div 
+                  animate={{ rotate: [-10, 10, -10, 0] }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <X className="w-16 h-16 text-white" />
+                </motion.div>
+              </motion.div>
+            )}
+            
+            {!cameraActive && !cameraLoading && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black">
+                <Camera className="w-12 h-12 text-white/50 mb-4" />
+                <p className="text-white/70 text-center px-6">
+                  Camera access is required for facial verification.
+                  <br />
+                  Please grant permission to continue.
+                </p>
+              </div>
+            )}
+            
+            {cameraLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                >
+                  <Loader2 className="w-10 h-10 text-primary" />
+                </motion.div>
+              </div>
+            )}
+          </div>
+          
+          {/* Controls and instructions */}
+          <div className="p-4">
+            <h3 className="font-medium text-lg mb-2 flex items-center gap-2">
+              <UserSearch size={18} className="text-primary" />
+              Facial Verification
+            </h3>
+            
+            {cameraError ? (
+              <div className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 p-3 rounded-md text-sm mb-3">
+                <p>{cameraError}</p>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm mb-3">
+                {isVerifying
+                  ? "Hold still while we verify your face..."
+                  : "Position your face in the frame and click Verify"}
+              </p>
+            )}
+            
+            {!isVerifying && !verificationSuccess && !verificationFailed && (
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={startVerification}
+                disabled={!cameraActive || isVerifying}
+                className="w-full bg-primary text-primary-foreground py-2 rounded-md font-medium disabled:bg-muted disabled:text-muted-foreground flex items-center justify-center gap-2"
+              >
+                {cameraActive ? (
+                  <>
+                    <ScanFace className="w-4 h-4" />
+                    <span>Verify Face</span>
+                  </>
+                ) : (
+                  <>
+                    <Camera className="w-4 h-4" />
+                    <span>Enable Camera</span>
+                  </>
+                )}
+              </motion.button>
+            )}
+            
+            {verificationSuccess && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 p-3 rounded-md text-sm mb-3">
+                  <p>Face verification successful!</p>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={onSuccess}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md font-medium flex items-center justify-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Continue</span>
                 </motion.button>
-              )}
-            </>
-          )}
-        </div>
-      </motion.div>
+              </motion.div>
+            )}
+            
+            {verificationFailed && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 p-3 rounded-md text-sm mb-3">
+                  <p>Face verification failed. Please try again or use an alternative method.</p>
+                </div>
+                <div className="flex gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setVerificationFailed(false);
+                      setIsVerifying(false);
+                    }}
+                    className="flex-1 bg-secondary text-secondary-foreground py-2 rounded-md font-medium flex items-center justify-center gap-2"
+                  >
+                    <RefreshCcw className="w-4 h-4" />
+                    <span>Try Again</span>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={onFailure}
+                    className="flex-1 bg-primary text-primary-foreground py-2 rounded-md font-medium flex items-center justify-center gap-2"
+                  >
+                    <Key className="w-4 h-4" />
+                    <span>Use OTP</span>
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+          </div>
+        </motion.div>
+        
+        {/* Camera guide and tips */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="mt-6"
+        >
+          <LivenessGuide />
+        </motion.div>
+      </div>
     </div>
   );
 };
