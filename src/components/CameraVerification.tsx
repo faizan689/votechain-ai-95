@@ -9,6 +9,7 @@ import FaceScanningOverlay from "./FaceScanningOverlay";
 import CameraStatusIndicator from "./camera/CameraStatusIndicator";
 import VerificationActions from "./camera/VerificationActions";
 import LivenessGuideButton from "./camera/LivenessGuideButton";
+import CameraToggleButton from "./camera/CameraToggleButton";
 import LivenessGuide from "./LivenessGuide";
 
 interface CameraVerificationProps {
@@ -24,7 +25,9 @@ const CameraVerification = ({ onSuccess, onFailure }: CameraVerificationProps) =
     cameraActive,
     cameraLoading, 
     cameraError,
-    enableCamera
+    facingMode,
+    enableCamera,
+    toggleCameraFacing
   } = useCamera();
   
   const {
@@ -70,6 +73,15 @@ const CameraVerification = ({ onSuccess, onFailure }: CameraVerificationProps) =
               muted
               className="absolute inset-0 w-full h-full object-cover"
             />
+            
+            {/* Camera toggle button */}
+            {cameraActive && !cameraLoading && !isVerifying && !verificationSuccess && !verificationFailed && (
+              <CameraToggleButton 
+                onToggle={toggleCameraFacing} 
+                disabled={isVerifying || !cameraActive} 
+                facingMode={facingMode}
+              />
+            )}
             
             {/* Face scanning overlay */}
             <FaceScanningOverlay 

@@ -10,8 +10,10 @@ interface UseCameraReturn {
   cameraActive: boolean;
   cameraLoading: boolean;
   cameraError: string | null;
+  facingMode: "user" | "environment";
   enableCamera: () => Promise<void>;
   stopCamera: () => void;
+  toggleCameraFacing: () => Promise<void>;
 }
 
 export function useCamera({ facingMode = "user" }: UseCameraOptions = {}): UseCameraReturn {
@@ -20,6 +22,7 @@ export function useCamera({ facingMode = "user" }: UseCameraOptions = {}): UseCa
   const [cameraLoading, setCameraLoading] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [currentFacingMode, setCurrentFacingMode] = useState<"user" | "environment">(facingMode);
 
   const stopCamera = () => {
     if (stream) {
@@ -38,7 +41,7 @@ export function useCamera({ facingMode = "user" }: UseCameraOptions = {}): UseCa
       stopCamera();
       
       const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode },
+        video: { facingMode: currentFacingMode },
       });
       
       if (videoRef.current) {
@@ -52,6 +55,52 @@ export function useCamera({ facingMode = "user" }: UseCameraOptions = {}): UseCa
       setCameraActive(false);
     } finally {
       setCameraLoading(false);
+    }
+  };
+  
+  const toggleCameraFacing = async () => {
+    const newFacingMode = currentFacingMode === "user" ? "environment" : "user";
+    setCurrentFacingMode(newFacingMode);
+    
+    if (cameraActive) {
+      setCameraLoading(true);
+      
+      try {
+        // Stop current stream
+        stopCamera();
+        
+        // Start new stream with toggled facing mode
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: newFacingMode },
+        });
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = newStream;
+          setCameraActive(true);
+          setStream(newStream);
+        }
+      } catch (error: any) {
+        console.error("Error toggling camera:", error);
+        setCameraError("Failed to switch camera. Your device may not support multiple cameras.");
+        
+        // Try to revert back to the previous camera if toggling fails
+        try {
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: currentFacingMode },
+          });
+          
+          if (videoRef.current) {
+            videoRef.current.srcObject = fallbackStream;
+            setCameraActive(true);
+            setStream(fallbackStream);
+            setCurrentFacingMode(currentFacingMode); // Reset to previous mode
+          }
+        } catch {
+          setCameraActive(false);
+        }
+      } finally {
+        setCameraLoading(false);
+      }
     }
   };
 
@@ -68,7 +117,9 @@ export function useCamera({ facingMode = "user" }: UseCameraOptions = {}): UseCa
     cameraActive,
     cameraLoading,
     cameraError,
+    facingMode: currentFacingMode,
     enableCamera,
     stopCamera,
+    toggleCameraFacing,
   };
 }
