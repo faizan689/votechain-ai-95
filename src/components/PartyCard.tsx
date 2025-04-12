@@ -2,7 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
-import { Tilt } from "react-parallax-tilt";
+import Tilt from "react-parallax-tilt";
 
 interface PartyCardProps {
   id: string;

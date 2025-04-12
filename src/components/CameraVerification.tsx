@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
@@ -11,7 +12,7 @@ import {
   Key,
   CheckCircle
 } from "lucide-react";
-import { facialRecognitionService } from "@/services/facialRecognitionService";
+import * as facialRecognitionService from "@/services/facialRecognitionService";
 import LivenessGuide from "./LivenessGuide";
 import FaceScanningOverlay from "./FaceScanningOverlay";
 
@@ -29,6 +30,7 @@ const CameraVerification = ({ onSuccess, onFailure }: CameraVerificationProps) =
   const [verificationSuccess, setVerificationSuccess] = useState(false);
   const [verificationFailed, setVerificationFailed] = useState(false);
   const [scanningProgress, setScanningProgress] = useState(0);
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -92,7 +94,8 @@ const CameraVerification = ({ onSuccess, onFailure }: CameraVerificationProps) =
     setVerificationFailed(false);
     
     try {
-      const result = await facialRecognitionService.verifyFace(videoRef.current);
+      // Using processFacialVerification directly from the imported module
+      const result = await facialRecognitionService.processFacialVerification(videoRef.current);
       
       if (result?.success) {
         setVerificationSuccess(true);
@@ -310,16 +313,29 @@ const CameraVerification = ({ onSuccess, onFailure }: CameraVerificationProps) =
           </div>
         </motion.div>
         
-        {/* Camera guide and tips */}
+        {/* Liveness Guide button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
           className="mt-6"
         >
-          <LivenessGuide />
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowGuide(true)}
+            className="w-full py-2 px-4 rounded-lg bg-secondary text-secondary-foreground flex items-center justify-center gap-2"
+          >
+            <Eye size={16} />
+            <span>View Liveness Detection Guide</span>
+          </motion.button>
         </motion.div>
       </div>
+      
+      {/* Conditional rendering of LivenessGuide */}
+      {showGuide && (
+        <LivenessGuide onClose={() => setShowGuide(false)} />
+      )}
     </div>
   );
 };
