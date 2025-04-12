@@ -1,4 +1,3 @@
-
 // API response types for the VoteGuard application
 
 // Common response structure
@@ -70,7 +69,65 @@ export interface ElectionStats {
   districtWiseTurnout: DistrictTurnout[];
 }
 
-// Admin stats response
-export interface AdminStatsResponse extends ApiResponse {
-  stats?: ElectionStats;
+// Admin Stats Response
+export interface AdminStatsResponse {
+  stats: {
+    totalRegisteredVoters: number;
+    totalVotesCast: number;
+    voterTurnoutPercentage: number;
+    activePollingStations: number;
+    activePollingStationsPercentage: number;
+    recentChange: number;
+    partywiseVotes: {
+      partyId: string;
+      partyName: string;
+      votes: number;
+      percentage: number;
+    }[];
+    demographicBreakdown?: {
+      ageGroups: {
+        group: string;
+        votes: number;
+        percentage: number;
+      }[];
+      gender: {
+        type: string;
+        votes: number;
+        percentage: number;
+      }[];
+    };
+    securityIncidents?: {
+      total: number;
+      byType: {
+        facialVerificationFailure: number;
+        duplicateVoteAttempt: number;
+        unauthorizedAccess: number;
+      };
+      resolved: number;
+      pending: number;
+    };
+  };
+}
+
+export interface SecurityLog {
+  id: string;
+  timestamp: string;
+  type: 'facial-verification' | 'duplicate-vote' | 'unauthorized-access' | 'session-timeout';
+  status: 'failed' | 'blocked' | 'warning';
+  voter: string;
+  voterID: string;
+  location: string;
+  description: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export interface VotingSchedule {
+  id: number;
+  name: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  notifications: boolean;
+  status: 'upcoming' | 'active' | 'completed';
 }

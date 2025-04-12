@@ -1,22 +1,86 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ShieldCheck, Clock } from "lucide-react";
+import { ShieldCheck, Clock, Users, UserCheck, TrendingUp, Calendar, AlertTriangle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { adminService } from "@/services/adminService";
+import { toast } from "sonner";
 
 const AdminHeader = () => {
   // Get current date and time
-  const now = new Date();
-  const formattedDate = now.toLocaleDateString("en-IN", {
+  const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Update time every minute
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+  
+  const formattedDate = currentTime.toLocaleDateString("en-IN", {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
   });
   
-  const formattedTime = now.toLocaleTimeString("en-IN", {
+  const formattedTime = currentTime.toLocaleTimeString("en-IN", {
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  // Fetch real-time admin stats
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['adminStats'],
+    queryFn: adminService.getElectionStats,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+  
+  // Show error toast if data fetch fails
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to fetch real-time election data");
+    }
+  }, [error]);
+
+  // Calculate time remaining until polls close (6 PM)
+  const calculateTimeRemaining = () => {
+    const now = new Date();
+    const closingTime = new Date();
+    closingTime.setHours(18, 0, 0, 0); // 6:00 PM
+    
+    // If it's past closing time, show 0
+    if (now > closingTime) {
+      return "00:00:00";
+    }
+    
+    const diffMs = closingTime.getTime() - now.getTime();
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+  
+  const [timeRemaining, setTimeRemaining] = useState(calculateTimeRemaining());
+  
+  // Update countdown every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeRemaining(calculateTimeRemaining());
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, []);
+  
+  // Default stats if API fails
+  const stats = data?.stats || {
+    totalRegisteredVoters: 854291,
+    totalVotesCast: 365637,
+    voterTurnoutPercentage: 42.8,
+    activePollingStations: 1254,
+    activePollingStationsPercentage: 98.2,
+    recentChange: 1.2
+  };
 
   return (
     <div className="space-y-4">
@@ -49,31 +113,36 @@ const AdminHeader = () => {
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
+          icon={<Users size={18} />}
           title="Total Voters" 
-          value="854,291" 
-          change="+2.4%" 
+          value={isLoading ? "Loading..." : stats.totalRegisteredVoters.toLocaleString()} 
+          change={"+2.4%"} 
           isPositive={true} 
         />
         
         <StatCard 
+          icon={<UserCheck size={18} />}
           title="Turnout %" 
-          value="42.8%" 
-          change="+1.2%" 
+          value={isLoading ? "Loading..." : `${stats.voterTurnoutPercentage.toFixed(1)}%`} 
+          change={`+${stats.recentChange}%`} 
           isPositive={true}
         />
         
         <StatCard 
+          icon={<TrendingUp size={18} />}
           title="Active Polling Stations" 
-          value="1,254" 
-          change="98.2%" 
+          value={isLoading ? "Loading..." : stats.activePollingStations.toLocaleString()} 
+          change={`${stats.activePollingStationsPercentage}%`} 
           isPositive={true}
         />
         
         <StatCard 
+          icon={<Calendar size={18} />}
           title="Time Remaining" 
-          value="04:32:15" 
+          value={timeRemaining} 
           change="Closes 6PM" 
           isPositive={null}
+          highlight={true}
         />
       </div>
     </div>
@@ -81,21 +150,30 @@ const AdminHeader = () => {
 };
 
 interface StatCardProps {
+  icon?: React.ReactNode;
   title: string;
   value: string;
   change: string;
   isPositive: boolean | null;
+  highlight?: boolean;
 }
 
-const StatCard = ({ title, value, change, isPositive }: StatCardProps) => {
+const StatCard = ({ icon, title, value, change, isPositive, highlight }: StatCardProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-card border border-border rounded-lg p-4 shadow-sm"
+      className={`bg-card border border-border rounded-lg p-4 shadow-sm ${
+        highlight ? "bg-gradient-to-br from-orange-500/10 to-green-600/10" : ""
+      }`}
+      whileHover={{ scale: 1.02 }}
+      transition={{ type: "spring", stiffness: 400, damping: 10 }}
     >
-      <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+      <div className="flex items-center gap-2 mb-1">
+        {icon && <span className="text-primary">{icon}</span>}
+        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+      </div>
       <p className="text-2xl font-semibold mt-1">{value}</p>
       <p className={`text-xs mt-1 ${
         isPositive === null 

@@ -12,13 +12,16 @@ import ElectionStatistics from "@/components/admin/ElectionStatistics";
 import FraudDetection from "@/components/admin/FraudDetection";
 import Reports from "@/components/admin/Reports";
 import AdminHeader from "@/components/admin/AdminHeader";
-import { Navigate } from "react-router-dom";
+import SecurityLogs from "@/components/admin/SecurityLogs";
+import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Shield } from "lucide-react";
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("turnout");
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   // Check if user is authorized on component mount
   useEffect(() => {
@@ -30,15 +33,23 @@ const Admin = () => {
       
       if (!isAdmin) {
         toast.error("You don't have permission to access the admin panel");
+        navigate('/', { replace: true });
       }
     };
 
     checkAuth();
-  }, []);
+  }, [navigate]);
 
-  // If still loading, show nothing (prevent flash of unauthorized content)
+  // If still loading, show loading spinner
   if (isLoading) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Shield className="w-12 h-12 text-primary animate-pulse" />
+          <p className="text-muted-foreground">Authenticating admin access...</p>
+        </div>
+      </div>
+    );
   }
 
   // If not authorized, redirect to home page
@@ -61,13 +72,14 @@ const Admin = () => {
             className="mt-6"
           >
             <Tabs defaultValue="turnout" onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-2 md:grid-cols-7 w-full h-auto">
+              <TabsList className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 w-full h-auto">
                 <TabsTrigger value="turnout">Turnout</TabsTrigger>
                 <TabsTrigger value="progress">Progress</TabsTrigger>
                 <TabsTrigger value="schedule">Schedule</TabsTrigger>
                 <TabsTrigger value="threshold">Threshold</TabsTrigger>
                 <TabsTrigger value="statistics">Statistics</TabsTrigger>
                 <TabsTrigger value="fraud">Fraud Alerts</TabsTrigger>
+                <TabsTrigger value="security">Security Logs</TabsTrigger>
                 <TabsTrigger value="reports">Reports</TabsTrigger>
               </TabsList>
               
@@ -94,6 +106,10 @@ const Admin = () => {
                 
                 <TabsContent value="fraud" className="mt-0">
                   <FraudDetection />
+                </TabsContent>
+                
+                <TabsContent value="security" className="mt-0">
+                  <SecurityLogs />
                 </TabsContent>
                 
                 <TabsContent value="reports" className="mt-0">

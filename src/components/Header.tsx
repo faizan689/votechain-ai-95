@@ -9,8 +9,7 @@ import {
   saffronLetterAnimation, 
   whiteLetterAnimation, 
   greenLetterAnimation, 
-  flagWaveAnimation,
-  logoTransition
+  flagWaveAnimation
 } from "@/lib/animations";
 
 const Header = () => {
