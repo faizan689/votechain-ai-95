@@ -10,7 +10,8 @@ import {
   X,
   RefreshCcw,
   Key,
-  CheckCircle
+  CheckCircle,
+  Eye
 } from "lucide-react";
 import * as facialRecognitionService from "@/services/facialRecognitionService";
 import LivenessGuide from "./LivenessGuide";
