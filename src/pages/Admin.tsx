@@ -15,19 +15,36 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import SecurityLogs from "@/components/admin/SecurityLogs";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Shield } from "lucide-react";
+import { Shield, Lock } from "lucide-react";
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("turnout");
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExternalWindow, setIsExternalWindow] = useState(false);
   const navigate = useNavigate();
 
   // Check if user is authorized on component mount
   useEffect(() => {
+    // First check if this is opened in an external window
+    const urlParams = new URLSearchParams(window.location.search);
+    const externalParam = urlParams.get('external');
+    const isExternal = externalParam === 'true';
+    setIsExternalWindow(isExternal);
+
     const checkAuth = () => {
       // Check if user has admin role
       const isAdmin = localStorage.getItem("isAdmin") === "true";
+      
+      // If opened in an external window but admin state isn't available,
+      // check if parent window passed admin verification via URL parameter
+      if (isExternal && !isAdmin && urlParams.get('adminVerified') === 'true') {
+        localStorage.setItem("isAdmin", "true");
+        setIsAuthorized(true);
+        setIsLoading(false);
+        return;
+      }
+      
       setIsAuthorized(isAdmin);
       setIsLoading(false);
       
@@ -39,6 +56,29 @@ const Admin = () => {
 
     checkAuth();
   }, [navigate]);
+
+  // Function to authenticate in new window
+  const promptForAdminCredentials = () => {
+    const adminId = prompt("Enter admin ID:");
+    const adminPassword = prompt("Enter admin password:");
+    
+    // Simple check for demo purposes
+    if (adminId === "ADMIN123" && adminPassword === "admin123") {
+      localStorage.setItem("isAdmin", "true");
+      setIsAuthorized(true);
+      setIsLoading(false);
+    } else {
+      toast.error("Invalid admin credentials");
+      setIsLoading(false);
+    }
+  };
+  
+  // If in external window and not authorized, prompt for credentials
+  useEffect(() => {
+    if (isExternalWindow && !isAuthorized && !isLoading) {
+      promptForAdminCredentials();
+    }
+  }, [isExternalWindow, isAuthorized, isLoading]);
 
   // If still loading, show loading spinner
   if (isLoading) {
@@ -52,10 +92,47 @@ const Admin = () => {
     );
   }
 
-  // If not authorized, redirect to home page
-  if (!isAuthorized) {
+  // If not authorized and tried authentication, show access denied
+  if (!isAuthorized && isExternalWindow) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+        <div className="bg-card border border-border rounded-lg p-8 shadow-lg max-w-md w-full">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <Lock className="w-16 h-16 text-destructive" />
+            <h1 className="text-2xl font-bold">Access Denied</h1>
+            <p className="text-muted-foreground">
+              You don't have permission to access the admin panel
+            </p>
+            <button 
+              onClick={promptForAdminCredentials}
+              className="mt-4 bg-primary text-primary-foreground px-4 py-2 rounded hover:bg-primary/90"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If not authorized and in main window, redirect to home page
+  if (!isAuthorized && !isExternalWindow) {
     return <Navigate to="/" replace />;
   }
+
+  // Function to open admin panel in new window
+  const openInNewWindow = () => {
+    const width = 1200;
+    const height = 800;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    
+    window.open(
+      `/admin?external=true&adminVerified=true`, 
+      'AdminPanel', 
+      `width=${width},height=${height},top=${top},left=${left}`
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -64,6 +141,17 @@ const Admin = () => {
       <main className="flex-grow py-8 mt-20">
         <div className="container mx-auto px-4">
           <AdminHeader />
+          
+          {!isExternalWindow && (
+            <div className="flex justify-end mb-4">
+              <button
+                onClick={openInNewWindow}
+                className="text-sm bg-secondary hover:bg-secondary/80 text-secondary-foreground px-3 py-1 rounded-md flex items-center gap-2"
+              >
+                <span>Open in New Window</span>
+              </button>
+            </div>
+          )}
           
           <motion.div
             initial={{ opacity: 0, y: 20 }}
