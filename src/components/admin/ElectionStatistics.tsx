@@ -135,12 +135,24 @@ const DemographicsTab = () => {
             config={{ 
               turnout: { color: "#FF9933" } 
             }} 
-            className="h-80"
+            className="h-72"
           >
-            <BarChart data={ageGroupData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+            <BarChart 
+              data={ageGroupData} 
+              margin={{ top: 10, right: 10, left: 10, bottom: 15 }}
+            >
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-              <XAxis dataKey="name" />
-              <YAxis label={{ value: 'Turnout %', angle: -90, position: 'insideLeft' }} />
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis 
+                label={{ 
+                  value: 'Turnout %', 
+                  angle: -90, 
+                  position: 'insideLeft',
+                  style: { fontSize: 10 } 
+                }} 
+                tick={{ fontSize: 10 }}
+                width={35}
+              />
               <Tooltip 
                 formatter={(value: number, name: string, props: any) => {
                   return [`${props.payload.percent}%`, 'Turnout'];
@@ -183,20 +195,20 @@ const DemographicsTab = () => {
               female: { color: "#FF9933" },
               nonbinary: { color: "#019934" }
             }} 
-            className="h-80"
+            className="h-72"
           >
-            <PieChart>
+            <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
               <Pie
                 data={genderData}
                 cx="50%"
                 cy="50%"
                 innerRadius={0}
-                outerRadius={90}
+                outerRadius={80}
                 paddingAngle={2}
                 dataKey="value"
                 nameKey="name"
-                label={({ name, value, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-                labelLine={true}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                labelLine={{ strokeWidth: 0.5, stroke: "#666" }}
               >
                 {genderData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
@@ -204,8 +216,9 @@ const DemographicsTab = () => {
               </Pie>
               <Tooltip 
                 formatter={(value: number) => [`${value.toLocaleString()} voters`, 'Count']} 
+                wrapperStyle={{ fontSize: "12px" }}
               />
-              <Legend />
+              <Legend layout="horizontal" verticalAlign="bottom" align="center" />
             </PieChart>
           </ChartContainer>
           <div className="mt-4 grid grid-cols-3 gap-4">
@@ -239,21 +252,33 @@ const DemographicsTab = () => {
             config={{ 
               turnout: { color: "#FF9933" } 
             }} 
-            className="h-80"
+            className="h-72"
           >
-            <LineChart data={hourlyTurnoutData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+            <LineChart 
+              data={hourlyTurnoutData} 
+              margin={{ top: 10, right: 10, left: 10, bottom: 15 }}
+            >
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-              <XAxis dataKey="time" />
-              <YAxis label={{ value: 'Turnout %', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
+              <XAxis dataKey="time" tick={{ fontSize: 10 }} />
+              <YAxis 
+                label={{ 
+                  value: 'Turnout %', 
+                  angle: -90, 
+                  position: 'insideLeft', 
+                  style: { fontSize: 10 }
+                }}
+                width={35}
+                tick={{ fontSize: 10 }}
+              />
+              <Tooltip wrapperStyle={{ fontSize: "12px" }} />
               <Line 
                 type="monotone" 
                 dataKey="turnout" 
                 name="Hourly Turnout %"
                 stroke="#FF9933" 
                 strokeWidth={2}
-                dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
+                dot={{ r: 3 }}
+                activeDot={{ r: 5 }}
               />
             </LineChart>
           </ChartContainer>
@@ -285,18 +310,24 @@ const GeographyTab = () => {
             config={{ 
               turnout: { color: "#FF9933" } 
             }} 
-            className="h-80"
+            className="h-72"
           >
             <BarChart 
               data={districtData} 
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+              margin={{ top: 10, right: 10, left: 10, bottom: 15 }}
               layout="vertical"
             >
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-              <XAxis type="number" />
-              <YAxis type="category" dataKey="name" />
+              <XAxis type="number" tick={{ fontSize: 10 }} />
+              <YAxis 
+                type="category" 
+                dataKey="name" 
+                tick={{ fontSize: 10 }}
+                width={50}
+              />
               <Tooltip 
                 formatter={(value: number) => [`${value.toFixed(2)}%`, 'Turnout']} 
+                wrapperStyle={{ fontSize: "12px" }}
               />
               <Bar dataKey="turnout" name="Turnout %" fill="#FF9933" radius={[0, 4, 4, 0]} />
             </BarChart>
@@ -315,22 +346,24 @@ const GeographyTab = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>District</TableHead>
-                <TableHead className="text-right">Turnout %</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {districtData.map((district) => (
-                <TableRow key={district.name}>
-                  <TableCell className="font-medium">{district.name}</TableCell>
-                  <TableCell className="text-right">{district.turnout.toFixed(2)}%</TableCell>
+          <div className="max-h-[300px] overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>District</TableHead>
+                  <TableHead className="text-right">Turnout %</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {districtData.map((district) => (
+                  <TableRow key={district.name}>
+                    <TableCell className="font-medium">{district.name}</TableCell>
+                    <TableCell className="text-right">{district.turnout.toFixed(2)}%</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           
           <div className="mt-6 space-y-4">
             <div className="flex justify-between">
@@ -370,14 +403,27 @@ const HistoricalTab = () => {
             config={{ 
               turnout: { color: "#FF9933" } 
             }} 
-            className="h-80"
+            className="h-72"
           >
-            <BarChart data={historicalData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+            <BarChart 
+              data={historicalData} 
+              margin={{ top: 10, right: 10, left: 10, bottom: 15 }}
+            >
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-              <XAxis dataKey="year" />
-              <YAxis label={{ value: 'Turnout %', angle: -90, position: 'insideLeft' }} />
+              <XAxis dataKey="year" tick={{ fontSize: 10 }} />
+              <YAxis 
+                label={{ 
+                  value: 'Turnout %', 
+                  angle: -90, 
+                  position: 'insideLeft',
+                  style: { fontSize: 10 }
+                }} 
+                tick={{ fontSize: 10 }}
+                width={35}
+              />
               <Tooltip 
-                formatter={(value: number) => [`${value}%`, 'Turnout']} 
+                formatter={(value: number) => [`${value}%`, 'Turnout']}
+                wrapperStyle={{ fontSize: "12px" }}
               />
               <Bar dataKey="turnout" name="Voter Turnout %" fill="#FF9933" radius={[4, 4, 0, 0]} />
             </BarChart>
