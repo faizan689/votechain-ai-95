@@ -39,7 +39,7 @@ const Voting = () => {
       name: "Aam Aadmi Party", 
       symbol: "Broom", 
       color: "#019934", 
-      logoPath: "/lovable-uploads/9a3952b9-53e0-4a7b-bb60-05c1b1687c20.png" 
+      logoPath: "/lovable-uploads/a74eab13-f8c0-43cf-8130-04924b73825d.png" 
     },
     { 
       id: "nota", 
