@@ -1,4 +1,5 @@
 
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,12 +13,12 @@ import Confirmation from "./pages/Confirmation";
 import About from "./pages/About";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
-import React from "react";
 
-// Initialize the query client outside of the component
+// Initialize the query client once, outside of the component
 const queryClient = new QueryClient();
 
-const App = () => {
+// Define the App component
+const App: React.FC = () => {
   return (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
