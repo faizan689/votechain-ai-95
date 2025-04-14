@@ -159,12 +159,15 @@ const ElectionProgress = () => {
               config={{ 
                 rate: { color: "#FF9933" } 
               }} 
-              className="h-80"
+              className="h-[280px] w-full"
             >
-              <LineChart data={votingRates} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+              <LineChart 
+                data={votingRates} 
+                margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                <XAxis dataKey="time" />
-                <YAxis />
+                <XAxis dataKey="time" tick={{ fontSize: 11 }} />
+                <YAxis width={40} tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Line 
                   type="monotone"
@@ -172,8 +175,8 @@ const ElectionProgress = () => {
                   dataKey="rate"
                   stroke="#FF9933" 
                   strokeWidth={2}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
                 />
               </LineChart>
             </ChartContainer>

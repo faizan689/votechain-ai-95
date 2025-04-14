@@ -63,10 +63,22 @@ const TurnoutTracking = () => {
               }} 
               className="h-80"
             >
-              <BarChart data={turnoutData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+              <BarChart 
+                data={turnoutData} 
+                margin={{ top: 10, right: 10, left: 15, bottom: 20 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" />
-                <YAxis label={{ value: 'Turnout %', angle: -90, position: 'insideLeft' }} />
+                <XAxis dataKey="time" tick={{ fontSize: 11 }} />
+                <YAxis 
+                  label={{ 
+                    value: 'Turnout %', 
+                    angle: -90, 
+                    position: 'insideLeft',
+                    style: { fontSize: 11 }
+                  }} 
+                  tick={{ fontSize: 11 }}
+                  width={40}
+                />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="turnout" name="Voter Turnout %" fill="var(--color-turnout)" radius={[4, 4, 0, 0]} />
               </BarChart>
