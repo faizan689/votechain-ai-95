@@ -32,13 +32,17 @@ const Admin = () => {
     const isExternal = externalParam === 'true';
     setIsExternalWindow(isExternal);
 
+    // Check admin verification from URL parameter
+    const adminVerifiedParam = urlParams.get('adminVerified');
+    const isAdminVerified = adminVerifiedParam === 'true';
+
     const checkAuth = () => {
       // Check if user has admin role
       const isAdmin = localStorage.getItem("isAdmin") === "true";
       
       // If opened in an external window but admin state isn't available,
       // check if parent window passed admin verification via URL parameter
-      if (isExternal && !isAdmin && urlParams.get('adminVerified') === 'true') {
+      if (isExternal && !isAdmin && isAdminVerified) {
         localStorage.setItem("isAdmin", "true");
         setIsAuthorized(true);
         setIsLoading(false);
@@ -48,13 +52,14 @@ const Admin = () => {
       setIsAuthorized(isAdmin);
       setIsLoading(false);
       
-      if (!isAdmin) {
+      if (!isAdmin && !isExternal) {
         toast.error("You don't have permission to access the admin panel");
         navigate('/', { replace: true });
       }
     };
 
-    checkAuth();
+    // Short delay to ensure localStorage is properly checked
+    setTimeout(checkAuth, 100);
   }, [navigate]);
 
   // Function to authenticate in new window
@@ -130,7 +135,7 @@ const Admin = () => {
     window.open(
       `/admin?external=true&adminVerified=true`, 
       'AdminPanel', 
-      `width=${width},height=${height},top=${top},left=${left}`
+      `width=${width},height=${height},top=${top},left=${left},toolbar=0,location=0,menubar=0`
     );
   };
 
