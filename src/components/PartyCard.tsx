@@ -63,12 +63,12 @@ const PartyCard = ({ id, name, symbol, color, logoPath, selected, onSelect }: Pa
           
           {selected && (
             <motion.div 
-              className="absolute top-3 right-3 bg-primary rounded-full p-1"
+              className="absolute top-3 right-3 bg-white dark:bg-black rounded-full p-1 shadow-sm dark:shadow-[0_0_5px_rgba(255,255,255,0.5)]"
               initial={{ scale: 0 }}
               animate={{ scale: 1, rotate: 360 }}
               transition={{ type: "spring", stiffness: 260, damping: 20 }}
             >
-              <Check className="w-4 h-4 text-white" />
+              <Check className="w-4 h-4 text-primary dark:text-white" />
             </motion.div>
           )}
         </div>
@@ -78,3 +78,4 @@ const PartyCard = ({ id, name, symbol, color, logoPath, selected, onSelect }: Pa
 };
 
 export default PartyCard;
+
