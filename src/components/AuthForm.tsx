@@ -57,17 +57,23 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
       // In a real app, use authService.verifyOTP
       setTimeout(() => {
         setIsLoading(false);
-        toast.success('OTP verified successfully!');
         
         // Special case for admin login
         if (voterId === 'ADMIN123') {
           localStorage.setItem('isAdmin', 'true');
           localStorage.setItem('isVerified', 'true');
+          toast.success('Admin login successful!');
           navigate('/admin');
         } else {
           localStorage.setItem('isAdmin', 'false');
           localStorage.setItem('isVerified', 'true');
+          toast.success('Voter verification successful!');
           navigate('/voting');
+        }
+        
+        // Call the success callback if provided
+        if (onVerificationSuccess) {
+          onVerificationSuccess();
         }
       }, 1000);
     } catch (error) {

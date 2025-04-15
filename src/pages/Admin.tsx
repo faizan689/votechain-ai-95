@@ -26,6 +26,8 @@ const Admin = () => {
 
   // Check if user is authorized on component mount
   useEffect(() => {
+    console.log("Admin component mounted");
+    
     // First check if this is opened in an external window
     const urlParams = new URLSearchParams(window.location.search);
     const externalParam = urlParams.get('external');
@@ -35,14 +37,19 @@ const Admin = () => {
     // Check admin verification from URL parameter
     const adminVerifiedParam = urlParams.get('adminVerified');
     const isAdminVerified = adminVerifiedParam === 'true';
+    
+    console.log("External window:", isExternal);
+    console.log("Admin verified from URL:", isAdminVerified);
 
     const checkAuth = () => {
       // Check if user has admin role
       const isAdmin = localStorage.getItem("isAdmin") === "true";
+      console.log("Is admin from localStorage:", isAdmin);
       
       // If opened in an external window but admin state isn't available,
       // check if parent window passed admin verification via URL parameter
       if (isExternal && !isAdmin && isAdminVerified) {
+        console.log("Setting admin status from URL parameter");
         localStorage.setItem("isAdmin", "true");
         setIsAuthorized(true);
         setIsLoading(false);
@@ -58,8 +65,8 @@ const Admin = () => {
       }
     };
 
-    // Short delay to ensure localStorage is properly checked
-    setTimeout(checkAuth, 100);
+    // Longer delay to ensure localStorage is properly checked and browser has time to initialize
+    setTimeout(checkAuth, 300);
   }, [navigate]);
 
   // Function to authenticate in new window
@@ -81,6 +88,7 @@ const Admin = () => {
   // If in external window and not authorized, prompt for credentials
   useEffect(() => {
     if (isExternalWindow && !isAuthorized && !isLoading) {
+      console.log("Prompting for admin credentials in external window");
       promptForAdminCredentials();
     }
   }, [isExternalWindow, isAuthorized, isLoading]);
@@ -127,6 +135,7 @@ const Admin = () => {
 
   // Function to open admin panel in new window
   const openInNewWindow = () => {
+    console.log("Opening admin panel in new window");
     const width = 1200;
     const height = 800;
     const left = window.screen.width / 2 - width / 2;
@@ -135,7 +144,7 @@ const Admin = () => {
     window.open(
       `/admin?external=true&adminVerified=true`, 
       'AdminPanel', 
-      `width=${width},height=${height},top=${top},left=${left},toolbar=0,location=0,menubar=0`
+      `width=${width},height=${height},top=${top},left=${left},toolbar=0,location=0,menubar=0,resizable=1,scrollbars=1,status=0`
     );
   };
 
