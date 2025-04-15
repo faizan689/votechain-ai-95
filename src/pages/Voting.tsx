@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Info, ShieldCheck } from "lucide-react";
 import Header from "@/components/Header";
@@ -39,7 +39,7 @@ const Voting = () => {
       name: "Aam Aadmi Party", 
       symbol: "Broom", 
       color: "#019934", 
-      logoPath: "/lovable-uploads/a74eab13-f8c0-43cf-8130-04924b73825d.png" 
+      logoPath: "/lovable-uploads/c1e1f869-b9f5-4251-9872-e4504191624a.png" 
     },
     { 
       id: "nota", 
