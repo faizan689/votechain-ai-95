@@ -18,6 +18,7 @@ import { AdminLoadingState } from "@/components/admin/AdminLoadingState";
 import { AdminAccessDenied } from "@/components/admin/AdminAccessDenied";
 import { AdminWindowOpener } from "@/components/admin/AdminWindowOpener";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { toast } from "sonner";
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("turnout");

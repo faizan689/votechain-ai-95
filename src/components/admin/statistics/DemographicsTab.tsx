@@ -12,6 +12,14 @@ import { ageGroupData, genderData, generateHourlyTurnoutData } from "./mockData"
 const hourlyTurnoutData = generateHourlyTurnoutData();
 
 const DemographicsTab: React.FC = () => {
+  // Ensure data arrays are not empty and values are properly initialized
+  const safeAgeGroupData = ageGroupData || [];
+  const safeGenderData = genderData || [];
+  const safeHourlyData = hourlyTurnoutData || [];
+  
+  // Calculate total for gender data safely
+  const genderTotal = safeGenderData.reduce((sum, d) => sum + (d.value || 0), 0);
+  
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card>
@@ -32,7 +40,7 @@ const DemographicsTab: React.FC = () => {
             className="h-72"
           >
             <BarChart 
-              data={ageGroupData} 
+              data={safeAgeGroupData} 
               margin={{ top: 10, right: 30, left: 20, bottom: 15 }}
             >
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -48,8 +56,11 @@ const DemographicsTab: React.FC = () => {
                 width={40}
               />
               <Tooltip 
-                formatter={(value: number, name: string, props: any) => {
-                  return [`${props.payload.percent}%`, 'Turnout'];
+                formatter={(value: number | undefined, name: string, props: any) => {
+                  if (props?.payload?.percent !== undefined) {
+                    return [`${props.payload.percent}%`, 'Turnout'];
+                  }
+                  return ['--', 'Turnout'];
                 }}
               />
               <Bar dataKey="value" name="Voters" fill="var(--color-turnout)" radius={[4, 4, 0, 0]} />
@@ -93,7 +104,7 @@ const DemographicsTab: React.FC = () => {
           >
             <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
               <Pie
-                data={genderData}
+                data={safeGenderData}
                 cx="50%"
                 cy="50%"
                 innerRadius={0}
@@ -101,29 +112,34 @@ const DemographicsTab: React.FC = () => {
                 paddingAngle={2}
                 dataKey="value"
                 nameKey="name"
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(1)}%`}
                 labelLine={{ strokeWidth: 0.5, stroke: "#666" }}
               >
-                {genderData.map((entry, index) => (
+                {safeGenderData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
               <Tooltip 
-                formatter={(value: number) => [`${value.toLocaleString()} voters`, 'Count']} 
+                formatter={(value: number | undefined) => {
+                  if (value !== undefined) {
+                    return [`${value.toLocaleString()} voters`, 'Count'];
+                  }
+                  return ['0 voters', 'Count'];
+                }} 
                 wrapperStyle={{ fontSize: "12px" }}
               />
               <Legend layout="horizontal" verticalAlign="bottom" align="center" />
             </PieChart>
           </ChartContainer>
           <div className="mt-4 grid grid-cols-3 gap-4">
-            {genderData.map((item) => (
+            {safeGenderData.map((item) => (
               <div key={item.name} className="text-center">
                 <div className="text-sm text-muted-foreground">{item.name}</div>
                 <div className="text-xl font-bold">
-                  {item.value.toLocaleString()}
+                  {(item.value || 0).toLocaleString()}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {((item.value / genderData.reduce((sum, d) => sum + d.value, 0)) * 100).toFixed(1)}%
+                  {((item.value || 0) / (genderTotal || 1) * 100).toFixed(1)}%
                 </div>
               </div>
             ))}
@@ -149,7 +165,7 @@ const DemographicsTab: React.FC = () => {
             className="h-72"
           >
             <LineChart 
-              data={hourlyTurnoutData} 
+              data={safeHourlyData} 
               margin={{ top: 10, right: 30, left: 20, bottom: 15 }}
             >
               <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
