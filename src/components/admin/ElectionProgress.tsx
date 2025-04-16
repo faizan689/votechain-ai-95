@@ -1,4 +1,3 @@
-
 import React from "react";
 import { motion } from "framer-motion";
 import { Activity, Clock, Trophy, Map } from "lucide-react";
@@ -213,7 +212,10 @@ const VoteCard = ({ party, votes, color }: { party: string; votes: number; color
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
-    const total = payload.reduce((sum: number, entry: any) => sum + entry.value, 0);
+    const total = payload.reduce((sum: number, entry: any) => {
+      const value = typeof entry.value === 'number' ? entry.value : 0;
+      return sum + value;
+    }, 0);
     
     return (
       <div className="bg-background border border-border rounded-md p-3 shadow-md text-sm">
@@ -227,7 +229,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
               />
               <span>{entry.name}</span>
             </div>
-            <span>{entry.value.toLocaleString()} votes</span>
+            <span>{typeof entry.value === 'number' ? entry.value.toLocaleString() : '0'} votes</span>
           </div>
         ))}
         <div className="border-t border-border mt-2 pt-2 font-medium flex justify-between">

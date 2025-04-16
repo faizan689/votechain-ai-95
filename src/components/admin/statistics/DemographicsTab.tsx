@@ -57,8 +57,8 @@ const DemographicsTab: React.FC = () => {
               />
               <Tooltip 
                 formatter={(value: number | undefined, name: string, props: any) => {
-                  if (props?.payload?.percent !== undefined) {
-                    return [`${props.payload.percent}%`, 'Turnout'];
+                  if (typeof value === 'number') {
+                    return [value.toString(), 'Turnout'];
                   }
                   return ['--', 'Turnout'];
                 }}
@@ -121,7 +121,7 @@ const DemographicsTab: React.FC = () => {
               </Pie>
               <Tooltip 
                 formatter={(value: number | undefined) => {
-                  if (value !== undefined) {
+                  if (typeof value === 'number') {
                     return [`${value.toLocaleString()} voters`, 'Count'];
                   }
                   return ['0 voters', 'Count'];
@@ -136,10 +136,10 @@ const DemographicsTab: React.FC = () => {
               <div key={item.name} className="text-center">
                 <div className="text-sm text-muted-foreground">{item.name}</div>
                 <div className="text-xl font-bold">
-                  {(item.value || 0).toLocaleString()}
+                  {typeof (item.value) === 'number' ? item.value.toLocaleString() : '0'}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {((item.value || 0) / (genderTotal || 1) * 100).toFixed(1)}%
+                  {((typeof item.value === 'number' ? item.value : 0) / (genderTotal || 1) * 100).toFixed(1)}%
                 </div>
               </div>
             ))}
@@ -180,7 +180,15 @@ const DemographicsTab: React.FC = () => {
                 width={40}
                 tick={{ fontSize: 10 }}
               />
-              <Tooltip wrapperStyle={{ fontSize: "12px" }} />
+              <Tooltip 
+                formatter={(value: any) => {
+                  if (typeof value === 'number') {
+                    return [value.toString(), 'Turnout %'];
+                  }
+                  return ['--', 'Turnout %'];
+                }}
+                wrapperStyle={{ fontSize: "12px" }} 
+              />
               <Line 
                 type="monotone" 
                 dataKey="turnout" 

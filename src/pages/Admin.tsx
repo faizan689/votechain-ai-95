@@ -36,6 +36,7 @@ const Admin = () => {
     }
   };
 
+  // Error boundary to catch rendering errors
   if (isLoading) {
     return <AdminLoadingState />;
   }
