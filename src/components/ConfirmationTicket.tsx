@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -22,7 +21,6 @@ const ConfirmationTicket = ({
 }: ConfirmationTicketProps) => {
   const navigate = useNavigate();
   
-  // Format timestamp to readable format
   const formattedDate = new Date(timestamp).toLocaleString("en-IN", {
     dateStyle: "long",
     timeStyle: "short",
@@ -40,7 +38,6 @@ Party voted for: ${partyName}
     toast.success("Receipt copied to clipboard");
   };
   
-  // Confetti animation on component mount
   useEffect(() => {
     const confetti = () => {
       const canvas = document.createElement("canvas");
@@ -190,15 +187,19 @@ Party voted for: ${partyName}
       </Card>
       
       <div className="mt-8 flex justify-center">
-        <motion.button
+        <motion.div 
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 text-primary hover:text-primary/80"
+          className="border border-primary/20 rounded-lg p-1 hover:bg-primary/5 transition-colors"
         >
-          <span>Return to Home</span>
-          <ArrowRight size={16} />
-        </motion.button>
+          <motion.button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-primary hover:text-primary/80 px-4 py-2"
+          >
+            <span>Return to Home</span>
+            <ArrowRight size={16} />
+          </motion.button>
+        </motion.div>
       </div>
     </motion.div>
   );
