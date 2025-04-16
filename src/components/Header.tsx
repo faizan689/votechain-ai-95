@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Shield, Check } from "lucide-react";
 import { 
   letterAnimation, 
   letterHover, 
