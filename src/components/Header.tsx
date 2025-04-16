@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Moon, Sun, Shield, Check } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { 
   letterAnimation, 
   letterHover, 
@@ -15,45 +14,7 @@ import {
 const Header = () => {
   const [isDark, setIsDark] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
-  
-  useEffect(() => {
-    // Check admin status
-    const adminStatus = localStorage.getItem("isAdmin") === "true";
-    setIsAdmin(adminStatus);
-    
-    // We need to listen for storage events to update the header when admin status changes
-    const handleStorageChange = () => {
-      const currentAdminStatus = localStorage.getItem("isAdmin") === "true";
-      setIsAdmin(currentAdminStatus);
-    };
-    
-    window.addEventListener("storage", handleStorageChange);
-    
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, []);
-  
-  // Let's also check localStorage on every render since React events 
-  // might not trigger the storage event listener
-  useEffect(() => {
-    const adminStatus = localStorage.getItem("isAdmin") === "true";
-    if (adminStatus !== isAdmin) {
-      setIsAdmin(adminStatus);
-    }
-  });
-  
-  const toggleDarkMode = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle("dark");
-  };
-  
-  const goToAdmin = () => {
-    navigate('/admin');
-  };
   
   useEffect(() => {
     const handleScroll = () => {
@@ -72,6 +33,11 @@ const Header = () => {
     const isDarkMode = document.documentElement.classList.contains("dark");
     setIsDark(isDarkMode);
   }, []);
+  
+  const toggleDarkMode = () => {
+    setIsDark(!isDark);
+    document.documentElement.classList.toggle("dark");
+  };
   
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -215,18 +181,6 @@ const Header = () => {
         </nav>
         
         <div className="flex items-center gap-4">
-          {isAdmin && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={goToAdmin}
-              className="p-2 rounded-full bg-secondary text-secondary-foreground transition-colors"
-              aria-label="Admin Panel"
-            >
-              <Shield size={18} />
-            </motion.button>
-          )}
-          
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

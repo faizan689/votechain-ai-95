@@ -11,7 +11,6 @@ import Auth from "./pages/Auth";
 import Voting from "./pages/Voting";
 import Confirmation from "./pages/Confirmation";
 import About from "./pages/About";
-import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 // Initialize the query client once, outside of the component
@@ -33,7 +32,6 @@ const App: React.FC = () => {
                 <Route path="/voting" element={<Voting />} />
                 <Route path="/confirmation" element={<Confirmation />} />
                 <Route path="/about" element={<About />} />
-                <Route path="/admin" element={<Admin />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </AnimatePresence>
