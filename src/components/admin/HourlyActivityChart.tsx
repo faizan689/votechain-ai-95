@@ -44,6 +44,16 @@ const HourlyActivityChart = ({ totalVoters, totalVotesCast }: HourlyActivityChar
     
     return data;
   }, [totalVoters, totalVotesCast]);
+  
+  // Chart configuration
+  const chartConfig = {
+    hourlyVotes: {
+      label: "Hourly Votes",
+    },
+    cumulativeVotes: {
+      label: "Total Votes",
+    }
+  };
 
   return (
     <motion.div
@@ -58,7 +68,7 @@ const HourlyActivityChart = ({ totalVoters, totalVotesCast }: HourlyActivityChar
         <Badge variant="outline" className="text-xs">Trend Analysis</Badge>
       </div>
 
-      <ChartContainer className="h-[240px]">
+      <ChartContainer className="h-[240px]" config={chartConfig}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={hourlyData}

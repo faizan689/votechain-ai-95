@@ -1,5 +1,5 @@
 
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, LabelList } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, LabelList, Cell } from "recharts";
 import { PartyVoteStats } from "@/types/api";
 import { ChartContainer } from "@/components/ui/chart";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +47,16 @@ const ProjectedResultsChart = ({ data }: ProjectedResultsChartProps) => {
   
   // Find projected winner
   const projectedWinner = [...projectedData].sort((a, b) => b.projected - a.projected)[0];
+  
+  // Chart configuration
+  const chartConfig = {
+    current: {
+      label: "Current Votes",
+    },
+    projected: {
+      label: "Projected Votes",
+    }
+  };
 
   return (
     <motion.div
@@ -63,7 +73,7 @@ const ProjectedResultsChart = ({ data }: ProjectedResultsChartProps) => {
         </Badge>
       </div>
 
-      <ChartContainer className="h-[240px]">
+      <ChartContainer className="h-[240px]" config={chartConfig}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={projectedData}
