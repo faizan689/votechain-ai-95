@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -15,6 +16,11 @@ const Header = () => {
   const [isDark, setIsDark] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  
+  // Define the letters for the flag animation
+  const saffronLetters = "Vo";
+  const whiteLetters = "teG";
+  const greenLetters = "uard";
   
   useEffect(() => {
     const handleScroll = () => {
