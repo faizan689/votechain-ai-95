@@ -15,12 +15,20 @@ import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import AdminRoute from "./components/AdminRoute";
 
-const queryClient = new QueryClient();
+// Create a new QueryClient instance outside of the component
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: false,
+    },
+  },
+});
 
 const App: React.FC = () => {
   return (
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <React.StrictMode>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -45,8 +53,8 @@ const App: React.FC = () => {
             </AnimatePresence>
           </BrowserRouter>
         </TooltipProvider>
-      </QueryClientProvider>
-    </React.StrictMode>
+      </React.StrictMode>
+    </QueryClientProvider>
   );
 };
 
