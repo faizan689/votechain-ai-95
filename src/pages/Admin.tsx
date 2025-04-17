@@ -111,7 +111,8 @@ const Admin = () => {
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <Header />
       
-      <main className="flex-1 container max-w-7xl mx-auto px-4 py-6 overflow-x-hidden">
+      <main className="flex-1 container max-w-7xl mx-auto px-4 pt-24 pb-6 overflow-x-hidden">
+        {/* Add pt-24 to create space for the header and prevent overlapping */}
         <motion.div
           initial="hidden"
           animate="visible"

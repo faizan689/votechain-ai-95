@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -44,13 +43,6 @@ const Header = () => {
     return location.pathname === path;
   };
   
-  const voteText = "Vote";
-  const guardText = "Guard";
-  
-  const saffronLetters = "Vo";
-  const whiteLetters = "teG";
-  const greenLetters = "uard";
-  
   return (
     <motion.header 
       initial={{ y: -20, opacity: 0 }}
@@ -58,7 +50,7 @@ const Header = () => {
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled 
-          ? "py-4 glass" 
+          ? "py-4 glass shadow-md" 
           : "py-6 bg-transparent"
       }`}
     >
