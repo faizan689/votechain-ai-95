@@ -2,22 +2,39 @@
 import { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip } from "recharts";
 import { PartyVoteStats } from "@/types/api";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
 
 interface VotingDistributionChartProps {
   data: PartyVoteStats[];
 }
 
 const VotingDistributionChart = ({ data }: VotingDistributionChartProps) => {
-  // Generate colors for each party if they don't have a color
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+  // Map party IDs to short names and colors
+  const partyMap = {
+    "PTY-001": { short: "INC", color: "#0078D7", full: "Indian National Congress" },
+    "PTY-002": { short: "BJP", color: "#FF9933", full: "Bharatiya Janata Party" },
+    "PTY-003": { short: "AAP", color: "#019934", full: "Aam Aadmi Party" },
+    "PTY-004": { short: "NF", color: "#F4511E", full: "National Front" },
+    "PTY-005": { short: "NOTA", color: "#6B7280", full: "None Of The Above" }
+  };
   
   // Format data for chart
-  const chartData = data.map((party, index) => ({
-    name: party.partyName || `Party ${party.partyId}`,
-    value: party.votes,
-    percentage: party.percentage,
-    fill: COLORS[index % COLORS.length],
-  }));
+  const chartData = data.map((party) => {
+    const partyInfo = partyMap[party.partyId as keyof typeof partyMap] || { 
+      short: party.partyName?.substring(0, 3) || "UNK", 
+      color: "#8884d8",
+      full: party.partyName || "Unknown"
+    };
+    
+    return {
+      name: partyInfo.short,
+      fullName: partyInfo.full,
+      value: party.votes,
+      percentage: party.percentage,
+      fill: partyInfo.color,
+    };
+  });
   
   const chartConfig = {
     votes: {
@@ -26,30 +43,66 @@ const VotingDistributionChart = ({ data }: VotingDistributionChartProps) => {
   };
 
   return (
-    <ChartContainer className="h-[300px]" config={chartConfig}>
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={chartData}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            outerRadius={80}
-            fill="#8884d8"
-            dataKey="value"
-            nameKey="name"
-            label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
-          >
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.fill} />
-            ))}
-          </Pie>
-          <Tooltip content={<ChartTooltipContent />} />
-          <Legend />
-        </PieChart>
-      </ResponsiveContainer>
-    </ChartContainer>
+    <motion.div 
+      whileHover={{ scale: 1.01 }}
+      className="w-full h-full"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-medium text-muted-foreground">Party Distribution</h3>
+        <Badge variant="outline" className="text-xs">Live Results</Badge>
+      </div>
+      
+      <ChartContainer className="h-[240px]" config={chartConfig}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={chartData}
+              cx="50%"
+              cy="45%"
+              labelLine={false}
+              outerRadius={80}
+              innerRadius={30}
+              fill="#8884d8"
+              dataKey="value"
+              nameKey="name"
+              label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
+            >
+              {chartData.map((entry, index) => (
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={entry.fill} 
+                  strokeWidth={1}
+                />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+            <Legend 
+              iconType="circle" 
+              layout="horizontal" 
+              verticalAlign="bottom" 
+              align="center"
+              wrapperStyle={{ fontSize: 10, bottom: -10 }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </ChartContainer>
+    </motion.div>
   );
+};
+
+// Custom tooltip component to show party full names
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-background/95 backdrop-blur-sm border border-border/50 shadow-lg p-2 rounded-md text-xs">
+        <p className="font-medium">{data.fullName}</p>
+        <p>Votes: <span className="font-mono">{data.value.toLocaleString()}</span></p>
+        <p>Share: <span className="font-mono">{data.percentage.toFixed(2)}%</span></p>
+      </div>
+    );
+  }
+  return null;
 };
 
 export default VotingDistributionChart;
