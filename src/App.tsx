@@ -12,11 +12,11 @@ import Voting from "./pages/Voting";
 import Confirmation from "./pages/Confirmation";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
+import Admin from "./pages/Admin";
+import AdminRoute from "./components/AdminRoute";
 
-// Initialize the query client once, outside of the component
 const queryClient = new QueryClient();
 
-// Define the App component
 const App: React.FC = () => {
   return (
     <React.StrictMode>
@@ -32,6 +32,14 @@ const App: React.FC = () => {
                 <Route path="/voting" element={<Voting />} />
                 <Route path="/confirmation" element={<Confirmation />} />
                 <Route path="/about" element={<About />} />
+                <Route 
+                  path="/admin" 
+                  element={
+                    <AdminRoute>
+                      <Admin />
+                    </AdminRoute>
+                  } 
+                />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </AnimatePresence>

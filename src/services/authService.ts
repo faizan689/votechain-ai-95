@@ -1,4 +1,3 @@
-
 import { apiRequest, setAuthToken } from './api';
 import { AuthResponse, VoterVerificationResponse } from '@/types/api';
 
@@ -15,7 +14,7 @@ export const authService = {
   },
   
   /**
-   * Verify OTP
+   * Verify OTP and check for admin access
    */
   verifyOTP: async (voterId: string, otp: string): Promise<AuthResponse> => {
     const response = await apiRequest<AuthResponse>(
@@ -24,13 +23,12 @@ export const authService = {
       { voterId, otp }
     );
     
-    // Store the token if it's available
     if (response.token) {
       setAuthToken(response.token);
     }
     
-    // Check if the user is an admin
-    if (voterId === 'ADMIN123') {
+    // Check if admin key matches
+    if (voterId === 'ADMIN123' && otp === 'Faizan1234') {
       localStorage.setItem('isAdmin', 'true');
       localStorage.setItem('isVerified', 'true');
     } else {
