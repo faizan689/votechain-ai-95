@@ -61,28 +61,35 @@ export default function AdminSidebar() {
 
   return (
     <Sidebar className="border-r border-border/40">
-      <SidebarHeader className="p-4 flex items-center justify-center">
-        <Link to="/admin" className="flex items-center gap-2">
-          <motion.div 
-            className="w-10 h-10 flex items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-orange-500 via-white to-green-600 shadow-md"
-            whileHover={{ 
-              scale: 1.05,
-              boxShadow: "0 0 8px rgba(255,153,51,0.6)",
-            }}
-          >
-            <Shield className="w-6 h-6 text-black" strokeWidth={2} />
-          </motion.div>
+      <SidebarHeader className="p-4">
+        <div className="flex items-center space-x-3">
+          <Link to="/admin" className="flex items-center">
+            <motion.div 
+              className="w-10 h-10 flex items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-orange-500 via-white to-green-600 shadow-md"
+              whileHover={{ 
+                scale: 1.05,
+                boxShadow: "0 0 8px rgba(255,153,51,0.6)",
+              }}
+            >
+              <Shield className="w-6 h-6 text-black" strokeWidth={2} />
+            </motion.div>
+          </Link>
+          
           {!collapsed && (
             <motion.div 
               initial={{ opacity: 1 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="font-display font-semibold tracking-tight"
+              className="flex flex-col"
             >
-              <span className="text-xl">Admin Panel</span>
+              <span className="text-xl font-display font-semibold tracking-tight">Admin Panel</span>
+              <div className="flex text-sm">
+                <motion.span className="text-orange-500">Vote</motion.span>
+                <motion.span className="text-gray-600 dark:text-gray-300">Guard</motion.span>
+              </div>
             </motion.div>
           )}
-        </Link>
+        </div>
       </SidebarHeader>
 
       <SidebarContent className="px-2">
