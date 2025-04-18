@@ -14,7 +14,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <Header />
       
-      <div className="flex-1 pt-16"> {/* Add padding-top to prevent content from going under header */}
+      <div className="flex-1 pt-20"> {/* Increased padding-top to prevent overlap */}
         <SidebarProvider>
           <div className="flex w-full">
             <AdminSidebar />

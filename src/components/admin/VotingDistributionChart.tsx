@@ -1,4 +1,3 @@
-
 import { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip } from "recharts";
 import { PartyVoteStats } from "@/types/api";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -15,12 +14,13 @@ const VotingDistributionChart = ({ data }: VotingDistributionChartProps) => {
     "PTY-001": { short: "INC", color: "#0078D7", full: "Indian National Congress" },
     "PTY-002": { short: "BJP", color: "#FF9933", full: "Bharatiya Janata Party" },
     "PTY-003": { short: "AAP", color: "#019934", full: "Aam Aadmi Party" },
-    "PTY-004": { short: "NF", color: "#F4511E", full: "National Front" },
     "PTY-005": { short: "NOTA", color: "#6B7280", full: "None Of The Above" }
   };
   
-  // Format data for chart
-  const chartData = data.map((party) => {
+  // Format data for chart, filtering out NF party
+  const chartData = data
+    .filter(party => party.partyId !== "PTY-004") // Filter out NF party
+    .map((party) => {
     const partyInfo = partyMap[party.partyId as keyof typeof partyMap] || { 
       short: party.partyName?.substring(0, 3) || "UNK", 
       color: "#8884d8",
@@ -35,7 +35,7 @@ const VotingDistributionChart = ({ data }: VotingDistributionChartProps) => {
       fill: partyInfo.color,
     };
   });
-  
+
   const chartConfig = {
     votes: {
       label: "Votes",
