@@ -1,6 +1,7 @@
+
 import { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip } from "recharts";
 import { PartyVoteStats } from "@/types/api";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 
@@ -54,17 +55,18 @@ const VotingDistributionChart = ({ data }: VotingDistributionChartProps) => {
       
       <ChartContainer className="h-[240px]" config={chartConfig}>
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
+          <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
             <Pie
               data={chartData}
               cx="50%"
               cy="45%"
               labelLine={false}
-              outerRadius={80}
+              outerRadius={70}
               innerRadius={30}
               fill="#8884d8"
               dataKey="value"
               nameKey="name"
+              // Simplified labels to prevent overflow
               label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
             >
               {chartData.map((entry, index) => (
@@ -81,7 +83,7 @@ const VotingDistributionChart = ({ data }: VotingDistributionChartProps) => {
               layout="horizontal" 
               verticalAlign="bottom" 
               align="center"
-              wrapperStyle={{ fontSize: 10, bottom: -10 }}
+              wrapperStyle={{ fontSize: 10, paddingTop: 15 }}
             />
           </PieChart>
         </ResponsiveContainer>
