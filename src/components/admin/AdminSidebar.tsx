@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
@@ -37,7 +37,7 @@ export default function AdminSidebar() {
   const { toast } = useToast();
   const [collapsed, setCollapsed] = useState(false);
 
-  // Define navigation items
+  // Define navigation items with all the requested sections
   const navItems: NavItem[] = [
     { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
     { name: "Security", path: "/admin/security", icon: Shield },

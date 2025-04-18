@@ -1,11 +1,20 @@
 
+import { createContext, useContext, useEffect, useState } from "react"
 import { ThemeProvider as NextThemesProvider } from "next-themes"
-import { type ThemeProviderProps } from "next-themes/dist/types"
-import React from "react"
 
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+type Theme = "light" | "dark" | "system"
+
+type ThemeProviderProps = {
+  children: React.ReactNode
+  defaultTheme?: Theme
+}
+
+export function ThemeProvider({
+  children,
+  defaultTheme = "system",
+}: ThemeProviderProps) {
   return (
-    <NextThemesProvider {...props} attribute="class">
+    <NextThemesProvider attribute="class" defaultTheme={defaultTheme}>
       {children}
     </NextThemesProvider>
   )
