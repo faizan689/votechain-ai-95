@@ -9,7 +9,7 @@ import AdminRoute from "./components/AdminRoute";
 import Voting from "./pages/Voting";
 import Confirmation from "./pages/Confirmation";
 import NotFound from "./pages/NotFound";
-import { ThemeProvider } from "./components/ThemeProvider";
+import { ThemeProvider } from "./components/ThemeProvider"; // Correct import path
 import { Toaster } from "@/components/ui/toaster";
 
 function App() {
