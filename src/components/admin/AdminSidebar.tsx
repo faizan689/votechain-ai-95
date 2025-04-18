@@ -9,8 +9,7 @@ import {
   BarChart3, 
   Bell, 
   Settings, 
-  LogOut, 
-  ChevronLeft
+  LogOut
 } from "lucide-react";
 import {
   Sidebar,
