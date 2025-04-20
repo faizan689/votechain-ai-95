@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -36,7 +35,6 @@ export default function AdminSidebar() {
   const { toast } = useToast();
   const [collapsed, setCollapsed] = useState(false);
 
-  // Define navigation items with all the requested sections
   const navItems: NavItem[] = [
     { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
     { name: "Security", path: "/admin/security", icon: Shield },
@@ -52,7 +50,6 @@ export default function AdminSidebar() {
       title: "Logged out",
       description: "You have been successfully logged out.",
     });
-    // Redirect to home page
     window.location.href = "/";
   };
 
@@ -63,18 +60,9 @@ export default function AdminSidebar() {
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-center">
           {!collapsed && (
-            <motion.div 
-              initial={{ opacity: 1 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col"
-            >
-              <span className="text-xl font-display font-semibold tracking-tight">Admin Panel</span>
-              <div className="flex text-sm">
-                <motion.span className="text-orange-500">Vote</motion.span>
-                <motion.span className="text-gray-600 dark:text-gray-300">Guard</motion.span>
-              </div>
-            </motion.div>
+            <span className="text-xl font-display font-semibold tracking-tight text-primary">
+              Admin
+            </span>
           )}
         </div>
       </SidebarHeader>
