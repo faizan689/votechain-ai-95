@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -14,11 +15,9 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger
+  SidebarMenuButton
 } from "@/components/ui/sidebar";
 import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
@@ -57,16 +56,6 @@ export default function AdminSidebar() {
 
   return (
     <Sidebar className="border-r border-border/40">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center justify-center">
-          {!collapsed && (
-            <span className="text-xl font-display font-semibold tracking-tight text-primary">
-              Admin
-            </span>
-          )}
-        </div>
-      </SidebarHeader>
-
       <SidebarContent className="px-2">
         <SidebarMenu>
           {navItems.map((item) => (
@@ -78,7 +67,7 @@ export default function AdminSidebar() {
               >
                 <Link to={item.path} className="flex items-center gap-2">
                   <item.icon className="h-5 w-5" />
-                  <span>{item.name}</span>
+                  {!collapsed && <span>{item.name}</span>}
                   {item.badge && (
                     <span className="ml-auto bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
                       {item.badge}
