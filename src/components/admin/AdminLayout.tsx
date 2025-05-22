@@ -11,7 +11,7 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 w-full">
       <div className="pl-6"> {/* Added left padding to shift logo to the left */}
         <Header />
       </div>
