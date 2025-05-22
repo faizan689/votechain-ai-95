@@ -56,7 +56,7 @@ export default function AdminSidebar() {
 
   return (
     <Sidebar className="border-r border-border/40">
-      <SidebarContent className="px-2">
+      <SidebarContent className="px-2 pt-20"> {/* Added pt-20 for top padding */}
         <SidebarMenu>
           {navItems.map((item) => (
             <SidebarMenuItem key={item.path}>
