@@ -12,7 +12,9 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-      <Header />
+      <div className="pl-6"> {/* Added left padding to shift logo to the left */}
+        <Header />
+      </div>
       
       <div className="flex-1 pt-20"> {/* Increased padding-top to prevent overlap */}
         <SidebarProvider>
