@@ -75,10 +75,13 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                <span>OTP sent to your phone!</span>
+                <span>OTP generated successfully!</span>
               </div>
               <div className="text-sm font-mono bg-gray-100 p-2 rounded">
-                Test OTP: {response.debug_otp}
+                <strong>Demo OTP:</strong> {response.debug_otp}
+              </div>
+              <div className="text-xs text-gray-600">
+                (SMS not implemented - use the demo OTP above)
               </div>
             </div>
           );
@@ -156,7 +159,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
         toast.success(
           <div className="flex items-center gap-2">
             <CheckCircle className="h-4 w-4 text-green-500" />
-            <span>Authentication successful!</span>
+            <span>✅ OTP is CORRECT! Authentication successful!</span>
           </div>
         );
         
@@ -189,14 +192,14 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
           toast.error(
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-red-500" />
-              <span>❌ Incorrect OTP. The code you entered is wrong.</span>
+              <span>❌ INCORRECT OTP! The code you entered is wrong.</span>
             </div>
           );
         } else {
           toast.error(
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-red-500" />
-              <span>{errorMessage}</span>
+              <span>❌ OTP verification failed: {errorMessage}</span>
             </div>
           );
         }
@@ -205,7 +208,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
       toast.error(
         <div className="flex items-center gap-2">
           <AlertCircle className="h-4 w-4 text-red-500" />
-          <span>OTP verification failed. Please try again.</span>
+          <span>❌ OTP verification failed. Please try again.</span>
         </div>
       );
       console.error('OTP verification error:', error);
@@ -275,7 +278,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="(555) 123-4567"
+                placeholder="9876543210 or +91 9876543210"
                 value={phoneNumber}
                 onChange={handlePhoneChange}
                 className={!validatePhoneNumber(phoneNumber) && phoneNumber.length > 0 ? 'border-red-500' : ''}
@@ -284,11 +287,14 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
               {!validatePhoneNumber(phoneNumber) && phoneNumber.length > 0 && (
                 <p className="text-xs text-red-500 flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
-                  Please enter a valid 10-digit phone number
+                  Please enter a valid 10-digit Indian phone number
                 </p>
               )}
               <p className="text-xs text-muted-foreground mt-1">
-                For admin access, use an admin phone number
+                Indian format: 9876543210 or +91 9876543210
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                <strong>Note:</strong> SMS is not implemented yet. Use the debug OTP shown in the success message.
               </p>
             </div>
             
@@ -331,6 +337,9 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
               </div>
               <p className="text-xs text-muted-foreground text-center">
                 The code will expire in 5 minutes
+              </p>
+              <p className="text-xs text-blue-600 text-center">
+                <strong>Demo Mode:</strong> Use the OTP from the success message above
               </p>
             </div>
             
