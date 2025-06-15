@@ -58,12 +58,11 @@ export async function apiRequest<T>(
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Ensure data is properly serialized
-    const requestBody = data ? JSON.stringify(data) : undefined;
-    console.log(`Request body for ${functionName}:`, requestBody);
+    // Pass data directly - Supabase client handles JSON serialization
+    console.log(`Request data for ${functionName}:`, data);
 
     const { data: result, error } = await supabase.functions.invoke(functionName, {
-      body: requestBody,
+      body: data, // Pass data object directly, not stringified
       headers
     });
 

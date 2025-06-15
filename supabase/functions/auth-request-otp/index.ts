@@ -31,9 +31,41 @@ serve(async (req) => {
   }
 
   try {
-    const { phoneNumber } = await req.json()
+    console.log('Received request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+    
+    let requestBody;
+    let phoneNumber;
+    
+    try {
+      // Get the raw body text first
+      const bodyText = await req.text();
+      console.log('Raw request body:', bodyText);
+      
+      if (!bodyText || bodyText.trim() === '') {
+        return new Response(
+          JSON.stringify({ error: 'Empty request body' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      // Try to parse as JSON
+      requestBody = JSON.parse(bodyText);
+      console.log('Parsed request body:', requestBody);
+      
+      phoneNumber = requestBody.phoneNumber;
+      
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError);
+      console.error('Failed to parse body as JSON');
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
     
     if (!phoneNumber) {
+      console.log('Missing phone number in request');
       return new Response(
         JSON.stringify({ error: 'Phone number is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -41,6 +73,7 @@ serve(async (req) => {
     }
 
     const formattedPhone = formatPhoneNumber(phoneNumber);
+    console.log('Formatted phone:', formattedPhone);
     const clientIP = req.headers.get('x-forwarded-for') || 'unknown'
     
     // Check rate limiting
@@ -90,6 +123,8 @@ serve(async (req) => {
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    console.log('Generated OTP:', otp);
+    
     const otpHash = await crypto.subtle.digest(
       'SHA-256',
       new TextEncoder().encode(otp + Deno.env.get('SUPABASE_JWT_SECRET'))
@@ -155,7 +190,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`SMS sent to ${formattedPhone}`)
+    console.log(`SMS sent successfully to ${formattedPhone}`)
 
     return new Response(
       JSON.stringify({ 
@@ -166,7 +201,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Unexpected error:', error)
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
