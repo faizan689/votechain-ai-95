@@ -7,9 +7,16 @@ export interface ApiResponse {
   error?: string;
 }
 
-// Auth response with token
+// Auth response with token and user info
 export interface AuthResponse extends ApiResponse {
   token?: string;
+  user?: {
+    id: string;
+    phone_number: string;
+    role: string;
+    face_verified: boolean;
+    has_voted: boolean;
+  };
 }
 
 // Voter information
