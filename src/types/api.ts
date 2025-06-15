@@ -17,6 +17,7 @@ export interface AuthResponse extends ApiResponse {
     face_verified: boolean;
     has_voted: boolean;
   };
+  debug_otp?: string; // For development/testing purposes
 }
 
 // Voter information
