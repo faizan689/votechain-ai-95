@@ -130,13 +130,19 @@ serve(async (req) => {
     const otp = generateOTP();
     console.log('OTP Request - Generated OTP:', otp);
 
-    // Hash the OTP for security - ensure consistent string handling
-    const otpString = otp.toString().trim();
-    console.log('OTP Request - OTP as string for hashing:', otpString);
+    // Hash the OTP for security - ensure EXACT same format as verification
+    const otpString = otp.padStart(6, '0'); // Ensure 6-digit string with leading zeros
+    console.log('OTP Request - OTP as padded string for hashing:', otpString);
+    
+    const jwtSecret = Deno.env.get('SUPABASE_JWT_SECRET');
+    console.log('OTP Request - JWT_SECRET length:', jwtSecret?.length);
+    
+    const hashInput = otpString + jwtSecret;
+    console.log('OTP Request - Hash input length:', hashInput.length);
     
     const otpHash = await crypto.subtle.digest(
       'SHA-256',
-      new TextEncoder().encode(otpString + Deno.env.get('SUPABASE_JWT_SECRET'))
+      new TextEncoder().encode(hashInput)
     )
     const otpHashString = Array.from(new Uint8Array(otpHash))
       .map(b => b.toString(16).padStart(2, '0'))

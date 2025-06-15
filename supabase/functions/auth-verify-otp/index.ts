@@ -85,14 +85,20 @@ serve(async (req) => {
       )
     }
 
-    // Verify OTP - ensure we're using the same format as when generating
+    // Verify OTP - ensure we're using the EXACT same format as when generating
     console.log('OTP Verification - Creating hash for provided OTP');
-    const otpString = otp.toString().trim(); // Ensure it's a string and trim whitespace
-    console.log('OTP Verification - OTP as string:', otpString);
+    
+    // Convert to string and ensure it's a 6-digit string with leading zeros if needed
+    const otpString = String(otp).padStart(6, '0');
+    console.log('OTP Verification - OTP as padded string:', otpString);
+    console.log('OTP Verification - JWT_SECRET length:', JWT_SECRET.length);
+    
+    const hashInput = otpString + JWT_SECRET;
+    console.log('OTP Verification - Hash input length:', hashInput.length);
     
     const providedOtpHash = await crypto.subtle.digest(
       'SHA-256',
-      new TextEncoder().encode(otpString + JWT_SECRET)
+      new TextEncoder().encode(hashInput)
     )
     const providedOtpHashString = Array.from(new Uint8Array(providedOtpHash))
       .map(b => b.toString(16).padStart(2, '0'))
@@ -101,6 +107,7 @@ serve(async (req) => {
     console.log('OTP Verification - Comparing hashes');
     console.log('Stored hash:', user.otp_hash);
     console.log('Provided hash:', providedOtpHashString);
+    console.log('Hash match:', providedOtpHashString === user.otp_hash);
 
     if (providedOtpHashString !== user.otp_hash) {
       console.log('OTP Verification - Invalid OTP');
