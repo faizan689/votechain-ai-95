@@ -225,6 +225,16 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
     return `${diffSeconds} second${diffSeconds === 1 ? '' : 's'} ago`;
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // If switching to OTP tab without a phone number, prompt for it
+    if (value === "otp" && !phoneNumber.trim()) {
+      toast.error('Please enter a phone number first');
+      setActiveTab("phone");
+      return;
+    }
+  };
+
   return (
     <Card className="w-[380px]">
       <CardHeader>
@@ -237,10 +247,10 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="phone">Phone</TabsTrigger>
-            <TabsTrigger value="otp" disabled={!isOTPSent}>OTP</TabsTrigger>
+            <TabsTrigger value="otp">OTP</TabsTrigger>
           </TabsList>
           
           <TabsContent value="phone" className="space-y-4">
@@ -282,14 +292,20 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
           <TabsContent value="otp" className="space-y-4">
             <div className="space-y-3">
               <Label htmlFor="otp">OTP Code</Label>
-              <p className="text-xs text-muted-foreground">
-                Enter the 6-digit code sent to {formatPhoneDisplay(phoneNumber)}
-                {otpSendTime && (
-                  <span className="block mt-1">Sent {getTimeSinceOTP()}</span>
-                )}
-              </p>
+              {phoneNumber ? (
+                <p className="text-xs text-muted-foreground">
+                  Enter the 6-digit code sent to {formatPhoneDisplay(phoneNumber)}
+                  {otpSendTime && (
+                    <span className="block mt-1">Sent {getTimeSinceOTP()}</span>
+                  )}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Please enter your phone number first to receive an OTP
+                </p>
+              )}
               <div className="flex justify-center">
-                <InputOTP maxLength={6} value={otp} onChange={setOtp} disabled={isLoading}>
+                <InputOTP maxLength={6} value={otp} onChange={setOtp} disabled={isLoading || !phoneNumber}>
                   <InputOTPGroup>
                     {Array.from({ length: 6 }).map((_, i) => (
                       <InputOTPSlot key={i} index={i} />
@@ -307,13 +323,13 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
                 variant="link" 
                 size="sm"
                 onClick={handleResendOTP}
-                disabled={isLoading}
+                disabled={isLoading || !phoneNumber}
               >
                 Resend OTP
               </Button>
               <Button 
                 onClick={handleOTPVerification} 
-                disabled={isLoading || otp.length < 6}
+                disabled={isLoading || otp.length < 6 || !phoneNumber}
                 className="min-w-[100px]"
               >
                 {isLoading ? <RotateCw className="mr-2 h-4 w-4 animate-spin" /> : null}
