@@ -37,13 +37,24 @@ function generateOTP(): string {
 }
 
 // Send SMS using Twilio
-async function sendSMS(to: string, message: string): Promise<boolean> {
+async function sendSMS(to: string, message: string): Promise<{ success: boolean, error?: string }> {
   try {
-    console.log(`Sending SMS to ${to} via Twilio`);
+    console.log(`Attempting to send SMS:`);
+    console.log(`From: ${TWILIO_PHONE_NUMBER}`);
+    console.log(`To: ${to}`);
     
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
       console.error('Twilio credentials not configured');
-      return false;
+      return { success: false, error: 'Twilio credentials missing' };
+    }
+
+    // Check if To and From numbers are the same
+    if (to === TWILIO_PHONE_NUMBER) {
+      console.error(`Cannot send SMS: 'To' and 'From' numbers are identical: ${to}`);
+      return { 
+        success: false, 
+        error: `Cannot send SMS to the same number as your Twilio phone number (${TWILIO_PHONE_NUMBER}). Please use a different phone number for testing.` 
+      };
     }
 
     const auth = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
@@ -68,20 +79,25 @@ async function sendSMS(to: string, message: string): Promise<boolean> {
     
     if (response.ok) {
       console.log('SMS sent successfully:', result.sid);
-      return true;
+      return { success: true };
     } else {
       console.error('Twilio error:', result);
-      return false;
+      return { 
+        success: false, 
+        error: result.message || 'Failed to send SMS' 
+      };
     }
   } catch (error) {
     console.error('Error sending SMS:', error);
-    return false;
+    return { 
+      success: false, 
+      error: 'Network error while sending SMS' 
+    };
   }
 }
 
 serve(async (req) => {
   console.log('OTP Request - Received request method:', req.method);
-  console.log('OTP Request - Request headers:', Object.fromEntries(req.headers.entries()));
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -185,9 +201,9 @@ serve(async (req) => {
 
     // Send OTP via SMS using Twilio
     const smsMessage = `Your VoteGuard verification code is: ${otp}. This code will expire in 5 minutes. Do not share this code with anyone.`;
-    const smsSent = await sendSMS(formattedPhone, smsMessage);
+    const smsResult = await sendSMS(formattedPhone, smsMessage);
 
-    if (smsSent) {
+    if (smsResult.success) {
       console.log(`OTP Request - SMS sent successfully to ${formattedPhone}`);
       return new Response(
         JSON.stringify({ 
@@ -197,9 +213,12 @@ serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     } else {
-      console.error('OTP Request - Failed to send SMS');
+      console.error('OTP Request - Failed to send SMS:', smsResult.error);
       return new Response(
-        JSON.stringify({ error: 'Failed to send SMS. Please try again.', success: false }),
+        JSON.stringify({ 
+          error: smsResult.error || 'Failed to send SMS. Please try again.', 
+          success: false 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
