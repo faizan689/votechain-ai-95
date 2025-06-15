@@ -1,6 +1,6 @@
 
 import { motion } from "framer-motion";
-import { Lock, Shield, User } from "lucide-react";
+import { Lock, Shield, Smartphone } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AuthForm from "@/components/AuthForm";
@@ -23,7 +23,7 @@ const Auth = () => {
                 Voter Authentication
               </h1>
               <p className="text-muted-foreground">
-                Secure login using your Voter ID and OTP verification
+                Secure login using your phone number and OTP verification
               </p>
             </motion.div>
             
@@ -40,13 +40,13 @@ const Auth = () => {
                   <div className="flex gap-4">
                     <div className="mt-1">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User size={16} className="text-primary" />
+                        <Smartphone size={16} className="text-primary" />
                       </div>
                     </div>
                     <div>
-                      <h3 className="font-medium mb-1">Voter Identification</h3>
+                      <h3 className="font-medium mb-1">Phone Identification</h3>
                       <p className="text-sm text-muted-foreground">
-                        Enter your Voter ID number to begin the authentication process.
+                        Enter your registered phone number to begin the authentication process.
                       </p>
                     </div>
                   </div>
@@ -58,9 +58,9 @@ const Auth = () => {
                       </div>
                     </div>
                     <div>
-                      <h3 className="font-medium mb-1">OTP Verification</h3>
+                      <h3 className="font-medium mb-1">SMS Verification</h3>
                       <p className="text-sm text-muted-foreground">
-                        A one-time password will be sent to your registered mobile number.
+                        A one-time password will be sent via SMS to your phone number.
                       </p>
                     </div>
                   </div>

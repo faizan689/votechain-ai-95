@@ -11,26 +11,41 @@ const supabase = createClient(
 
 const JWT_SECRET = new TextEncoder().encode(Deno.env.get('SUPABASE_JWT_SECRET') || 'secret')
 
+// Format phone number to E.164 format
+function formatPhoneNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  
+  if (digits.startsWith('1') && digits.length === 11) {
+    return `+${digits}`;
+  }
+  if (digits.length === 10) {
+    return `+1${digits}`;
+  }
+  return digits.startsWith('+') ? phone : `+1${digits}`;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { email, otp } = await req.json()
+    const { phoneNumber, otp } = await req.json()
     
-    if (!email || !otp) {
+    if (!phoneNumber || !otp) {
       return new Response(
-        JSON.stringify({ error: 'Email and OTP are required' }),
+        JSON.stringify({ error: 'Phone number and OTP are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    const formattedPhone = formatPhoneNumber(phoneNumber);
 
     // Get user with OTP details
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
-      .eq('email', email)
+      .eq('phone_number', formattedPhone)
       .single()
 
     if (userError || !user) {
@@ -46,7 +61,7 @@ serve(async (req) => {
         .from('security_alerts')
         .insert({
           type: 'otp_failure',
-          user_email: email,
+          user_phone: formattedPhone,
           details: { reason: 'expired_otp' }
         })
 
@@ -77,7 +92,7 @@ serve(async (req) => {
         .insert({
           type: 'otp_failure',
           user_id: user.id,
-          user_email: email,
+          user_phone: formattedPhone,
           details: { reason: 'invalid_otp', attempts: (user.failed_otp_attempts || 0) + 1 }
         })
 
@@ -101,7 +116,7 @@ serve(async (req) => {
     // Generate JWT token
     const payload = {
       sub: user.id,
-      email: user.email,
+      phone_number: user.phone_number,
       role: user.role,
       otp_verified: true,
       face_verified: user.face_verified,
@@ -117,7 +132,7 @@ serve(async (req) => {
         token,
         user: {
           id: user.id,
-          email: user.email,
+          phone_number: user.phone_number,
           role: user.role,
           face_verified: user.face_verified,
           has_voted: user.has_voted

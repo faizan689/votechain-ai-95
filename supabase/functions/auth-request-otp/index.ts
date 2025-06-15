@@ -8,28 +8,46 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
+// Format phone number to E.164 format
+function formatPhoneNumber(phone: string): string {
+  // Remove all non-digit characters
+  const digits = phone.replace(/\D/g, '');
+  
+  // If it starts with country code, use as is
+  if (digits.startsWith('1') && digits.length === 11) {
+    return `+${digits}`;
+  }
+  // If it's a 10-digit US number, add +1
+  if (digits.length === 10) {
+    return `+1${digits}`;
+  }
+  // For other formats, assume it's already formatted or add +1
+  return digits.startsWith('+') ? phone : `+1${digits}`;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { email } = await req.json()
+    const { phoneNumber } = await req.json()
     
-    if (!email || !email.includes('@')) {
+    if (!phoneNumber) {
       return new Response(
-        JSON.stringify({ error: 'Valid email is required' }),
+        JSON.stringify({ error: 'Phone number is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
+    const formattedPhone = formatPhoneNumber(phoneNumber);
     const clientIP = req.headers.get('x-forwarded-for') || 'unknown'
     
     // Check rate limiting
     const { data: rateLimit } = await supabase
       .from('otp_rate_limits')
       .select('*')
-      .eq('email', email)
+      .eq('phone_number', formattedPhone)
       .eq('ip_address', clientIP)
       .single()
 
@@ -67,7 +85,7 @@ serve(async (req) => {
       // Create new rate limit record
       await supabase
         .from('otp_rate_limits')
-        .insert({ email, ip_address: clientIP, attempts: 1 })
+        .insert({ phone_number: formattedPhone, ip_address: clientIP, attempts: 1 })
     }
 
     // Generate 6-digit OTP
@@ -86,7 +104,7 @@ serve(async (req) => {
     const { error: userError } = await supabase
       .from('users')
       .upsert({
-        email,
+        phone_number: formattedPhone,
         otp_hash: otpHashString,
         otp_expires: expiresAt.toISOString(),
         last_otp_request: new Date().toISOString()
@@ -100,45 +118,44 @@ serve(async (req) => {
       )
     }
 
-    // Send OTP via SendGrid
-    const emailResponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('SENDGRID_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{
-          to: [{ email: 'faizanshaikhfs7860@gmail.com' }],
-          subject: 'VoteGuard - Your Verification Code'
-        }],
-        from: { email: '2203031050611@paruluniversity.ac.in', name: 'VoteGuard' },
-        content: [{
-          type: 'text/html',
-          value: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #1f2937;">VoteGuard Verification Code</h2>
-              <p>Your verification code is:</p>
-              <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                <h1 style="color: #1f2937; font-size: 32px; margin: 0; letter-spacing: 8px;">${otp}</h1>
-              </div>
-              <p style="color: #6b7280;">This code will expire in 5 minutes.</p>
-              <p style="color: #6b7280;">If you didn't request this code, please ignore this email.</p>
-            </div>
-          `
-        }]
-      })
-    })
+    // Send SMS via Twilio
+    const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID')
+    const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN')
+    const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER')
 
-    if (!emailResponse.ok) {
-      console.error('SendGrid error:', await emailResponse.text())
+    if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+      console.error('Missing Twilio credentials')
       return new Response(
-        JSON.stringify({ error: 'Failed to send OTP email' }),
+        JSON.stringify({ error: 'SMS service not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log(`OTP sent to ${email}`)
+    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`
+    const twilioAuth = btoa(`${twilioAccountSid}:${twilioAuthToken}`)
+
+    const smsResponse = await fetch(twilioUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${twilioAuth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        From: twilioPhoneNumber,
+        To: formattedPhone,
+        Body: `Your VoteGuard verification code is: ${otp}. This code will expire in 5 minutes.`
+      })
+    })
+
+    if (!smsResponse.ok) {
+      console.error('Twilio error:', await smsResponse.text())
+      return new Response(
+        JSON.stringify({ error: 'Failed to send SMS' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log(`SMS sent to ${formattedPhone}`)
 
     return new Response(
       JSON.stringify({ 

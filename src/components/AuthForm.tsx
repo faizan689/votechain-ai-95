@@ -16,51 +16,64 @@ interface AuthFormProps {
 }
 
 const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
-  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOTPSent, setIsOTPSent] = useState(false);
-  const [activeTab, setActiveTab] = useState("email");
+  const [activeTab, setActiveTab] = useState("phone");
   const navigate = useNavigate();
 
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  const validatePhoneNumber = (phone: string): boolean => {
+    // Remove all non-digit characters
+    const digits = phone.replace(/\D/g, '');
+    // Check if it's a valid 10 or 11 digit number
+    return digits.length === 10 || digits.length === 11;
   };
 
-  const handleEmailSubmit = async () => {
-    console.log('Email submit clicked with email:', email);
-    console.log('Email validation result:', validateEmail(email));
+  const formatPhoneDisplay = (phone: string): string => {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length >= 10) {
+      const areaCode = digits.slice(-10, -7);
+      const exchange = digits.slice(-7, -4);
+      const number = digits.slice(-4);
+      return `(${areaCode}) ${exchange}-${number}`;
+    }
+    return phone;
+  };
+
+  const handlePhoneSubmit = async () => {
+    console.log('Phone submit clicked with phone:', phoneNumber);
+    console.log('Phone validation result:', validatePhoneNumber(phoneNumber));
     
-    if (!email.trim()) {
-      toast.error('Please enter an email address');
+    if (!phoneNumber.trim()) {
+      toast.error('Please enter a phone number');
       return;
     }
 
-    if (!validateEmail(email)) {
-      toast.error('Please enter a valid email address');
+    if (!validatePhoneNumber(phoneNumber)) {
+      toast.error('Please enter a valid 10-digit phone number');
       return;
     }
 
     setIsLoading(true);
-    console.log('Sending OTP request for email:', email);
+    console.log('Sending OTP request for phone:', phoneNumber);
     
     try {
       console.log('About to call authService.requestOTP...');
-      const response = await authService.requestOTP(email);
+      const response = await authService.requestOTP(phoneNumber);
       console.log('OTP request response received:', response);
       
       if (response && response.success) {
         console.log('OTP sent successfully, switching to OTP tab');
         setIsOTPSent(true);
         setActiveTab("otp");
-        toast.success('OTP sent to your email!');
+        toast.success('OTP sent to your phone!');
       } else {
         console.log('OTP request failed:', response?.error || 'Unknown error');
         const errorMessage = response?.error || 'Failed to send OTP';
         
-        if (errorMessage.includes('not found') || errorMessage.includes('invalid') || errorMessage.includes('does not exist')) {
-          toast.error('Email address not found. Please check your email and try again.');
+        if (errorMessage.includes('not found') || errorMessage.includes('invalid')) {
+          toast.error('Phone number not found. Please check your number and try again.');
         } else {
           toast.error(errorMessage);
         }
@@ -73,15 +86,14 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
         stack: error.stack
       });
       
-      // Show a generic error message but let's also check for specific errors
       if (error.message?.includes('Edge Function returned a non-2xx status code')) {
         toast.error('Server error occurred. Please try again or contact support.');
       } else {
-        toast.error('Failed to send OTP. Please check your email address and try again.');
+        toast.error('Failed to send OTP. Please check your phone number and try again.');
       }
     } finally {
       setIsLoading(false);
-      console.log('Email submit process completed');
+      console.log('Phone submit process completed');
     }
   };
 
@@ -94,7 +106,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
     setIsLoading(true);
     
     try {
-      const response = await authService.verifyOTP(email, otp);
+      const response = await authService.verifyOTP(phoneNumber, otp);
       
       if (response.success) {
         toast.success('Authentication successful!');
@@ -121,39 +133,46 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
     }
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow only digits, spaces, parentheses, and dashes
+    const sanitized = value.replace(/[^\d\s\-\(\)]/g, '');
+    setPhoneNumber(sanitized);
+  };
+
   return (
     <Card className="w-[350px]">
       <CardHeader>
         <CardTitle>Authentication</CardTitle>
-        <CardDescription>Enter your email and OTP to proceed.</CardDescription>
+        <CardDescription>Enter your phone number and OTP to proceed.</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
-            <TabsTrigger value="email">Email</TabsTrigger>
+            <TabsTrigger value="phone">Phone</TabsTrigger>
             <TabsTrigger value="otp" disabled={!isOTPSent}>OTP</TabsTrigger>
           </TabsList>
-          <TabsContent value="email">
+          <TabsContent value="phone">
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="phone">Phone Number</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={!validateEmail(email) && email.length > 0 ? 'border-red-500' : ''}
+                id="phone"
+                type="tel"
+                placeholder="(555) 123-4567"
+                value={phoneNumber}
+                onChange={handlePhoneChange}
+                className={!validatePhoneNumber(phoneNumber) && phoneNumber.length > 0 ? 'border-red-500' : ''}
               />
-              {!validateEmail(email) && email.length > 0 && (
-                <p className="text-xs text-red-500">Please enter a valid email address</p>
+              {!validatePhoneNumber(phoneNumber) && phoneNumber.length > 0 && (
+                <p className="text-xs text-red-500">Please enter a valid 10-digit phone number</p>
               )}
               <p className="text-xs text-muted-foreground mt-1">
-                For admin access, use an admin email address
+                For admin access, use an admin phone number
               </p>
             </div>
             <CardFooter className="justify-between pt-4 px-0">
               <Button variant="link">Need Help?</Button>
-              <Button onClick={handleEmailSubmit} disabled={isLoading || !validateEmail(email) || !email.trim()}>
+              <Button onClick={handlePhoneSubmit} disabled={isLoading || !validatePhoneNumber(phoneNumber) || !phoneNumber.trim()}>
                 {isLoading ? <RotateCw className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Send OTP
               </Button>
@@ -162,6 +181,9 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
           <TabsContent value="otp">
             <div className="space-y-2">
               <Label htmlFor="otp">OTP Code</Label>
+              <p className="text-xs text-muted-foreground">
+                Enter the 6-digit code sent to {formatPhoneDisplay(phoneNumber)}
+              </p>
               <InputOTP maxLength={6} value={otp} onChange={setOtp}>
                 <InputOTPGroup>
                   {Array.from({ length: 6 }).map((_, i) => (
@@ -171,7 +193,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
               </InputOTP>
             </div>
             <CardFooter className="justify-between pt-4 px-0">
-              <Button variant="link" onClick={() => handleEmailSubmit()}>Resend OTP</Button>
+              <Button variant="link" onClick={() => handlePhoneSubmit()}>Resend OTP</Button>
               <Button onClick={handleOTPVerification} disabled={isLoading}>
                 {isLoading ? <RotateCw className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Verify OTP

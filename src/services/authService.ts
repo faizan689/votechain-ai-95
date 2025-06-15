@@ -4,27 +4,27 @@ import { AuthResponse, VoterVerificationResponse } from '@/types/api';
 
 export const authService = {
   /**
-   * Request OTP for voter authentication
+   * Request OTP for voter authentication via phone
    */
-  requestOTP: async (email: string): Promise<AuthResponse> => {
-    return await apiRequest<AuthResponse>('auth-request-otp', { email });
+  requestOTP: async (phoneNumber: string): Promise<AuthResponse> => {
+    return await apiRequest<AuthResponse>('auth-request-otp', { phoneNumber });
   },
   
   /**
    * Verify OTP and get authentication token
    */
-  verifyOTP: async (email: string, otp: string): Promise<AuthResponse> => {
+  verifyOTP: async (phoneNumber: string, otp: string): Promise<AuthResponse> => {
     const response = await apiRequest<AuthResponse>('auth-verify-otp', { 
-      email, 
+      phoneNumber, 
       otp 
     });
     
     if (response.token) {
-      // Store user email for facial verification
-      localStorage.setItem('userEmail', email);
+      // Store user phone for facial verification
+      localStorage.setItem('userPhone', phoneNumber);
       
-      // Check if this is an admin user based on email domain or response
-      const isAdminUser = email.includes('admin@') || response.message?.includes('admin');
+      // Check if this is an admin user based on response
+      const isAdminUser = response.message?.includes('admin') || response.user?.role === 'admin';
       
       if (isAdminUser) {
         setAdminToken(response.token);
@@ -42,10 +42,10 @@ export const authService = {
   /**
    * Perform facial verification
    */
-  facialVerification: async (imageData: string, email: string): Promise<VoterVerificationResponse> => {
+  facialVerification: async (imageData: string, phoneNumber: string): Promise<VoterVerificationResponse> => {
     return await apiRequest<VoterVerificationResponse>('auth-face-verify', {
       imageData,
-      email
+      phoneNumber
     });
   },
   
@@ -69,7 +69,7 @@ export const authService = {
   logout: (): void => {
     localStorage.removeItem('isVerified');
     localStorage.removeItem('isAdmin');
-    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userPhone');
     setAuthToken('');
     setAdminToken('');
   }
