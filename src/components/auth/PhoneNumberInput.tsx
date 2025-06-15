@@ -28,7 +28,7 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
         <Input
           id="phone"
           type="tel"
-          placeholder="9876543210 or +91 9876543210"
+          placeholder="9876543210"
           value={phoneNumber}
           onChange={onPhoneChange}
           className={!validatePhoneNumber(phoneNumber) && phoneNumber.length > 0 ? 'border-red-500' : ''}
@@ -41,11 +41,14 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
           </p>
         )}
         <p className="text-xs text-muted-foreground mt-1">
-          Indian format: 9876543210 or +91 9876543210
+          Enter your 10-digit Indian mobile number (e.g., 9876543210)
         </p>
-        <p className="text-xs text-blue-600 mt-1">
-          <strong>Note:</strong> SMS is not implemented yet. Use the debug OTP shown in the success message.
-        </p>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+          <p className="text-xs text-blue-700">
+            <strong>Demo Mode:</strong> SMS service is not implemented. After clicking "Send OTP", 
+            you'll see the demo OTP code displayed in a success message. Use that code to verify.
+          </p>
+        </div>
       </div>
       
       <CardFooter className="justify-between pt-4 px-0">

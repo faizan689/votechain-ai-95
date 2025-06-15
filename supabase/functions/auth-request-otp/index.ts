@@ -8,17 +8,22 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-// Format phone number to E.164 format
+// Format phone number to Indian E.164 format
 function formatPhoneNumber(phone: string): string {
   const digits = phone.replace(/\D/g, '');
   
-  if (digits.startsWith('1') && digits.length === 11) {
+  // Handle Indian phone numbers (10 digits)
+  if (digits.length === 10) {
+    return `+91${digits}`;
+  }
+  
+  // If already has country code
+  if (digits.startsWith('91') && digits.length === 12) {
     return `+${digits}`;
   }
-  if (digits.length === 10) {
-    return `+1${digits}`;
-  }
-  return digits.startsWith('+') ? phone : `+1${digits}`;
+  
+  // Default fallback
+  return digits.startsWith('+') ? phone : `+91${digits}`;
 }
 
 // Generate a 6-digit OTP
@@ -27,8 +32,8 @@ function generateOTP(): string {
 }
 
 serve(async (req) => {
-  console.log('Received request method:', req.method);
-  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+  console.log('OTP Request - Received request method:', req.method);
+  console.log('OTP Request - Request headers:', Object.fromEntries(req.headers.entries()));
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -36,17 +41,18 @@ serve(async (req) => {
 
   try {
     const contentType = req.headers.get('content-type');
-    console.log('Content-Type:', contentType);
+    console.log('OTP Request - Content-Type:', contentType);
 
     const rawBody = await req.text();
-    console.log('Raw request body:', rawBody);
+    console.log('OTP Request - Raw request body:', rawBody);
 
     const parsedBody = JSON.parse(rawBody);
-    console.log('Parsed request body:', parsedBody);
+    console.log('OTP Request - Parsed request body:', parsedBody);
 
     const { phoneNumber } = parsedBody;
     
     if (!phoneNumber) {
+      console.log('OTP Request - Phone number missing');
       return new Response(
         JSON.stringify({ error: 'Phone number is required', success: false }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -54,10 +60,11 @@ serve(async (req) => {
     }
 
     const formattedPhone = formatPhoneNumber(phoneNumber);
-    console.log('Formatted phone:', formattedPhone);
+    console.log('OTP Request - Original phone:', phoneNumber);
+    console.log('OTP Request - Formatted phone:', formattedPhone);
 
     const otp = generateOTP();
-    console.log('Generated OTP:', otp);
+    console.log('OTP Request - Generated OTP:', otp);
 
     // Hash the OTP for security
     const otpHash = await crypto.subtle.digest(
@@ -68,8 +75,11 @@ serve(async (req) => {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('')
 
+    console.log('OTP Request - Generated hash:', otpHashString);
+
     // Set expiration time (5 minutes from now)
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    console.log('OTP Request - Expires at:', expiresAt);
 
     // Check if user exists, if not create them
     const { data: existingUser } = await supabase
@@ -78,9 +88,11 @@ serve(async (req) => {
       .eq('phone_number', formattedPhone)
       .single()
 
+    console.log('OTP Request - Existing user:', existingUser?.id || 'Not found');
+
     if (existingUser) {
       // Update existing user with new OTP
-      console.log('Updating existing user with new OTP');
+      console.log('OTP Request - Updating existing user with new OTP');
       const { error: updateError } = await supabase
         .from('users')
         .update({
@@ -93,7 +105,7 @@ serve(async (req) => {
         .eq('id', existingUser.id)
 
       if (updateError) {
-        console.error('Database error:', updateError);
+        console.error('OTP Request - Database error:', updateError);
         return new Response(
           JSON.stringify({ error: 'Failed to update OTP', success: false }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -101,7 +113,7 @@ serve(async (req) => {
       }
     } else {
       // Create new user
-      console.log('Creating new user');
+      console.log('OTP Request - Creating new user');
       const { error: insertError } = await supabase
         .from('users')
         .insert({
@@ -115,7 +127,7 @@ serve(async (req) => {
         })
 
       if (insertError) {
-        console.error('Database error:', insertError);
+        console.error('OTP Request - Database error:', insertError);
         return new Response(
           JSON.stringify({ error: 'Failed to create user', success: false }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -125,7 +137,7 @@ serve(async (req) => {
 
     // In a real application, you would send the OTP via SMS here
     // For demo purposes, we'll log it (remove in production)
-    console.log(`SMS would be sent to ${formattedPhone} with OTP: ${otp}`);
+    console.log(`OTP Request - SMS would be sent to ${formattedPhone} with OTP: ${otp}`);
 
     return new Response(
       JSON.stringify({ 
@@ -138,7 +150,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('OTP Request - Error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error', success: false }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

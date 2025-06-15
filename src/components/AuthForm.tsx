@@ -22,18 +22,17 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
   const [otpSendTime, setOtpSendTime] = useState<Date | null>(null);
   const navigate = useNavigate();
 
+  // Updated to validate Indian phone numbers (10 digits)
   const validatePhoneNumber = (phone: string): boolean => {
     const digits = phone.replace(/\D/g, '');
-    return digits.length === 10 || digits.length === 11;
+    return digits.length === 10;
   };
 
   const formatPhoneDisplay = (phone: string): string => {
     const digits = phone.replace(/\D/g, '');
-    if (digits.length >= 10) {
-      const areaCode = digits.slice(-10, -7);
-      const exchange = digits.slice(-7, -4);
-      const number = digits.slice(-4);
-      return `(${areaCode}) ${exchange}-${number}`;
+    if (digits.length === 10) {
+      // Format as: +91 98765 43210
+      return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
     }
     return phone;
   };
@@ -60,7 +59,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
     }
 
     if (!validatePhoneNumber(phoneNumber)) {
-      toast.error(toastMessages.phoneNumberInvalid());
+      toast.error('Please enter a valid 10-digit Indian phone number');
       return;
     }
 
@@ -116,11 +115,14 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
     }
 
     setIsLoading(true);
+    console.log('Starting OTP verification with:', { phoneNumber, otp });
     
     try {
       const response = await authService.verifyOTP(phoneNumber, otp);
+      console.log('OTP verification response:', response);
       
       if (response.success) {
+        console.log('OTP verification successful');
         toast.success(toastMessages.otpVerificationSuccess());
         
         if (authService.isAdmin()) {
@@ -133,6 +135,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
           onVerificationSuccess();
         }
       } else {
+        console.log('OTP verification failed:', response.error);
         const errorMessage = response.error || 'OTP verification failed';
         
         if (errorMessage.includes('expired')) {
@@ -147,8 +150,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
         }
       }
     } catch (error: any) {
-      toast.error(toastMessages.otpVerificationError());
       console.error('OTP verification error:', error);
+      toast.error(toastMessages.otpVerificationError());
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +159,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    const sanitized = value.replace(/[^\d\s\-\(\)]/g, '');
+    // Only allow digits for Indian phone numbers
+    const sanitized = value.replace(/[^\d]/g, '');
     setPhoneNumber(sanitized);
   };
 
