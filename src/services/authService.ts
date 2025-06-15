@@ -1,38 +1,33 @@
-import { apiRequest, setAuthToken } from './api';
+
+import { apiRequest, setAuthToken, setAdminToken } from './api';
 import { AuthResponse, VoterVerificationResponse } from '@/types/api';
 
 export const authService = {
   /**
-   * Verify voter ID and send OTP
+   * Request OTP for voter authentication
    */
-  verifyVoterId: async (voterId: string): Promise<AuthResponse> => {
-    return await apiRequest<AuthResponse>(
-      '/auth/verify-voter-id',
-      "POST",
-      { voterId }
-    );
+  requestOTP: async (email: string): Promise<AuthResponse> => {
+    return await apiRequest<AuthResponse>('auth-request-otp', { email });
   },
   
   /**
-   * Verify OTP and check for admin access
+   * Verify OTP and get authentication token
    */
-  verifyOTP: async (voterId: string, otp: string): Promise<AuthResponse> => {
-    const response = await apiRequest<AuthResponse>(
-      '/auth/verify-otp',
-      "POST",
-      { voterId, otp }
-    );
+  verifyOTP: async (email: string, otp: string): Promise<AuthResponse> => {
+    const response = await apiRequest<AuthResponse>('auth-verify-otp', { 
+      email, 
+      otp 
+    });
     
     if (response.token) {
-      setAuthToken(response.token);
-    }
-    
-    // Check if admin key matches
-    if (voterId === 'ADMIN123' && otp === 'Faizan1234') {
-      localStorage.setItem('isAdmin', 'true');
-      localStorage.setItem('isVerified', 'true');
-    } else {
-      localStorage.setItem('isAdmin', 'false');
+      // Check if this is an admin user
+      if (response.user?.role === 'admin') {
+        setAdminToken(response.token);
+        localStorage.setItem('isAdmin', 'true');
+      } else {
+        setAuthToken(response.token);
+        localStorage.setItem('isAdmin', 'false');
+      }
       localStorage.setItem('isVerified', 'true');
     }
     
@@ -40,29 +35,13 @@ export const authService = {
   },
   
   /**
-   * Perform facial verification (mock implementation)
+   * Perform facial verification
    */
-  facialVerification: async (imageData: string): Promise<VoterVerificationResponse> => {
-    // For a frontend-only app, we'll simulate verification with a 90% success rate
-    const isVerified = Math.random() < 0.9;
-    
-    if (isVerified) {
-      return {
-        success: true,
-        message: 'Facial verification successful',
-        voter: {
-          id: 'VOTER-' + Math.random().toString(36).substring(2),
-          name: 'John Doe',
-          district: 'Central District',
-          hasVoted: false
-        }
-      };
-    } else {
-      return {
-        success: false,
-        error: 'Facial verification failed. Please try again.'
-      };
-    }
+  facialVerification: async (imageData: string, email: string): Promise<VoterVerificationResponse> => {
+    return await apiRequest<VoterVerificationResponse>('auth-face-verify', {
+      imageData,
+      email
+    });
   },
   
   /**
@@ -73,11 +52,19 @@ export const authService = {
   },
   
   /**
+   * Check if user is verified
+   */
+  isVerified: (): boolean => {
+    return localStorage.getItem('isVerified') === 'true';
+  },
+  
+  /**
    * Log out the user
    */
   logout: (): void => {
     localStorage.removeItem('isVerified');
     localStorage.removeItem('isAdmin');
     setAuthToken('');
+    setAdminToken('');
   }
 };

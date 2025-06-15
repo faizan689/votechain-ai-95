@@ -1,11 +1,15 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Info, ShieldCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PartyCard from "@/components/PartyCard";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import { votingService } from "@/services/votingService";
+import { authService } from "@/services/authService";
+import { toast } from "sonner";
 
 type Party = {
   id: string;
@@ -18,37 +22,47 @@ type Party = {
 const Voting = () => {
   const [selectedParty, setSelectedParty] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   
   const parties: Party[] = [
     { 
-      id: "bjp", 
+      id: "PTY-001", 
       name: "Bharatiya Janata Party", 
       symbol: "Lotus", 
       color: "#FF9933", 
       logoPath: "/lovable-uploads/bd528e11-c547-4096-be22-973ccf0a7e69.png" 
     },
     { 
-      id: "inc", 
+      id: "PTY-002", 
       name: "Indian National Congress", 
       symbol: "Hand", 
       color: "#0078D7", 
       logoPath: "/lovable-uploads/6d40bf13-e73a-4e1b-82fe-7c36e7663ad3.png" 
     },
     { 
-      id: "aap", 
+      id: "PTY-003", 
       name: "Aam Aadmi Party", 
       symbol: "Broom", 
       color: "#019934", 
       logoPath: "/lovable-uploads/c1e1f869-b9f5-4251-9872-e4504191624a.png" 
     },
     { 
-      id: "nota", 
+      id: "PTY-004", 
       name: "None of the Above", 
       symbol: "NOTA", 
       color: "#6B7280", 
       logoPath: "/lovable-uploads/893342f4-7eb9-4b71-9b23-dbd4445bf9a0.png" 
     }
   ];
+
+  useEffect(() => {
+    // Check if user is authenticated
+    if (!authService.isVerified()) {
+      navigate('/auth');
+      return;
+    }
+  }, [navigate]);
   
   const handlePartySelect = (id: string) => {
     setSelectedParty(id);
@@ -57,6 +71,35 @@ const Voting = () => {
   const handleContinue = () => {
     if (!selectedParty) return;
     setIsModalOpen(true);
+  };
+  
+  const handleVoteConfirm = async () => {
+    if (!selectedParty) return;
+    
+    setIsLoading(true);
+    
+    try {
+      const response = await votingService.castVote(selectedParty);
+      
+      if (response.success) {
+        toast.success('Vote cast successfully!');
+        // Store vote data for confirmation page
+        localStorage.setItem('voteData', JSON.stringify({
+          transactionId: response.transactionId,
+          partyId: selectedParty,
+          timestamp: new Date().toISOString()
+        }));
+        navigate('/confirmation');
+      } else {
+        toast.error(response.error || 'Failed to cast vote');
+      }
+    } catch (error: any) {
+      toast.error('Failed to cast vote. Please try again.');
+      console.error('Vote casting error:', error);
+    } finally {
+      setIsLoading(false);
+      setIsModalOpen(false);
+    }
   };
   
   const closeModal = () => {
@@ -128,11 +171,11 @@ const Voting = () => {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={handleContinue}
-                disabled={!selectedParty}
+                disabled={!selectedParty || isLoading}
                 className={`
                   flex items-center justify-center gap-2 rounded-lg px-6 py-3 
                   transition-all duration-300 shadow-button
-                  ${selectedParty 
+                  ${selectedParty && !isLoading
                     ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white" 
                     : "bg-secondary text-muted-foreground cursor-not-allowed"}
                 `}
@@ -160,6 +203,8 @@ const Voting = () => {
         isOpen={isModalOpen}
         onClose={closeModal}
         selectedParty={selectedPartyDetails}
+        onConfirm={handleVoteConfirm}
+        isLoading={isLoading}
       />
     </div>
   );

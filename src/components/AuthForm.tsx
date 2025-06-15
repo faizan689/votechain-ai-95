@@ -16,32 +16,36 @@ interface AuthFormProps {
 }
 
 const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
-  const [voterId, setVoterId] = useState('');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOTPSent, setIsOTPSent] = useState(false);
-  const [activeTab, setActiveTab] = useState("voterId");
+  const [activeTab, setActiveTab] = useState("email");
   const navigate = useNavigate();
 
-  const handleVoterIdSubmit = async () => {
-    if (!voterId.trim()) {
-      toast.error('Please enter a valid Voter ID');
+  const handleEmailSubmit = async () => {
+    if (!email.trim()) {
+      toast.error('Please enter a valid email address');
       return;
     }
 
     setIsLoading(true);
     
     try {
-      // In a real app, this would call the API
-      setTimeout(() => {
+      const response = await authService.requestOTP(email);
+      
+      if (response.success) {
         setIsOTPSent(true);
         setActiveTab("otp");
-        setIsLoading(false);
-        toast.success('OTP sent successfully!');
-      }, 1000);
-    } catch (error) {
-      setIsLoading(false);
+        toast.success('OTP sent to your email!');
+      } else {
+        toast.error(response.error || 'Failed to send OTP');
+      }
+    } catch (error: any) {
       toast.error('Failed to send OTP. Please try again.');
+      console.error('OTP request error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -54,31 +58,30 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
     setIsLoading(true);
     
     try {
-      // In a real app, use authService.verifyOTP
-      setTimeout(() => {
-        setIsLoading(false);
+      const response = await authService.verifyOTP(email, otp);
+      
+      if (response.success) {
+        toast.success('Authentication successful!');
         
-        // Special case for admin login
-        if (voterId === 'ADMIN123') {
-          localStorage.setItem('isAdmin', 'true');
-          localStorage.setItem('isVerified', 'true');
-          toast.success('Admin login successful!');
+        // Check if admin and redirect accordingly
+        if (authService.isAdmin()) {
           navigate('/admin');
         } else {
-          localStorage.setItem('isAdmin', 'false');
-          localStorage.setItem('isVerified', 'true');
-          toast.success('Voter verification successful!');
+          // For regular users, proceed to facial verification
           navigate('/voting');
         }
         
-        // Call the success callback if provided
         if (onVerificationSuccess) {
           onVerificationSuccess();
         }
-      }, 1000);
-    } catch (error) {
-      setIsLoading(false);
+      } else {
+        toast.error(response.error || 'OTP verification failed');
+      }
+    } catch (error: any) {
       toast.error('OTP verification failed. Please try again.');
+      console.error('OTP verification error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -86,30 +89,31 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
     <Card className="w-[350px]">
       <CardHeader>
         <CardTitle>Authentication</CardTitle>
-        <CardDescription>Enter your Voter ID and OTP to proceed.</CardDescription>
+        <CardDescription>Enter your email and OTP to proceed.</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
-            <TabsTrigger value="voterId">Voter ID</TabsTrigger>
+            <TabsTrigger value="email">Email</TabsTrigger>
             <TabsTrigger value="otp" disabled={!isOTPSent}>OTP</TabsTrigger>
           </TabsList>
-          <TabsContent value="voterId">
+          <TabsContent value="email">
             <div className="space-y-2">
-              <Label htmlFor="voterId">Voter ID</Label>
+              <Label htmlFor="email">Email Address</Label>
               <Input
-                id="voterId"
-                placeholder="Enter your Voter ID"
-                value={voterId}
-                onChange={(e) => setVoterId(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                For admin access, use: ADMIN123
+                For admin access, use an admin email address
               </p>
             </div>
             <CardFooter className="justify-between pt-4 px-0">
-              <Button variant="link">Forgot Voter ID?</Button>
-              <Button onClick={handleVoterIdSubmit} disabled={isLoading}>
+              <Button variant="link">Need Help?</Button>
+              <Button onClick={handleEmailSubmit} disabled={isLoading}>
                 {isLoading ? <RotateCw className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Send OTP
               </Button>
@@ -127,7 +131,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
               </InputOTP>
             </div>
             <CardFooter className="justify-between pt-4 px-0">
-              <Button variant="link" onClick={() => handleVoterIdSubmit()}>Resend OTP</Button>
+              <Button variant="link" onClick={() => handleEmailSubmit()}>Resend OTP</Button>
               <Button onClick={handleOTPVerification} disabled={isLoading}>
                 {isLoading ? <RotateCw className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Verify OTP

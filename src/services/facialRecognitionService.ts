@@ -93,7 +93,7 @@ export async function detectLiveness(videoElement: HTMLVideoElement): Promise<bo
  * Process and verify facial recognition
  * Captures image data, detects face, confirms liveness, and sends to server
  */
-export async function processFacialVerification(videoElement: HTMLVideoElement): Promise<{
+export async function processFacialVerification(videoElement: HTMLVideoElement, email: string): Promise<{
   success: boolean;
   message: string;
 }> {
@@ -131,11 +131,10 @@ export async function processFacialVerification(videoElement: HTMLVideoElement):
     // Get image data as base64 string
     const imageData = canvas.toDataURL('image/jpeg', 0.8);
     
-    // 4. In this version without a backend, we'll simulate verification locally
-    // Simulate 90% success rate for demo purposes
-    const isVerified = Math.random() < 0.9;
+    // 4. Send to backend for verification
+    const response = await authService.facialVerification(imageData, email);
     
-    if (isVerified) {
+    if (response.success) {
       return {
         success: true,
         message: 'Facial verification successful'
@@ -143,7 +142,7 @@ export async function processFacialVerification(videoElement: HTMLVideoElement):
     } else {
       return {
         success: false,
-        message: 'Facial verification failed. Please try again.'
+        message: response.error || 'Facial verification failed'
       };
     }
   } catch (error) {
