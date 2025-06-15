@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
@@ -134,7 +133,7 @@ serve(async (req) => {
     const otpString = otp.padStart(6, '0'); // Ensure 6-digit string with leading zeros
     console.log('OTP Request - OTP as padded string for hashing:', otpString);
     
-    const jwtSecret = Deno.env.get('SUPABASE_JWT_SECRET');
+    const jwtSecret = Deno.env.get('JWT_SECRET') || 'secret';
     console.log('OTP Request - JWT_SECRET length:', jwtSecret?.length);
     
     const hashInput = otpString + jwtSecret;

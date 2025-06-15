@@ -9,7 +9,7 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-const JWT_SECRET = Deno.env.get('SUPABASE_JWT_SECRET') || 'secret'
+const JWT_SECRET = Deno.env.get('JWT_SECRET') || 'secret'
 
 // Format phone number to Indian E.164 format
 function formatPhoneNumber(phone: string): string {
