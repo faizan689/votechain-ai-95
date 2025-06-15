@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { create } from 'https://deno.land/x/djwt@v2.8/mod.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
 const supabase = createClient(
@@ -27,6 +26,31 @@ function formatPhoneNumber(phone: string): string {
   
   // Default fallback
   return digits.startsWith('+') ? phone : `+91${digits}`;
+}
+
+// Simple JWT creation function
+async function createJWT(payload: any, secret: string): Promise<string> {
+  const header = {
+    alg: "HS256",
+    typ: "JWT"
+  };
+
+  const encodedHeader = btoa(JSON.stringify(header));
+  const encodedPayload = btoa(JSON.stringify(payload));
+  
+  const signatureInput = `${encodedHeader}.${encodedPayload}`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signatureInput));
+  const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)));
+  
+  return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
 }
 
 serve(async (req) => {
@@ -144,9 +168,8 @@ serve(async (req) => {
       })
       .eq('id', user.id)
 
-    // Generate JWT token
+    // Generate JWT token using our custom function
     console.log('OTP Verification - Generating JWT token');
-    const jwtSecret = new TextEncoder().encode(JWT_SECRET);
     const payload = {
       sub: user.id,
       phone_number: user.phone_number,
@@ -156,28 +179,33 @@ serve(async (req) => {
       exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
     }
 
-    const token = await create(
-      { alg: "HS256", typ: "JWT" }, 
-      payload, 
-      jwtSecret
-    )
+    try {
+      const token = await createJWT(payload, JWT_SECRET);
+      console.log('OTP Verification - JWT token generated successfully');
 
-    console.log('OTP Verification - Success, returning token');
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'OTP verified successfully',
-        token,
-        user: {
-          id: user.id,
-          phone_number: user.phone_number,
-          role: user.role,
-          face_verified: user.face_verified,
-          has_voted: user.has_voted
-        }
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      console.log('OTP Verification - Success, returning token');
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'OTP verified successfully',
+          token,
+          user: {
+            id: user.id,
+            phone_number: user.phone_number,
+            role: user.role,
+            face_verified: user.face_verified,
+            has_voted: user.has_voted
+          }
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    } catch (jwtError) {
+      console.error('OTP Verification - JWT creation error:', jwtError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to generate authentication token' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
   } catch (error) {
     console.error('OTP Verification - Error:', error)
