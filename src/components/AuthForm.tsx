@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from './ui/input-otp';
-import { RotateCw } from 'lucide-react';
+import { RotateCw, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { authService } from '@/services/authService';
 
@@ -21,6 +21,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isOTPSent, setIsOTPSent] = useState(false);
   const [activeTab, setActiveTab] = useState("phone");
+  const [otpSendTime, setOtpSendTime] = useState<Date | null>(null);
   const navigate = useNavigate();
 
   const validatePhoneNumber = (phone: string): boolean => {
@@ -43,7 +44,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
 
   const handlePhoneSubmit = async () => {
     console.log('Phone submit clicked with phone:', phoneNumber);
-    console.log('Phone validation result:', validatePhoneNumber(phoneNumber));
     
     if (!phoneNumber.trim()) {
       toast.error('Please enter a phone number');
@@ -66,30 +66,58 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
       if (response && response.success) {
         console.log('OTP sent successfully, switching to OTP tab');
         setIsOTPSent(true);
+        setOtpSendTime(new Date());
         setActiveTab("otp");
-        toast.success('OTP sent to your phone!');
+        toast.success(
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <span>OTP sent to your phone!</span>
+          </div>
+        );
       } else {
         console.log('OTP request failed:', response?.error || 'Unknown error');
         const errorMessage = response?.error || 'Failed to send OTP';
         
-        if (errorMessage.includes('not found') || errorMessage.includes('invalid')) {
-          toast.error('Phone number not found. Please check your number and try again.');
+        if (errorMessage.includes('Too many OTP requests')) {
+          toast.error(
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <span>Too many attempts. Please try again later.</span>
+            </div>
+          );
+        } else if (errorMessage.includes('not found') || errorMessage.includes('invalid')) {
+          toast.error(
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <span>Phone number not found. Please check your number and try again.</span>
+            </div>
+          );
         } else {
-          toast.error(errorMessage);
+          toast.error(
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <span>{errorMessage}</span>
+            </div>
+          );
         }
       }
     } catch (error: any) {
       console.error('OTP request error caught:', error);
-      console.error('Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
       
       if (error.message?.includes('Edge Function returned a non-2xx status code')) {
-        toast.error('Server error occurred. Please try again or contact support.');
+        toast.error(
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-red-500" />
+            <span>Server error occurred. Please try again or contact support.</span>
+          </div>
+        );
       } else {
-        toast.error('Failed to send OTP. Please check your phone number and try again.');
+        toast.error(
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-red-500" />
+            <span>Failed to send OTP. Please check your phone number and try again.</span>
+          </div>
+        );
       }
     } finally {
       setIsLoading(false);
@@ -109,13 +137,18 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
       const response = await authService.verifyOTP(phoneNumber, otp);
       
       if (response.success) {
-        toast.success('Authentication successful!');
+        toast.success(
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <span>Authentication successful!</span>
+          </div>
+        );
         
         // Check if admin and redirect accordingly
         if (authService.isAdmin()) {
           navigate('/admin');
         } else {
-          // For regular users, proceed to facial verification
+          // For regular users, proceed to voting
           navigate('/voting');
         }
         
@@ -123,10 +156,42 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
           onVerificationSuccess();
         }
       } else {
-        toast.error(response.error || 'OTP verification failed');
+        const errorMessage = response.error || 'OTP verification failed';
+        
+        if (errorMessage.includes('expired')) {
+          toast.error(
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <span>OTP has expired. Please request a new one.</span>
+            </div>
+          );
+          // Reset to phone tab to request new OTP
+          setActiveTab("phone");
+          setIsOTPSent(false);
+          setOtp('');
+        } else if (errorMessage.includes('Invalid OTP')) {
+          toast.error(
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <span>Invalid OTP. Please check the code and try again.</span>
+            </div>
+          );
+        } else {
+          toast.error(
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <span>{errorMessage}</span>
+            </div>
+          );
+        }
       }
     } catch (error: any) {
-      toast.error('OTP verification failed. Please try again.');
+      toast.error(
+        <div className="flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 text-red-500" />
+          <span>OTP verification failed. Please try again.</span>
+        </div>
+      );
       console.error('OTP verification error:', error);
     } finally {
       setIsLoading(false);
@@ -140,19 +205,45 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
     setPhoneNumber(sanitized);
   };
 
+  const handleResendOTP = async () => {
+    // Reset OTP state
+    setOtp('');
+    // Send new OTP
+    await handlePhoneSubmit();
+  };
+
+  const getTimeSinceOTP = (): string => {
+    if (!otpSendTime) return '';
+    const now = new Date();
+    const diffMs = now.getTime() - otpSendTime.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    
+    if (diffMinutes > 0) {
+      return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+    }
+    return `${diffSeconds} second${diffSeconds === 1 ? '' : 's'} ago`;
+  };
+
   return (
-    <Card className="w-[350px]">
+    <Card className="w-[380px]">
       <CardHeader>
         <CardTitle>Authentication</CardTitle>
-        <CardDescription>Enter your phone number and OTP to proceed.</CardDescription>
+        <CardDescription>
+          {activeTab === "phone" 
+            ? "Enter your registered phone number to receive an OTP."
+            : "Enter the 6-digit code sent to your phone."
+          }
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="phone">Phone</TabsTrigger>
             <TabsTrigger value="otp" disabled={!isOTPSent}>OTP</TabsTrigger>
           </TabsList>
-          <TabsContent value="phone">
+          
+          <TabsContent value="phone" className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
               <Input
@@ -162,39 +253,69 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
                 value={phoneNumber}
                 onChange={handlePhoneChange}
                 className={!validatePhoneNumber(phoneNumber) && phoneNumber.length > 0 ? 'border-red-500' : ''}
+                disabled={isLoading}
               />
               {!validatePhoneNumber(phoneNumber) && phoneNumber.length > 0 && (
-                <p className="text-xs text-red-500">Please enter a valid 10-digit phone number</p>
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Please enter a valid 10-digit phone number
+                </p>
               )}
               <p className="text-xs text-muted-foreground mt-1">
                 For admin access, use an admin phone number
               </p>
             </div>
+            
             <CardFooter className="justify-between pt-4 px-0">
-              <Button variant="link">Need Help?</Button>
-              <Button onClick={handlePhoneSubmit} disabled={isLoading || !validatePhoneNumber(phoneNumber) || !phoneNumber.trim()}>
+              <Button variant="link" size="sm">Need Help?</Button>
+              <Button 
+                onClick={handlePhoneSubmit} 
+                disabled={isLoading || !validatePhoneNumber(phoneNumber) || !phoneNumber.trim()}
+                className="min-w-[100px]"
+              >
                 {isLoading ? <RotateCw className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Send OTP
               </Button>
             </CardFooter>
           </TabsContent>
-          <TabsContent value="otp">
-            <div className="space-y-2">
+          
+          <TabsContent value="otp" className="space-y-4">
+            <div className="space-y-3">
               <Label htmlFor="otp">OTP Code</Label>
               <p className="text-xs text-muted-foreground">
                 Enter the 6-digit code sent to {formatPhoneDisplay(phoneNumber)}
+                {otpSendTime && (
+                  <span className="block mt-1">Sent {getTimeSinceOTP()}</span>
+                )}
               </p>
-              <InputOTP maxLength={6} value={otp} onChange={setOtp}>
-                <InputOTPGroup>
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <InputOTPSlot key={i} index={i} />
-                  ))}
-                </InputOTPGroup>
-              </InputOTP>
+              <div className="flex justify-center">
+                <InputOTP maxLength={6} value={otp} onChange={setOtp} disabled={isLoading}>
+                  <InputOTPGroup>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <InputOTPSlot key={i} index={i} />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                The code will expire in 5 minutes
+              </p>
             </div>
+            
             <CardFooter className="justify-between pt-4 px-0">
-              <Button variant="link" onClick={() => handlePhoneSubmit()}>Resend OTP</Button>
-              <Button onClick={handleOTPVerification} disabled={isLoading}>
+              <Button 
+                variant="link" 
+                size="sm"
+                onClick={handleResendOTP}
+                disabled={isLoading}
+              >
+                Resend OTP
+              </Button>
+              <Button 
+                onClick={handleOTPVerification} 
+                disabled={isLoading || otp.length < 6}
+                className="min-w-[100px]"
+              >
                 {isLoading ? <RotateCw className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Verify OTP
               </Button>
