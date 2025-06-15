@@ -58,7 +58,7 @@ export async function apiRequest<T>(
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Pass data directly - Supabase client handles JSON serialization
+    // Pass data object directly - Supabase client handles JSON serialization
     console.log(`Request data for ${functionName}:`, data);
 
     const { data: result, error } = await supabase.functions.invoke(functionName, {
@@ -70,7 +70,7 @@ export async function apiRequest<T>(
 
     if (error) {
       console.error(`Edge function error for ${functionName}:`, error);
-      throw new Error(error.message);
+      throw new Error(error.message || 'Request failed');
     }
 
     return result as T;

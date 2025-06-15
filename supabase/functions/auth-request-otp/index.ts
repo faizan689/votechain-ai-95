@@ -38,28 +38,42 @@ serve(async (req) => {
     let phoneNumber;
     
     try {
-      // Get the raw body text first
-      const bodyText = await req.text();
-      console.log('Raw request body:', bodyText);
+      // Handle both JSON and form-encoded requests
+      const contentType = req.headers.get('content-type') || '';
+      console.log('Content-Type:', contentType);
       
-      if (!bodyText || bodyText.trim() === '') {
-        return new Response(
-          JSON.stringify({ error: 'Empty request body' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+      if (contentType.includes('application/json')) {
+        // Get the raw body text first
+        const bodyText = await req.text();
+        console.log('Raw request body:', bodyText);
+        
+        if (!bodyText || bodyText.trim() === '') {
+          return new Response(
+            JSON.stringify({ error: 'Empty request body' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        
+        // Try to parse as JSON
+        requestBody = JSON.parse(bodyText);
+        console.log('Parsed request body:', requestBody);
+        
+        phoneNumber = requestBody.phoneNumber;
+      } else {
+        // Handle form data or other content types
+        const formData = await req.formData();
+        phoneNumber = formData.get('phoneNumber');
+        console.log('Form data phoneNumber:', phoneNumber);
       }
       
-      // Try to parse as JSON
-      requestBody = JSON.parse(bodyText);
-      console.log('Parsed request body:', requestBody);
-      
-      phoneNumber = requestBody.phoneNumber;
-      
     } catch (parseError) {
-      console.error('JSON parsing error:', parseError);
-      console.error('Failed to parse body as JSON');
+      console.error('Request parsing error:', parseError);
+      console.error('Failed to parse request body');
       return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        JSON.stringify({ 
+          error: 'Invalid request format',
+          details: parseError.message 
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -67,7 +81,10 @@ serve(async (req) => {
     if (!phoneNumber) {
       console.log('Missing phone number in request');
       return new Response(
-        JSON.stringify({ error: 'Phone number is required' }),
+        JSON.stringify({ 
+          error: 'Phone number is required',
+          success: false 
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -104,7 +121,10 @@ serve(async (req) => {
           .eq('id', rateLimit.id)
         
         return new Response(
-          JSON.stringify({ error: 'Too many OTP requests. Please try again later.' }),
+          JSON.stringify({ 
+            error: 'Too many OTP requests. Please try again later.',
+            success: false 
+          }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       } else {
@@ -148,7 +168,10 @@ serve(async (req) => {
     if (userError) {
       console.error('Database error:', userError)
       return new Response(
-        JSON.stringify({ error: 'Failed to store OTP' }),
+        JSON.stringify({ 
+          error: 'Failed to store OTP',
+          success: false 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -161,7 +184,10 @@ serve(async (req) => {
     if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
       console.error('Missing Twilio credentials')
       return new Response(
-        JSON.stringify({ error: 'SMS service not configured' }),
+        JSON.stringify({ 
+          error: 'SMS service not configured',
+          success: false 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -183,9 +209,14 @@ serve(async (req) => {
     })
 
     if (!smsResponse.ok) {
-      console.error('Twilio error:', await smsResponse.text())
+      const twilioError = await smsResponse.text()
+      console.error('Twilio error:', twilioError)
       return new Response(
-        JSON.stringify({ error: 'Failed to send SMS' }),
+        JSON.stringify({ 
+          error: 'Failed to send SMS',
+          success: false,
+          details: twilioError 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -203,7 +234,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Unexpected error:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ 
+        error: 'Internal server error',
+        success: false,
+        details: error.message 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
