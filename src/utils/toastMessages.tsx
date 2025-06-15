@@ -4,21 +4,9 @@ import { CheckCircle, AlertCircle } from 'lucide-react';
 
 export const toastMessages = {
   otpSentSuccess: (debugOtp?: string) => (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <CheckCircle className="h-4 w-4 text-green-500" />
-        <span>OTP generated successfully!</span>
-      </div>
-      {debugOtp && (
-        <>
-          <div className="text-sm font-mono bg-gray-100 p-2 rounded">
-            <strong>Demo OTP:</strong> {debugOtp}
-          </div>
-          <div className="text-xs text-gray-600">
-            (SMS not implemented - use the demo OTP above)
-          </div>
-        </>
-      )}
+    <div className="flex items-center gap-2">
+      <CheckCircle className="h-4 w-4 text-green-500" />
+      <span>OTP sent to your phone successfully!</span>
     </div>
   ),
 
@@ -32,7 +20,7 @@ export const toastMessages = {
   otpVerificationSuccess: () => (
     <div className="flex items-center gap-2">
       <CheckCircle className="h-4 w-4 text-green-500" />
-      <span>✅ OTP is CORRECT! Authentication successful!</span>
+      <span>✅ OTP verified successfully! Authentication complete!</span>
     </div>
   ),
 

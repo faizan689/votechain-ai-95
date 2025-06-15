@@ -8,6 +8,11 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
+// Twilio configuration
+const TWILIO_ACCOUNT_SID = Deno.env.get('TWILIO_ACCOUNT_SID')
+const TWILIO_AUTH_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN')
+const TWILIO_PHONE_NUMBER = Deno.env.get('TWILIO_PHONE_NUMBER')
+
 // Format phone number to Indian E.164 format
 function formatPhoneNumber(phone: string): string {
   const digits = phone.replace(/\D/g, '');
@@ -29,6 +34,49 @@ function formatPhoneNumber(phone: string): string {
 // Generate a 6-digit OTP
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Send SMS using Twilio
+async function sendSMS(to: string, message: string): Promise<boolean> {
+  try {
+    console.log(`Sending SMS to ${to} via Twilio`);
+    
+    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
+      console.error('Twilio credentials not configured');
+      return false;
+    }
+
+    const auth = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
+    
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          From: TWILIO_PHONE_NUMBER,
+          To: to,
+          Body: message,
+        }),
+      }
+    );
+
+    const result = await response.json();
+    
+    if (response.ok) {
+      console.log('SMS sent successfully:', result.sid);
+      return true;
+    } else {
+      console.error('Twilio error:', result);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error sending SMS:', error);
+    return false;
+  }
 }
 
 serve(async (req) => {
@@ -135,19 +183,26 @@ serve(async (req) => {
       }
     }
 
-    // In a real application, you would send the OTP via SMS here
-    // For demo purposes, we'll log it (remove in production)
-    console.log(`OTP Request - SMS would be sent to ${formattedPhone} with OTP: ${otp}`);
+    // Send OTP via SMS using Twilio
+    const smsMessage = `Your VoteGuard verification code is: ${otp}. This code will expire in 5 minutes. Do not share this code with anyone.`;
+    const smsSent = await sendSMS(formattedPhone, smsMessage);
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'OTP sent successfully',
-        // For demo purposes only - remove in production
-        debug_otp: otp
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    if (smsSent) {
+      console.log(`OTP Request - SMS sent successfully to ${formattedPhone}`);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'OTP sent successfully to your phone'
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    } else {
+      console.error('OTP Request - Failed to send SMS');
+      return new Response(
+        JSON.stringify({ error: 'Failed to send SMS. Please try again.', success: false }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
   } catch (error) {
     console.error('OTP Request - Error:', error);

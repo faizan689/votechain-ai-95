@@ -43,10 +43,9 @@ const PhoneNumberInput: React.FC<PhoneNumberInputProps> = ({
         <p className="text-xs text-muted-foreground mt-1">
           Enter your 10-digit Indian mobile number (e.g., 9876543210)
         </p>
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
-          <p className="text-xs text-blue-700">
-            <strong>Demo Mode:</strong> SMS service is not implemented. After clicking "Send OTP", 
-            you'll see the demo OTP code displayed in a success message. Use that code to verify.
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-2">
+          <p className="text-xs text-green-700">
+            <strong>SMS Enabled:</strong> You will receive a real OTP on your mobile phone via SMS.
           </p>
         </div>
       </div>

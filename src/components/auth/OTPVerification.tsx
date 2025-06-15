@@ -58,7 +58,7 @@ const OTPVerification: React.FC<OTPVerificationProps> = ({
           The code will expire in 5 minutes
         </p>
         <p className="text-xs text-blue-600 text-center">
-          <strong>Demo Mode:</strong> Use the OTP from the success message above
+          Check your phone for the SMS with your verification code
         </p>
       </div>
       
