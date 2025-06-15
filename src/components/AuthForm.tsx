@@ -23,8 +23,18 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
   const [activeTab, setActiveTab] = useState("email");
   const navigate = useNavigate();
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleEmailSubmit = async () => {
     if (!email.trim()) {
+      toast.error('Please enter an email address');
+      return;
+    }
+
+    if (!validateEmail(email)) {
       toast.error('Please enter a valid email address');
       return;
     }
@@ -39,10 +49,14 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
         setActiveTab("otp");
         toast.success('OTP sent to your email!');
       } else {
-        toast.error(response.error || 'Failed to send OTP');
+        if (response.error?.includes('not found') || response.error?.includes('invalid') || response.error?.includes('does not exist')) {
+          toast.error('Email address not found. Please check your email and try again.');
+        } else {
+          toast.error(response.error || 'Failed to send OTP');
+        }
       }
     } catch (error: any) {
-      toast.error('Failed to send OTP. Please try again.');
+      toast.error('Failed to send OTP. Please check your email address and try again.');
       console.error('OTP request error:', error);
     } finally {
       setIsLoading(false);
@@ -106,14 +120,18 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className={!validateEmail(email) && email.length > 0 ? 'border-red-500' : ''}
               />
+              {!validateEmail(email) && email.length > 0 && (
+                <p className="text-xs text-red-500">Please enter a valid email address</p>
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 For admin access, use an admin email address
               </p>
             </div>
             <CardFooter className="justify-between pt-4 px-0">
               <Button variant="link">Need Help?</Button>
-              <Button onClick={handleEmailSubmit} disabled={isLoading}>
+              <Button onClick={handleEmailSubmit} disabled={isLoading || !validateEmail(email) || !email.trim()}>
                 {isLoading ? <RotateCw className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Send OTP
               </Button>
