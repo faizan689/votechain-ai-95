@@ -54,6 +54,7 @@ export type Database = {
           email: string
           id: string
           ip_address: unknown
+          phone_number: string | null
           window_start: string | null
         }
         Insert: {
@@ -62,6 +63,7 @@ export type Database = {
           email: string
           id?: string
           ip_address: unknown
+          phone_number?: string | null
           window_start?: string | null
         }
         Update: {
@@ -70,6 +72,7 @@ export type Database = {
           email?: string
           id?: string
           ip_address?: unknown
+          phone_number?: string | null
           window_start?: string | null
         }
         Relationships: []
@@ -85,6 +88,7 @@ export type Database = {
           user_agent: string | null
           user_email: string | null
           user_id: string | null
+          user_phone: string | null
         }
         Insert: {
           details?: Json | null
@@ -96,6 +100,7 @@ export type Database = {
           user_agent?: string | null
           user_email?: string | null
           user_id?: string | null
+          user_phone?: string | null
         }
         Update: {
           details?: Json | null
@@ -107,6 +112,7 @@ export type Database = {
           user_agent?: string | null
           user_email?: string | null
           user_id?: string | null
+          user_phone?: string | null
         }
         Relationships: [
           {
@@ -131,6 +137,7 @@ export type Database = {
           otp_expires: string | null
           otp_hash: string | null
           otp_verified: boolean | null
+          phone_number: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string | null
         }
@@ -146,6 +153,7 @@ export type Database = {
           otp_expires?: string | null
           otp_hash?: string | null
           otp_verified?: boolean | null
+          phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
         }
@@ -161,6 +169,7 @@ export type Database = {
           otp_expires?: string | null
           otp_hash?: string | null
           otp_verified?: boolean | null
+          phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
         }
