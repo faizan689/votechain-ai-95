@@ -127,7 +127,7 @@ export type Database = {
       users: {
         Row: {
           created_at: string | null
-          email: string
+          email: string | null
           face_embedding: Json | null
           face_verified: boolean | null
           failed_otp_attempts: number | null
@@ -143,7 +143,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          email: string
+          email?: string | null
           face_embedding?: Json | null
           face_verified?: boolean | null
           failed_otp_attempts?: number | null
@@ -159,7 +159,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          email?: string
+          email?: string | null
           face_embedding?: Json | null
           face_verified?: boolean | null
           failed_otp_attempts?: number | null
