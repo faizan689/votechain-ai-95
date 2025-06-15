@@ -29,6 +29,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
   };
 
   const handleEmailSubmit = async () => {
+    console.log('Email submit clicked with email:', email);
+    
     if (!email.trim()) {
       toast.error('Please enter an email address');
       return;
@@ -40,15 +42,19 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
     }
 
     setIsLoading(true);
+    console.log('Sending OTP request for email:', email);
     
     try {
       const response = await authService.requestOTP(email);
+      console.log('OTP request response:', response);
       
       if (response.success) {
+        console.log('OTP sent successfully, switching to OTP tab');
         setIsOTPSent(true);
         setActiveTab("otp");
         toast.success('OTP sent to your email!');
       } else {
+        console.log('OTP request failed:', response.error);
         if (response.error?.includes('not found') || response.error?.includes('invalid') || response.error?.includes('does not exist')) {
           toast.error('Email address not found. Please check your email and try again.');
         } else {
@@ -56,8 +62,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
         }
       }
     } catch (error: any) {
-      toast.error('Failed to send OTP. Please check your email address and try again.');
       console.error('OTP request error:', error);
+      toast.error('Failed to send OTP. Please check your email address and try again.');
     } finally {
       setIsLoading(false);
     }
