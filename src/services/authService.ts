@@ -20,8 +20,13 @@ export const authService = {
     });
     
     if (response.token) {
-      // Check if this is an admin user
-      if (response.user?.role === 'admin') {
+      // Store user email for facial verification
+      localStorage.setItem('userEmail', email);
+      
+      // Check if this is an admin user based on email domain or response
+      const isAdminUser = email.includes('admin@') || response.message?.includes('admin');
+      
+      if (isAdminUser) {
         setAdminToken(response.token);
         localStorage.setItem('isAdmin', 'true');
       } else {
@@ -64,6 +69,7 @@ export const authService = {
   logout: (): void => {
     localStorage.removeItem('isVerified');
     localStorage.removeItem('isAdmin');
+    localStorage.removeItem('userEmail');
     setAuthToken('');
     setAdminToken('');
   }

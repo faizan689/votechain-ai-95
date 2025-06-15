@@ -60,7 +60,9 @@ export function useFacialVerification({
     setVerificationFailed(false);
     
     try {
-      const result = await facialRecognitionService.processFacialVerification(videoRef.current);
+      // Get email from localStorage (set during auth)
+      const userEmail = localStorage.getItem('userEmail') || '';
+      const result = await facialRecognitionService.processFacialVerification(videoRef.current, userEmail);
       
       if (result?.success) {
         setVerificationSuccess(true);
