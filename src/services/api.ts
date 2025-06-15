@@ -46,6 +46,8 @@ export async function apiRequest<T>(
   useAdminToken: boolean = false
 ): Promise<T> {
   try {
+    console.log(`Making API request to ${functionName} with data:`, data);
+    
     const token = useAdminToken ? getAdminToken() : getAuthToken();
     
     const headers: Record<string, string> = {
@@ -56,12 +58,19 @@ export async function apiRequest<T>(
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    // Ensure data is properly serialized
+    const requestBody = data ? JSON.stringify(data) : undefined;
+    console.log(`Request body for ${functionName}:`, requestBody);
+
     const { data: result, error } = await supabase.functions.invoke(functionName, {
-      body: data,
+      body: requestBody,
       headers
     });
 
+    console.log(`Response from ${functionName}:`, { result, error });
+
     if (error) {
+      console.error(`Edge function error for ${functionName}:`, error);
       throw new Error(error.message);
     }
 

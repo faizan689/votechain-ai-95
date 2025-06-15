@@ -30,6 +30,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
 
   const handleEmailSubmit = async () => {
     console.log('Email submit clicked with email:', email);
+    console.log('Email validation result:', validateEmail(email));
     
     if (!email.trim()) {
       toast.error('Please enter an email address');
@@ -45,27 +46,42 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
     console.log('Sending OTP request for email:', email);
     
     try {
+      console.log('About to call authService.requestOTP...');
       const response = await authService.requestOTP(email);
-      console.log('OTP request response:', response);
+      console.log('OTP request response received:', response);
       
-      if (response.success) {
+      if (response && response.success) {
         console.log('OTP sent successfully, switching to OTP tab');
         setIsOTPSent(true);
         setActiveTab("otp");
         toast.success('OTP sent to your email!');
       } else {
-        console.log('OTP request failed:', response.error);
-        if (response.error?.includes('not found') || response.error?.includes('invalid') || response.error?.includes('does not exist')) {
+        console.log('OTP request failed:', response?.error || 'Unknown error');
+        const errorMessage = response?.error || 'Failed to send OTP';
+        
+        if (errorMessage.includes('not found') || errorMessage.includes('invalid') || errorMessage.includes('does not exist')) {
           toast.error('Email address not found. Please check your email and try again.');
         } else {
-          toast.error(response.error || 'Failed to send OTP');
+          toast.error(errorMessage);
         }
       }
     } catch (error: any) {
-      console.error('OTP request error:', error);
-      toast.error('Failed to send OTP. Please check your email address and try again.');
+      console.error('OTP request error caught:', error);
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Show a generic error message but let's also check for specific errors
+      if (error.message?.includes('Edge Function returned a non-2xx status code')) {
+        toast.error('Server error occurred. Please try again or contact support.');
+      } else {
+        toast.error('Failed to send OTP. Please check your email address and try again.');
+      }
     } finally {
       setIsLoading(false);
+      console.log('Email submit process completed');
     }
   };
 
