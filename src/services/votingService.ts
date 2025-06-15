@@ -6,7 +6,8 @@ export const votingService = {
   /**
    * Cast a vote for a party
    */
-  castVote: async (partyId: string): Promise<VoteCastResponse> => {
-    return await apiRequest<VoteCastResponse>('vote', { partyId });
+  castVote: async (partyId: string, partyName: string): Promise<VoteCastResponse> => {
+    console.log('Casting vote for:', { partyId, partyName });
+    return await apiRequest<VoteCastResponse>('vote', { partyId, partyName });
   }
 };

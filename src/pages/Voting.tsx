@@ -76,10 +76,18 @@ const Voting = () => {
   const handleVoteConfirm = async () => {
     if (!selectedParty) return;
     
+    const selectedPartyDetails = parties.find(party => party.id === selectedParty);
+    if (!selectedPartyDetails) {
+      toast.error('Selected party not found');
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
-      const response = await votingService.castVote(selectedParty);
+      console.log('Attempting to cast vote for:', selectedPartyDetails);
+      const response = await votingService.castVote(selectedPartyDetails.id, selectedPartyDetails.name);
+      console.log('Vote response:', response);
       
       if (response.success) {
         toast.success('Vote cast successfully!');
@@ -91,11 +99,12 @@ const Voting = () => {
         }));
         navigate('/confirmation');
       } else {
+        console.error('Vote failed with error:', response.error);
         toast.error(response.error || 'Failed to cast vote');
       }
     } catch (error: any) {
-      toast.error('Failed to cast vote. Please try again.');
       console.error('Vote casting error:', error);
+      toast.error(error.message || 'Failed to cast vote. Please try again.');
     } finally {
       setIsLoading(false);
       setIsModalOpen(false);
