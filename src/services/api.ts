@@ -50,21 +50,23 @@ export async function apiRequest<T>(
     
     const token = useAdminToken ? getAdminToken() : getAuthToken();
     
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    // Prepare request options - let Supabase handle Content-Type automatically
+    const requestOptions: any = {};
     
+    if (data) {
+      requestOptions.body = data; // Pass data object directly
+    }
+    
+    // Only add Authorization header if we have a token
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      requestOptions.headers = {
+        'Authorization': `Bearer ${token}`
+      };
     }
 
-    // Pass data object directly - Supabase client handles JSON serialization
-    console.log(`Request data for ${functionName}:`, data);
+    console.log(`Request options for ${functionName}:`, requestOptions);
 
-    const { data: result, error } = await supabase.functions.invoke(functionName, {
-      body: data, // Pass data object directly, not stringified
-      headers
-    });
+    const { data: result, error } = await supabase.functions.invoke(functionName, requestOptions);
 
     console.log(`Response from ${functionName}:`, { result, error });
 
