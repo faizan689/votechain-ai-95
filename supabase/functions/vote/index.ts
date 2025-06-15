@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { verify } from 'https://deno.land/x/djwt@v2.8/mod.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
 const supabase = createClient(
@@ -9,14 +8,54 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-const JWT_SECRET = new TextEncoder().encode(Deno.env.get('SUPABASE_JWT_SECRET') || 'secret')
+const JWT_SECRET = Deno.env.get('JWT_SECRET') || 'secret'
 
+// Custom JWT verification function to match auth-verify-otp
 async function verifyJWT(token: string) {
   try {
-    const payload = await verify(token, JWT_SECRET)
-    return payload
-  } catch {
-    return null
+    console.log('Vote - Verifying JWT token');
+    
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      console.log('Vote - Invalid JWT format');
+      return null;
+    }
+
+    const [headerB64, payloadB64, signatureB64] = parts;
+    
+    // Verify signature
+    const signatureInput = `${headerB64}.${payloadB64}`;
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(JWT_SECRET),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"]
+    );
+    
+    const expectedSignature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signatureInput));
+    const expectedSignatureB64 = btoa(String.fromCharCode(...new Uint8Array(expectedSignature)));
+    
+    if (signatureB64 !== expectedSignatureB64) {
+      console.log('Vote - JWT signature verification failed');
+      return null;
+    }
+    
+    // Parse payload
+    const payload = JSON.parse(atob(payloadB64));
+    console.log('Vote - JWT payload parsed:', { sub: payload.sub, exp: payload.exp });
+    
+    // Check expiration
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      console.log('Vote - JWT token expired');
+      return null;
+    }
+    
+    console.log('Vote - JWT verification successful');
+    return payload;
+  } catch (error) {
+    console.error('Vote - JWT verification error:', error);
+    return null;
   }
 }
 
@@ -44,13 +83,18 @@ async function createBlockchainTransaction(userId: string, partyId: string, vote
 }
 
 serve(async (req) => {
+  console.log('Vote - Request method:', req.method);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const authHeader = req.headers.get('Authorization')
+    console.log('Vote - Auth header present:', !!authHeader);
+    
     if (!authHeader?.startsWith('Bearer ')) {
+      console.log('Vote - No Bearer token found');
       return new Response(
         JSON.stringify({ error: 'Authorization token required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -58,18 +102,39 @@ serve(async (req) => {
     }
 
     const token = authHeader.substring(7)
+    console.log('Vote - Extracted token length:', token.length);
+    
     const payload = await verifyJWT(token)
     
-    if (!payload || !payload.otp_verified || !payload.face_verified) {
+    if (!payload) {
+      console.log('Vote - JWT verification failed');
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('Vote - Token payload:', { 
+      sub: payload.sub, 
+      otp_verified: payload.otp_verified, 
+      face_verified: payload.face_verified 
+    });
+    
+    if (!payload.otp_verified || !payload.face_verified) {
+      console.log('Vote - User verification incomplete');
       return new Response(
         JSON.stringify({ error: 'User must complete OTP and face verification' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const { partyId, partyName } = await req.json()
+    const requestBody = await req.json()
+    console.log('Vote - Request body:', requestBody);
+    
+    const { partyId, partyName } = requestBody
     
     if (!partyId || !partyName) {
+      console.log('Vote - Missing party data');
       return new Response(
         JSON.stringify({ error: 'Party ID and name are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -77,13 +142,19 @@ serve(async (req) => {
     }
 
     // Check voting schedule
-    const { data: schedule } = await supabase
+    console.log('Vote - Checking voting schedule');
+    const { data: schedule, error: scheduleError } = await supabase
       .from('voting_schedule')
       .select('*')
       .eq('id', 1)
       .single()
 
+    if (scheduleError) {
+      console.error('Vote - Schedule lookup error:', scheduleError);
+    }
+
     if (!schedule?.is_active) {
+      console.log('Vote - Voting not active');
       return new Response(
         JSON.stringify({ error: 'Voting is not currently active' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -95,6 +166,7 @@ serve(async (req) => {
     const votingEnd = new Date(schedule.voting_end)
 
     if (now < votingStart || now > votingEnd) {
+      console.log('Vote - Outside voting window');
       return new Response(
         JSON.stringify({ error: 'Voting is not within the allowed time window' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -102,6 +174,7 @@ serve(async (req) => {
     }
 
     // Get user details and check if already voted
+    console.log('Vote - Getting user details for:', payload.sub);
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
@@ -109,19 +182,23 @@ serve(async (req) => {
       .single()
 
     if (userError || !user) {
+      console.error('Vote - User lookup error:', userError);
       return new Response(
         JSON.stringify({ error: 'User not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
+    console.log('Vote - User found:', { id: user.id, has_voted: user.has_voted });
+
     if (user.has_voted) {
+      console.log('Vote - User already voted');
       await supabase
         .from('security_alerts')
         .insert({
           type: 'duplicate_vote',
           user_id: user.id,
-          user_email: user.email,
+          user_phone: user.phone_number,
           details: { attempted_party: partyId }
         })
 
@@ -132,6 +209,7 @@ serve(async (req) => {
     }
 
     // Create vote hash for privacy
+    console.log('Vote - Creating vote hash');
     const voteData = `${user.id}-${partyId}-${Date.now()}`
     const voteHashBuffer = await crypto.subtle.digest(
       'SHA-256',
@@ -142,9 +220,11 @@ serve(async (req) => {
       .join('')
 
     // Create blockchain transaction
+    console.log('Vote - Creating blockchain transaction');
     const blockchainResult = await createBlockchainTransaction(user.id, partyId, voteHash)
 
     // Store vote in database
+    console.log('Vote - Storing vote in database');
     const { data: vote, error: voteError } = await supabase
       .from('votes')
       .insert({
@@ -167,12 +247,17 @@ serve(async (req) => {
     }
 
     // Mark user as voted
-    await supabase
+    console.log('Vote - Marking user as voted');
+    const { error: updateError } = await supabase
       .from('users')
       .update({ has_voted: true })
       .eq('id', user.id)
 
-    console.log(`Vote recorded: User ${user.id} voted for ${partyName} (${partyId})`)
+    if (updateError) {
+      console.error('Vote - User update error:', updateError);
+    }
+
+    console.log(`Vote recorded: User ${user.id} voted for ${partyName} (${partyId})`);
 
     return new Response(
       JSON.stringify({ 
@@ -185,7 +270,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Vote - Error:', error)
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
