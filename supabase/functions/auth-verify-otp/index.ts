@@ -38,7 +38,7 @@ serve(async (req) => {
 
   try {
     const { phoneNumber, otp } = await req.json()
-    console.log('OTP Verification - Input:', { phoneNumber, otp });
+    console.log('OTP Verification - Input:', { phoneNumber, otp: otp?.toString() });
     
     if (!phoneNumber || !otp) {
       console.log('OTP Verification - Missing phone number or OTP');
@@ -85,11 +85,14 @@ serve(async (req) => {
       )
     }
 
-    // Verify OTP
+    // Verify OTP - ensure we're using the same format as when generating
     console.log('OTP Verification - Creating hash for provided OTP');
+    const otpString = otp.toString().trim(); // Ensure it's a string and trim whitespace
+    console.log('OTP Verification - OTP as string:', otpString);
+    
     const providedOtpHash = await crypto.subtle.digest(
       'SHA-256',
-      new TextEncoder().encode(otp + JWT_SECRET)
+      new TextEncoder().encode(otpString + JWT_SECRET)
     )
     const providedOtpHashString = Array.from(new Uint8Array(providedOtpHash))
       .map(b => b.toString(16).padStart(2, '0'))

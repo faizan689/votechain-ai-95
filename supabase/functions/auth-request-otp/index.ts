@@ -130,10 +130,13 @@ serve(async (req) => {
     const otp = generateOTP();
     console.log('OTP Request - Generated OTP:', otp);
 
-    // Hash the OTP for security
+    // Hash the OTP for security - ensure consistent string handling
+    const otpString = otp.toString().trim();
+    console.log('OTP Request - OTP as string for hashing:', otpString);
+    
     const otpHash = await crypto.subtle.digest(
       'SHA-256',
-      new TextEncoder().encode(otp + Deno.env.get('SUPABASE_JWT_SECRET'))
+      new TextEncoder().encode(otpString + Deno.env.get('SUPABASE_JWT_SECRET'))
     )
     const otpHashString = Array.from(new Uint8Array(otpHash))
       .map(b => b.toString(16).padStart(2, '0'))
