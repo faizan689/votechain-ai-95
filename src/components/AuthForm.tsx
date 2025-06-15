@@ -68,12 +68,28 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
         setIsOTPSent(true);
         setOtpSendTime(new Date());
         setActiveTab("otp");
-        toast.success(
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            <span>OTP sent to your phone!</span>
-          </div>
-        );
+        
+        // Show the generated OTP for testing (remove in production)
+        if (response.debug_otp) {
+          toast.success(
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span>OTP sent to your phone!</span>
+              </div>
+              <div className="text-sm font-mono bg-gray-100 p-2 rounded">
+                Test OTP: {response.debug_otp}
+              </div>
+            </div>
+          );
+        } else {
+          toast.success(
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span>OTP sent to your phone!</span>
+            </div>
+          );
+        }
       } else {
         console.log('OTP request failed:', response?.error || 'Unknown error');
         const errorMessage = response?.error || 'Failed to send OTP';
@@ -173,7 +189,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
           toast.error(
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-red-500" />
-              <span>Invalid OTP. Please check the code and try again.</span>
+              <span>❌ Incorrect OTP. The code you entered is wrong.</span>
             </div>
           );
         } else {
