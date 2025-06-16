@@ -36,7 +36,18 @@ async function verifyJWT(token: string) {
     const expectedSignature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signatureInput));
     const expectedSignatureB64 = btoa(String.fromCharCode(...new Uint8Array(expectedSignature)));
     
-    if (signatureB64 !== expectedSignatureB64) {
+    // Decode the provided signature for comparison
+    const providedSignature = Uint8Array.from(atob(signatureB64), c => c.charCodeAt(0));
+    
+    // Use crypto.subtle.verify instead of comparing signatures manually
+    const isValid = await crypto.subtle.verify(
+      "HMAC",
+      key,
+      providedSignature,
+      new TextEncoder().encode(signatureInput)
+    );
+    
+    if (!isValid) {
       console.log('Vote - JWT signature verification failed');
       return null;
     }
