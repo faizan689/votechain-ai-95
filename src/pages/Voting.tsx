@@ -9,6 +9,7 @@ import PartyCard from "@/components/PartyCard";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { votingService } from "@/services/votingService";
 import { authService } from "@/services/authService";
+import { getAuthToken } from "@/services/api";
 import { toast } from "sonner";
 
 type Party = {
@@ -57,24 +58,43 @@ const Voting = () => {
   ];
 
   useEffect(() => {
-    // Check if user is authenticated
-    if (!authService.isVerified()) {
+    // Enhanced authentication check with debug logging
+    console.log('Voting: Checking authentication status');
+    const isVerified = authService.isVerified();
+    const hasToken = !!getAuthToken();
+    
+    console.log('Voting: Auth status:', { isVerified, hasToken });
+    
+    if (!isVerified || !hasToken) {
+      console.log('Voting: User not authenticated, redirecting to auth');
+      toast.error('Please complete authentication to access voting');
       navigate('/auth');
       return;
     }
+    
+    console.log('Voting: Authentication verified, user can vote');
   }, [navigate]);
   
   const handlePartySelect = (id: string) => {
+    console.log('Voting: Party selected:', id);
     setSelectedParty(id);
   };
   
   const handleContinue = () => {
-    if (!selectedParty) return;
+    if (!selectedParty) {
+      toast.error('Please select a party first');
+      return;
+    }
+    
+    console.log('Voting: Opening confirmation modal for party:', selectedParty);
     setIsModalOpen(true);
   };
   
   const handleVoteConfirm = async () => {
-    if (!selectedParty) return;
+    if (!selectedParty) {
+      toast.error('No party selected');
+      return;
+    }
     
     const selectedPartyDetails = parties.find(party => party.id === selectedParty);
     if (!selectedPartyDetails) {
@@ -84,10 +104,15 @@ const Voting = () => {
     
     setIsLoading(true);
     
+    // Debug token before voting
+    const currentToken = getAuthToken();
+    console.log('Voting: Current auth token present:', !!currentToken);
+    console.log('Voting: Token first 20 chars:', currentToken?.substring(0, 20) || 'none');
+    
     try {
-      console.log('Attempting to cast vote for:', selectedPartyDetails);
+      console.log('Voting: Attempting to cast vote for:', selectedPartyDetails);
       const response = await votingService.castVote(selectedPartyDetails.id, selectedPartyDetails.name);
-      console.log('Vote response:', response);
+      console.log('Voting: Vote response received:', response);
       
       if (response.success) {
         toast.success('Vote cast successfully!');
@@ -95,16 +120,31 @@ const Voting = () => {
         localStorage.setItem('voteData', JSON.stringify({
           transactionId: response.transactionId,
           partyId: selectedParty,
+          partyName: selectedPartyDetails.name,
           timestamp: new Date().toISOString()
         }));
+        console.log('Voting: Navigating to confirmation page');
         navigate('/confirmation');
       } else {
-        console.error('Vote failed with error:', response.error);
+        console.error('Voting: Vote failed with response error:', response.error);
         toast.error(response.error || 'Failed to cast vote');
       }
     } catch (error: any) {
-      console.error('Vote casting error:', error);
-      toast.error(error.message || 'Failed to cast vote. Please try again.');
+      console.error('Voting: Vote casting error details:', error);
+      
+      // Enhanced error handling with specific user feedback
+      if (error.message?.includes('Authentication failed')) {
+        toast.error('Your session has expired. Please log in again.');
+        authService.logout();
+        navigate('/auth');
+      } else if (error.message?.includes('already voted')) {
+        toast.error('You have already cast your vote.');
+        navigate('/confirmation');
+      } else if (error.message?.includes('Invalid vote request')) {
+        toast.error('There was a problem with your vote. Please try again.');
+      } else {
+        toast.error(error.message || 'Failed to cast vote. Please try again.');
+      }
     } finally {
       setIsLoading(false);
       setIsModalOpen(false);
@@ -112,6 +152,7 @@ const Voting = () => {
   };
   
   const closeModal = () => {
+    console.log('Voting: Closing confirmation modal');
     setIsModalOpen(false);
   };
   
