@@ -75,11 +75,11 @@ const Voting = () => {
     
     console.log('Voting: Authentication verified, user can vote');
     
-    // Check for MetaMask conflicts
+    // Check for MetaMask conflicts with proper type checking
     const checkMetaMaskConflicts = () => {
       if (typeof window !== 'undefined' && window.ethereum) {
         const providers = window.ethereum.providers;
-        if (providers && providers.length > 1) {
+        if (providers && Array.isArray(providers) && providers.length > 1) {
           console.log('Multiple wallet providers detected:', providers.length);
           setShowMetaMaskWarning(true);
         }
