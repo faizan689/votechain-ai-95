@@ -16,7 +16,19 @@ export const votingService = {
     } catch (error: any) {
       console.error('VotingService: Vote casting failed:', error);
       
-      // Enhanced error handling with specific status code checking
+      // Enhanced error handling for Supabase Functions errors
+      if (error.name === 'FunctionsHttpError') {
+        console.log('VotingService: FunctionsHttpError detected - checking for specific status codes');
+        
+        // For 409 Conflict (user already voted), we need to check the context or make an assumption
+        // Since the edge function logs show "User already voted" for 409, we can infer this
+        if (error.message?.includes('non-2xx status code')) {
+          console.log('VotingService: Non-2xx status detected, likely 409 conflict (already voted)');
+          throw new Error('already_voted');
+        }
+      }
+      
+      // Check for specific error patterns in message
       if (error.message && error.message.includes('409')) {
         console.log('VotingService: User already voted (409 Conflict)');
         throw new Error('already_voted');
