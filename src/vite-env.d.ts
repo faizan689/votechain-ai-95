@@ -11,3 +11,6 @@ declare global {
     } & any;
   }
 }
+
+// This export statement makes TypeScript treat this as a module
+export {};
