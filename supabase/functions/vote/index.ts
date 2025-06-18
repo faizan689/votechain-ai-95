@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
@@ -223,10 +222,10 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ 
-          error: 'Vote already cast',
-          details: 'User has already voted'
+          error: 'already_voted',
+          message: 'You have already cast your vote'
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 

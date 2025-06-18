@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Info, ShieldCheck } from "lucide-react";
@@ -7,6 +6,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PartyCard from "@/components/PartyCard";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import MetaMaskConflictWarning from "@/components/MetaMaskConflictWarning";
 import { votingService } from "@/services/votingService";
 import { authService } from "@/services/authService";
 import { getAuthToken } from "@/services/api";
@@ -24,6 +24,7 @@ const Voting = () => {
   const [selectedParty, setSelectedParty] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showMetaMaskWarning, setShowMetaMaskWarning] = useState(false);
   const navigate = useNavigate();
   
   const parties: Party[] = [
@@ -73,6 +74,19 @@ const Voting = () => {
     }
     
     console.log('Voting: Authentication verified, user can vote');
+    
+    // Check for MetaMask conflicts
+    const checkMetaMaskConflicts = () => {
+      if (typeof window !== 'undefined' && window.ethereum) {
+        const providers = window.ethereum.providers;
+        if (providers && providers.length > 1) {
+          console.log('Multiple wallet providers detected:', providers.length);
+          setShowMetaMaskWarning(true);
+        }
+      }
+    };
+    
+    checkMetaMaskConflicts();
   }, [navigate]);
   
   const handlePartySelect = (id: string) => {
@@ -132,14 +146,14 @@ const Voting = () => {
     } catch (error: any) {
       console.error('Voting: Vote casting error details:', error);
       
-      // Enhanced error handling with specific user feedback
-      if (error.message?.includes('Authentication failed')) {
+      // Handle specific error types
+      if (error.message === 'already_voted') {
+        toast.error('You have already cast your vote.');
+        navigate('/confirmation');
+      } else if (error.message?.includes('Authentication failed')) {
         toast.error('Your session has expired. Please log in again.');
         authService.logout();
         navigate('/auth');
-      } else if (error.message?.includes('already voted')) {
-        toast.error('You have already cast your vote.');
-        navigate('/confirmation');
       } else if (error.message?.includes('Invalid vote request')) {
         toast.error('There was a problem with your vote. Please try again.');
       } else {
@@ -166,6 +180,12 @@ const Voting = () => {
       
       <section className="flex-1 pt-32 pb-20 bg-gradient-to-b from-background to-secondary/30">
         <div className="container mx-auto px-6">
+          {showMetaMaskWarning && (
+            <div className="max-w-4xl mx-auto mb-6">
+              <MetaMaskConflictWarning />
+            </div>
+          )}
+          
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
