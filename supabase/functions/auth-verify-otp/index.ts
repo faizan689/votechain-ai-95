@@ -10,6 +10,9 @@ const supabase = createClient(
 
 const JWT_SECRET = Deno.env.get('JWT_SECRET') || 'secret'
 
+// Special admin phone number for testing
+const ADMIN_TEST_PHONE = '+919825751170'
+
 // Format phone number to Indian E.164 format
 function formatPhoneNumber(phone: string): string {
   const digits = phone.replace(/\D/g, '');
@@ -75,6 +78,98 @@ serve(async (req) => {
     const formattedPhone = formatPhoneNumber(phoneNumber);
     console.log('OTP Verification - Formatted phone:', formattedPhone);
 
+    // Special handling for admin test phone number
+    if (formattedPhone === ADMIN_TEST_PHONE) {
+      console.log('OTP Verification - Admin test phone detected, providing special handling');
+      
+      // Check if user exists, if not create them as admin
+      let { data: user, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('phone_number', formattedPhone)
+        .single()
+
+      if (userError || !user) {
+        console.log('OTP Verification - Creating new admin user for test phone');
+        const { data: newUser, error: createError } = await supabase
+          .from('users')
+          .insert({
+            phone_number: formattedPhone,
+            role: 'admin',
+            otp_verified: true,
+            face_verified: true,
+            has_voted: false
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          console.error('OTP Verification - Failed to create admin user:', createError);
+          return new Response(
+            JSON.stringify({ error: 'Failed to create admin user' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        user = newUser;
+      } else {
+        // Update existing user to ensure admin privileges and reset voting status for testing
+        console.log('OTP Verification - Updating existing user to admin with reset voting status');
+        const { data: updatedUser, error: updateError } = await supabase
+          .from('users')
+          .update({
+            role: 'admin',
+            otp_verified: true,
+            face_verified: true,
+            has_voted: false, // Reset for testing
+            otp_hash: null,
+            otp_expires: null,
+            failed_otp_attempts: 0
+          })
+          .eq('id', user.id)
+          .select()
+          .single()
+
+        if (updateError) {
+          console.error('OTP Verification - Failed to update admin user:', updateError);
+          return new Response(
+            JSON.stringify({ error: 'Failed to update admin user' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+        user = updatedUser;
+      }
+
+      // Generate JWT token for admin
+      const payload = {
+        sub: user.id,
+        phone_number: user.phone_number,
+        role: 'admin',
+        otp_verified: true,
+        face_verified: true,
+        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+      }
+
+      const token = await createJWT(payload, JWT_SECRET);
+      console.log('OTP Verification - Admin token generated successfully');
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Admin authentication successful',
+          token,
+          user: {
+            id: user.id,
+            phone_number: user.phone_number,
+            role: 'admin',
+            face_verified: true,
+            has_voted: false
+          }
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Regular user authentication flow
     // Get user with OTP details
     const { data: user, error: userError } = await supabase
       .from('users')
