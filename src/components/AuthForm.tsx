@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -125,11 +124,9 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
         console.log('OTP verification successful');
         toast.success(toastMessages.otpVerificationSuccess());
         
-        if (authService.isAdmin()) {
-          navigate('/admin');
-        } else {
-          navigate('/voting');
-        }
+        // Always navigate to voting page for all users (including admin)
+        // Admin users can access admin panel via the header icon
+        navigate('/voting');
         
         if (onVerificationSuccess) {
           onVerificationSuccess();
