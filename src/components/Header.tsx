@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Moon, Sun, Shield, Check } from "lucide-react";
+import { Moon, Sun, Shield, Check, Settings } from "lucide-react";
 import { 
   letterAnimation, 
   letterHover, 
@@ -11,10 +10,12 @@ import {
   greenLetterAnimation, 
   flagWaveAnimation
 } from "@/lib/animations";
+import { authService } from "@/services/authService";
 
 const Header = () => {
   const [isDark, setIsDark] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const location = useLocation();
   
   // Define the letters for the flag animation
@@ -38,6 +39,23 @@ const Header = () => {
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains("dark");
     setIsDark(isDarkMode);
+  }, []);
+
+  useEffect(() => {
+    // Check if user is admin
+    const checkAdminStatus = () => {
+      setIsAdmin(authService.isAdmin());
+    };
+    
+    checkAdminStatus();
+    
+    // Listen for storage changes to update admin status
+    const handleStorageChange = () => {
+      checkAdminStatus();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
   
   const toggleDarkMode = () => {
@@ -180,6 +198,26 @@ const Header = () => {
         </nav>
         
         <div className="flex items-center gap-4">
+          {isAdmin && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Link to="/admin">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary/20"
+                  aria-label="Admin Panel"
+                  title="Admin Panel"
+                >
+                  <Settings size={18} />
+                </motion.button>
+              </Link>
+            </motion.div>
+          )}
+          
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

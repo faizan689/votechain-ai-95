@@ -9,6 +9,9 @@ const supabase = createClient(
 
 const JWT_SECRET = Deno.env.get('JWT_SECRET') || 'secret'
 
+// Special admin phone number for testing - allows unlimited voting
+const ADMIN_TEST_PHONE = '+919825751170'
+
 // Fixed JWT verification function to match auth-verify-otp implementation
 async function verifyJWT(token: string) {
   try {
@@ -207,10 +210,20 @@ serve(async (req) => {
       )
     }
 
-    console.log('Vote - User found:', { id: user.id, has_voted: user.has_voted });
+    console.log('Vote - User found:', { id: user.id, has_voted: user.has_voted, phone: user.phone_number });
 
-    if (user.has_voted) {
-      console.log('Vote - User already voted');
+    // Special handling for admin test phone number - allow unlimited voting
+    const isAdminTestUser = user.phone_number === ADMIN_TEST_PHONE;
+    
+    if (isAdminTestUser) {
+      console.log('Vote - Admin test user detected, allowing unlimited voting');
+      // Reset voting status for admin test user to allow unlimited voting
+      await supabase
+        .from('users')
+        .update({ has_voted: false })
+        .eq('id', user.id)
+    } else if (user.has_voted) {
+      console.log('Vote - Regular user already voted');
       await supabase
         .from('security_alerts')
         .insert({
@@ -270,18 +283,22 @@ serve(async (req) => {
       )
     }
 
-    // Mark user as voted
-    console.log('Vote - Marking user as voted');
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ has_voted: true })
-      .eq('id', user.id)
+    // Mark user as voted (except for admin test user who gets reset each time)
+    if (!isAdminTestUser) {
+      console.log('Vote - Marking regular user as voted');
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ has_voted: true })
+        .eq('id', user.id)
 
-    if (updateError) {
-      console.error('Vote - User update error:', updateError);
+      if (updateError) {
+        console.error('Vote - User update error:', updateError);
+      }
+    } else {
+      console.log('Vote - Admin test user - not marking as voted to allow unlimited voting');
     }
 
-    console.log(`Vote recorded successfully: User ${user.id} voted for ${partyName} (${partyId})`);
+    console.log(`Vote recorded successfully: User ${user.id} voted for ${partyName} (${partyId})${isAdminTestUser ? ' [ADMIN TEST - UNLIMITED]' : ''}`);
 
     return new Response(
       JSON.stringify({ 
