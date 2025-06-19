@@ -55,7 +55,7 @@ export const authService = {
         localStorage.setItem('userPhone', phoneNumber);
         
         // Check if this is an admin user based on response
-        const isAdminUser = response.message?.includes('admin') || response.user?.role === 'admin';
+        const isAdminUser = response.user?.role === 'admin';
         
         if (isAdminUser) {
           setAdminToken(response.token);
