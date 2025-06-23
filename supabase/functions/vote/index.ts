@@ -116,7 +116,6 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization')
     console.log('Vote - Auth header present:', !!authHeader);
-    console.log('Vote - Auth header value:', authHeader ? `${authHeader.substring(0, 20)}...` : 'none');
     
     if (!authHeader?.startsWith('Bearer ')) {
       console.log('Vote - No Bearer token found');
@@ -131,7 +130,6 @@ serve(async (req) => {
 
     const token = authHeader.substring(7)
     console.log('Vote - Extracted token length:', token.length);
-    console.log('Vote - Token first 20 chars:', token.substring(0, 20));
     
     const payload = await verifyJWT(token)
     
@@ -176,22 +174,7 @@ serve(async (req) => {
       )
     }
 
-    // Check voting schedule - more lenient for testing
-    console.log('Vote - Checking voting schedule');
-    const { data: schedule, error: scheduleError } = await supabase
-      .from('voting_schedule')
-      .select('*')
-      .eq('id', 1)
-      .single()
-
-    if (scheduleError) {
-      console.error('Vote - Schedule lookup error:', scheduleError);
-      console.log('Vote - Proceeding without schedule check for testing');
-    } else if (schedule && !schedule.is_active) {
-      console.log('Vote - Voting not active, but proceeding for testing');
-    }
-
-    // Get user details and check if already voted
+    // Get user details
     console.log('Vote - Getting user details for:', payload.sub);
     const { data: user, error: userError } = await supabase
       .from('users')
@@ -217,11 +200,7 @@ serve(async (req) => {
     
     if (isAdminTestUser) {
       console.log('Vote - Admin test user detected, allowing unlimited voting');
-      // Reset voting status for admin test user to allow unlimited voting
-      await supabase
-        .from('users')
-        .update({ has_voted: false })
-        .eq('id', user.id)
+      // For admin test user, we always allow voting regardless of has_voted status
     } else if (user.has_voted) {
       console.log('Vote - Regular user already voted');
       await supabase
@@ -283,7 +262,8 @@ serve(async (req) => {
       )
     }
 
-    // Mark user as voted (except for admin test user who gets reset each time)
+    // For regular users only: mark as voted
+    // For admin test user: do NOT mark as voted to allow unlimited voting
     if (!isAdminTestUser) {
       console.log('Vote - Marking regular user as voted');
       const { error: updateError } = await supabase
@@ -295,15 +275,15 @@ serve(async (req) => {
         console.error('Vote - User update error:', updateError);
       }
     } else {
-      console.log('Vote - Admin test user - not marking as voted to allow unlimited voting');
+      console.log('Vote - Admin test user - NOT marking as voted to maintain unlimited voting capability');
     }
 
-    console.log(`Vote recorded successfully: User ${user.id} voted for ${partyName} (${partyId})${isAdminTestUser ? ' [ADMIN TEST - UNLIMITED]' : ''}`);
+    console.log(`Vote recorded successfully: User ${user.id} voted for ${partyName} (${partyId})${isAdminTestUser ? ' [ADMIN TEST - UNLIMITED VOTING]' : ''}`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Vote recorded successfully',
+        message: isAdminTestUser ? 'Vote recorded successfully (unlimited voting enabled)' : 'Vote recorded successfully',
         transactionId: blockchainResult.txHash,
         voteId: vote.id
       }),
