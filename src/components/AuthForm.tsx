@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { authService } from '@/services/authService';
 import PhoneNumberInput from './auth/PhoneNumberInput';
 import OTPVerification from './auth/OTPVerification';
+import FacialRecognitionVerification from './FacialRecognitionVerification';
 import { toastMessages } from '@/utils/toastMessages';
 
 interface AuthFormProps {
@@ -17,6 +18,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOTPSent, setIsOTPSent] = useState(false);
+  const [isOTPVerified, setIsOTPVerified] = useState(false);
   const [activeTab, setActiveTab] = useState("phone");
   const [otpSendTime, setOtpSendTime] = useState<Date | null>(null);
   const navigate = useNavigate();
@@ -121,16 +123,10 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
       console.log('OTP verification response:', response);
       
       if (response.success) {
-        console.log('OTP verification successful');
-        toast.success(toastMessages.otpVerificationSuccess());
-        
-        // Always navigate to voting page for all users (including admin)
-        // Admin users can access admin panel via the header icon
-        navigate('/voting');
-        
-        if (onVerificationSuccess) {
-          onVerificationSuccess();
-        }
+        console.log('OTP verification successful, proceeding to facial recognition');
+        toast.success('OTP verified! Now verifying your face...');
+        setIsOTPVerified(true);
+        setActiveTab("face");
       } else {
         console.log('OTP verification failed:', response.error);
         const errorMessage = response.error || 'OTP verification failed';
@@ -154,6 +150,27 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
     }
   };
 
+  const handleFacialVerificationSuccess = () => {
+    console.log('Facial verification successful, redirecting to voting');
+    toast.success('Face verification successful! Welcome!');
+    
+    // Navigate to voting page for all users (including admin)
+    navigate('/voting');
+    
+    if (onVerificationSuccess) {
+      onVerificationSuccess();
+    }
+  };
+
+  const handleFacialVerificationFailure = () => {
+    console.log('Facial verification failed');
+    toast.error('Face verification failed. Please try again or contact support.');
+    
+    // Reset to OTP step for retry
+    setIsOTPVerified(false);
+    setActiveTab("otp");
+  };
+
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     // Only allow digits for Indian phone numbers
@@ -167,6 +184,12 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
   };
 
   const handleTabChange = (value: string) => {
+    // Prevent manual tab switching to face verification
+    if (value === "face" && !isOTPVerified) {
+      toast.error('Please verify your OTP first');
+      return;
+    }
+    
     setActiveTab(value);
     if (value === "otp" && !phoneNumber.trim()) {
       toast.error(toastMessages.phoneNumberRequired());
@@ -176,21 +199,24 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
   };
 
   return (
-    <Card className="w-[380px]">
+    <Card className="w-[420px]">
       <CardHeader>
-        <CardTitle>Authentication</CardTitle>
+        <CardTitle>Secure Authentication</CardTitle>
         <CardDescription>
           {activeTab === "phone" 
             ? "Enter your registered phone number to receive an OTP."
-            : "Enter the 6-digit code sent to your phone."
+            : activeTab === "otp"
+            ? "Enter the 6-digit code sent to your phone."
+            : "Position your face in the camera for verification."
           }
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="phone">Phone</TabsTrigger>
             <TabsTrigger value="otp">OTP</TabsTrigger>
+            <TabsTrigger value="face" disabled={!isOTPVerified}>Face</TabsTrigger>
           </TabsList>
           
           <TabsContent value="phone" className="space-y-4">
@@ -215,6 +241,16 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
               otpSendTime={otpSendTime}
               isLoading={isLoading}
             />
+          </TabsContent>
+          
+          <TabsContent value="face" className="space-y-4">
+            {isOTPVerified && (
+              <FacialRecognitionVerification
+                onSuccess={handleFacialVerificationSuccess}
+                onFailure={handleFacialVerificationFailure}
+                isRequired={true}
+              />
+            )}
           </TabsContent>
         </Tabs>
       </CardContent>
