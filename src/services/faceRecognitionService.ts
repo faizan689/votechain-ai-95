@@ -84,7 +84,7 @@ export const recognizeFace = async (
   isAuthorized: boolean;
   confidence: number;
   label: string;
-  detection?: faceapi.WithFaceDescriptor<faceapi.WithFaceLandmarks<faceapi.FaceDetection>>;
+  detection?: any;
 }> => {
   try {
     // Detect face in current video frame

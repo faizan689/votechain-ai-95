@@ -77,13 +77,25 @@ const FacialRecognitionVerification: React.FC<FacialRecognitionVerificationProps
   // Start camera stream
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          facingMode: 'user'
-        }
-      });
+      // Try different camera constraints if the first one fails
+      let stream: MediaStream;
+      
+      try {
+        // Try with ideal constraints first
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            facingMode: 'user'
+          }
+        });
+      } catch (firstError) {
+        console.warn('First camera attempt failed, trying basic constraints:', firstError);
+        // Fallback to basic video constraints
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true
+        });
+      }
       
       streamRef.current = stream;
       
