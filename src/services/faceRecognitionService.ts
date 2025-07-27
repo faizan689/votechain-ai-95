@@ -127,10 +127,15 @@ export const recognizeFace = async (
       };
     }
     
-    // Match against authorized face with more lenient threshold
+    // Match against authorized face with strict threshold
     const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
-    const isAuthorized = bestMatch.label !== 'unknown' && bestMatch.distance <= 0.5; // More lenient threshold
-    const confidence = Math.max(0, 1 - bestMatch.distance);
+    const distance = bestMatch.distance;
+    const confidence = Math.max(0, 1 - distance);
+    
+    // Strict security: only authorize if it's a known face with high confidence
+    const isAuthorized = bestMatch.label !== 'unknown' && 
+                        distance <= 0.35 && // Stricter distance threshold 
+                        confidence >= 0.65;  // Require high confidence
     
     console.log('Face recognition result:', {
       label: bestMatch.label,
