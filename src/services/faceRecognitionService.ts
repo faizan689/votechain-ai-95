@@ -40,7 +40,10 @@ export const loadAuthorizedFaceDescriptors = async (): Promise<faceapi.LabeledFa
     // Reference images of the authorized user (Fezan)
     const referenceImages = [
       '/lovable-uploads/ae2ff4df-7534-41d5-ab91-ba4d74a0f8bc.png',
-      '/lovable-uploads/1a4d42b9-fb99-4ef2-a39b-402180b08d16.png'
+      '/lovable-uploads/1a4d42b9-fb99-4ef2-a39b-402180b08d16.png',
+      '/lovable-uploads/f6cf0c03-1e50-4a8b-8d82-aab30ec77939.png',
+      '/lovable-uploads/2f4ad45b-c1ac-4b64-b51d-b978020e8c67.png',
+      '/lovable-uploads/52c1752a-e030-43af-8ffc-a90b96cec55d.png'
     ];
     
     
