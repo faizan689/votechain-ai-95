@@ -134,7 +134,8 @@ const FacialRecognitionVerification: React.FC<FacialRecognitionVerificationProps
         checkLiveness();
         
         // Auto-verify if face is authorized and confidence is high
-        if (result.isAuthorized && result.confidence >= 0.6 && livenessDetected && !isVerified) {
+        if (result.isAuthorized && result.confidence >= 0.5 && !isVerified && !isVerifying) {
+          console.log('Face verification successful - authorized user detected with confidence:', result.confidence);
           handleSuccessfulVerification();
         }
         
@@ -203,19 +204,23 @@ const FacialRecognitionVerification: React.FC<FacialRecognitionVerificationProps
 
   // Handle successful face verification
   const handleSuccessfulVerification = async () => {
+    if (isVerifying || isVerified) return; // Prevent multiple calls
+    
     setIsVerifying(true);
+    console.log('Starting facial verification process...');
     
     try {
       // Add a brief delay to show the verification process
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       setIsVerified(true);
-      toast.success('Face verification successful!');
+      toast.success('Face verification successful! Redirecting to voting...');
+      console.log('Face verification successful, calling onSuccess callback');
       
-      // Call success handler after showing success state
+      // Call success handler after shorter delay
       setTimeout(() => {
         onSuccess();
-      }, 2000);
+      }, 1500);
       
     } catch (error) {
       console.error('Verification error:', error);
@@ -368,7 +373,7 @@ const FacialRecognitionVerification: React.FC<FacialRecognitionVerificationProps
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span>Confidence:</span>
-              <span className={confidence >= 0.6 ? 'text-green-600' : 'text-red-600'}>
+              <span className={confidence >= 0.5 ? 'text-green-600' : 'text-red-600'}>
                 {(confidence * 100).toFixed(1)}%
               </span>
             </div>
