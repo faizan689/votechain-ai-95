@@ -19,6 +19,7 @@ export const initializeFaceAPI = async (): Promise<boolean> => {
     // Load required models from CDN
     await Promise.all([
       faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
       faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
       faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
     ]);
@@ -42,15 +43,28 @@ export const loadAuthorizedFaceDescriptors = async (): Promise<faceapi.LabeledFa
       '/lovable-uploads/1a4d42b9-fb99-4ef2-a39b-402180b08d16.png'
     ];
     
+    
     const faceDescriptors: Float32Array[] = [];
     
     for (const imagePath of referenceImages) {
       try {
+        console.log(`Processing reference image: ${imagePath}`);
         const img = await faceapi.fetchImage(imagePath);
-        const detection = await faceapi
-          .detectSingleFace(img, getFaceDetectorOptions())
+        
+        // Try multiple detection options for better results
+        let detection = await faceapi
+          .detectSingleFace(img, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 }))
           .withFaceLandmarks()
           .withFaceDescriptor();
+        
+        // If SSD doesn't work, try TinyFaceDetector
+        if (!detection) {
+          console.log(`Trying TinyFaceDetector for ${imagePath}`);
+          detection = await faceapi
+            .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 }))
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+        }
         
         if (detection && detection.descriptor) {
           faceDescriptors.push(detection.descriptor);
@@ -87,13 +101,25 @@ export const recognizeFace = async (
   detection?: any;
 }> => {
   try {
-    // Detect face in current video frame
-    const detection = await faceapi
-      .detectSingleFace(videoElement, getFaceDetectorOptions())
+    console.log('Attempting face detection in video stream...');
+    
+    // Try multiple detection methods for better results
+    let detection = await faceapi
+      .detectSingleFace(videoElement, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 }))
       .withFaceLandmarks()
       .withFaceDescriptor();
     
+    // If SSD doesn't work, try TinyFaceDetector
     if (!detection) {
+      console.log('Trying TinyFaceDetector for video stream...');
+      detection = await faceapi
+        .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 }))
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+    }
+    
+    if (!detection) {
+      console.log('No face detected in current video frame');
       return {
         isAuthorized: false,
         confidence: 0,
@@ -101,13 +127,21 @@ export const recognizeFace = async (
       };
     }
     
-    // Match against authorized face
+    // Match against authorized face with more lenient threshold
     const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
-    const isAuthorized = bestMatch.label !== 'unknown' && bestMatch.distance <= (1 - FACE_MATCH_THRESHOLD);
+    const isAuthorized = bestMatch.label !== 'unknown' && bestMatch.distance <= 0.5; // More lenient threshold
+    const confidence = Math.max(0, 1 - bestMatch.distance);
+    
+    console.log('Face recognition result:', {
+      label: bestMatch.label,
+      distance: bestMatch.distance,
+      confidence: confidence,
+      isAuthorized: isAuthorized
+    });
     
     return {
       isAuthorized,
-      confidence: Math.max(0, 1 - bestMatch.distance),
+      confidence: confidence,
       label: isAuthorized ? bestMatch.label : 'Unauthorized',
       detection
     };
