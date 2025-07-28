@@ -143,10 +143,7 @@ export const FaceEnrollment: React.FC<FaceEnrollmentProps> = ({
       setFaceDescriptor(avgDescriptor);
       setEnrollmentStep('success');
       
-      // Store face descriptor (you can save this to your backend/database)
-      localStorage.setItem(`faceDescriptor_${userId}`, JSON.stringify(avgDescriptor));
-      
-      toast.success('Face enrollment completed successfully!');
+      console.log('Face enrollment successful for user:', userId);
       onSuccess(avgDescriptor);
       
     } catch (error) {

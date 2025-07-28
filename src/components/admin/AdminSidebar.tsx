@@ -9,7 +9,8 @@ import {
   BarChart3, 
   Bell, 
   Settings, 
-  LogOut
+  LogOut,
+  UserCheck
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,6 +39,7 @@ export default function AdminSidebar() {
     { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
     { name: "Security", path: "/admin/security", icon: Shield },
     { name: "Users", path: "/admin/users", icon: Users },
+    { name: "Face Enrollment", path: "/admin/face-enrollment", icon: UserCheck },
     { name: "Analytics", path: "/admin/analytics", icon: BarChart3 },
     { name: "Notifications", path: "/admin/notifications", icon: Bell, badge: 3 },
     { name: "Settings", path: "/admin/settings", icon: Settings },

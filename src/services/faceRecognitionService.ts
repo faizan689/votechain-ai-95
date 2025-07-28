@@ -265,10 +265,25 @@ export const createFaceDescriptor = async (imageElement: HTMLImageElement): Prom
 };
 
 /**
- * Load user-specific face descriptors from storage
+ * Load user-specific face descriptors from database
  */
 export const loadUserFaceDescriptors = async (userId: string): Promise<faceapi.LabeledFaceDescriptors | null> => {
   try {
+    // Try to get from database first
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data: enrollment, error } = await supabase
+      .from('face_enrollment')
+      .select('face_descriptor')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .single();
+
+    if (!error && enrollment?.face_descriptor) {
+      const descriptor = enrollment.face_descriptor as number[];
+      return new faceapi.LabeledFaceDescriptors(userId, [new Float32Array(descriptor)]);
+    }
+
+    // Fallback to localStorage for backward compatibility
     const storedDescriptor = localStorage.getItem(`faceDescriptor_${userId}`);
     if (!storedDescriptor) return null;
     

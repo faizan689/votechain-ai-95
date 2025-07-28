@@ -9,6 +9,7 @@ import UsersPage from "./pages/admin/UsersPage";
 import AnalyticsPage from "./pages/admin/AnalyticsPage";
 import NotificationsPage from "./pages/admin/NotificationsPage";
 import SettingsPage from "./pages/admin/SettingsPage";
+import FaceEnrollmentPage from "./pages/admin/FaceEnrollmentPage";
 import AdminRoute from "./components/AdminRoute";
 import Voting from "./pages/Voting";
 import Confirmation from "./pages/Confirmation";
@@ -31,6 +32,7 @@ function App() {
           <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
           <Route path="/admin/security" element={<AdminRoute><SecurityPage /></AdminRoute>} />
           <Route path="/admin/users" element={<AdminRoute><UsersPage /></AdminRoute>} />
+          <Route path="/admin/face-enrollment" element={<AdminRoute><FaceEnrollmentPage /></AdminRoute>} />
           <Route path="/admin/analytics" element={<AdminRoute><AnalyticsPage /></AdminRoute>} />
           <Route path="/admin/notifications" element={<AdminRoute><NotificationsPage /></AdminRoute>} />
           <Route path="/admin/settings" element={<AdminRoute><SettingsPage /></AdminRoute>} />
