@@ -93,7 +93,91 @@ export const loadAuthorizedFaceDescriptors = async (): Promise<faceapi.LabeledFa
   }
 };
 
-// Perform face recognition on video element
+// Perform face recognition on video element with user-specific descriptors
+export const recognizeFaceForUser = async (
+  videoElement: HTMLVideoElement,
+  userId: string
+): Promise<{
+  isAuthorized: boolean;
+  confidence: number;
+  label: string;
+  detection?: any;
+}> => {
+  try {
+    console.log('Attempting face detection for user:', userId);
+    
+    // Load user's face descriptors
+    const userDescriptors = await loadUserFaceDescriptors(userId);
+    if (!userDescriptors) {
+      return {
+        isAuthorized: false,
+        confidence: 0,
+        label: 'No enrolled face data found',
+      };
+    }
+    
+    // Create face matcher with user's descriptors
+    const faceMatcher = new faceapi.FaceMatcher([userDescriptors], 0.5);
+    
+    // Try multiple detection methods for better results
+    let detection = await faceapi
+      .detectSingleFace(videoElement, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 }))
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+    
+    // If SSD doesn't work, try TinyFaceDetector
+    if (!detection) {
+      console.log('Trying TinyFaceDetector for video stream...');
+      detection = await faceapi
+        .detectSingleFace(videoElement, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 }))
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+    }
+    
+    if (!detection) {
+      console.log('No face detected in current video frame');
+      return {
+        isAuthorized: false,
+        confidence: 0,
+        label: 'No face detected',
+      };
+    }
+    
+    // Match against user's enrolled face
+    const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+    const distance = bestMatch.distance;
+    const confidence = Math.max(0, 1 - distance);
+    
+    // Security threshold for user verification
+    const isAuthorized = bestMatch.label !== 'unknown' && 
+                        distance <= 0.4 && // Reasonable distance threshold 
+                        confidence >= 0.6;  // Require good confidence
+    
+    console.log('Face recognition result:', {
+      userId: userId,
+      label: bestMatch.label,
+      distance: bestMatch.distance,
+      confidence: confidence,
+      isAuthorized: isAuthorized
+    });
+    
+    return {
+      isAuthorized,
+      confidence: confidence,
+      label: isAuthorized ? userId : 'Unauthorized',
+      detection
+    };
+  } catch (error) {
+    console.error('Error in face recognition for user:', error);
+    return {
+      isAuthorized: false,
+      confidence: 0,
+      label: 'Recognition error',
+    };
+  }
+};
+
+// Legacy function - perform face recognition on video element
 export const recognizeFace = async (
   videoElement: HTMLVideoElement,
   faceMatcher: faceapi.FaceMatcher
@@ -160,6 +244,39 @@ export const recognizeFace = async (
       confidence: 0,
       label: 'Recognition error',
     };
+  }
+};
+
+/**
+ * Create face descriptor from image element
+ */
+export const createFaceDescriptor = async (imageElement: HTMLImageElement): Promise<number[] | null> => {
+  try {
+    const detection = await faceapi
+      .detectSingleFace(imageElement, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+    
+    return detection ? Array.from(detection.descriptor) : null;
+  } catch (error) {
+    console.error('Error creating face descriptor:', error);
+    return null;
+  }
+};
+
+/**
+ * Load user-specific face descriptors from storage
+ */
+export const loadUserFaceDescriptors = async (userId: string): Promise<faceapi.LabeledFaceDescriptors | null> => {
+  try {
+    const storedDescriptor = localStorage.getItem(`faceDescriptor_${userId}`);
+    if (!storedDescriptor) return null;
+    
+    const descriptor = JSON.parse(storedDescriptor);
+    return new faceapi.LabeledFaceDescriptors(userId, [new Float32Array(descriptor)]);
+  } catch (error) {
+    console.error('Error loading user face descriptors:', error);
+    return null;
   }
 };
 

@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import * as facialRecognitionService from "@/services/facialRecognitionService";
+import * as faceRecognitionService from "@/services/faceRecognitionService";
 
 interface UseFacialVerificationOptions {
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -60,18 +61,50 @@ export function useFacialVerification({
     setVerificationFailed(false);
     
     try {
-      // Get email from localStorage (set during auth)
+      // Get user identifier from localStorage
+      const userPhone = localStorage.getItem('userPhone') || '';
       const userEmail = localStorage.getItem('userEmail') || '';
-      const result = await facialRecognitionService.processFacialVerification(videoRef.current, userEmail);
+      const userId = userPhone || userEmail;
       
-      if (result?.success) {
-        setVerificationSuccess(true);
-        setTimeout(() => {
-          if (onSuccess) onSuccess();
-        }, 1500); // Delay to show success state
+      if (!userId) {
+        throw new Error('No user identifier found');
+      }
+
+      // Initialize face API first
+      const initialized = await faceRecognitionService.initializeFaceAPI();
+      if (!initialized) {
+        throw new Error('Failed to initialize face recognition');
+      }
+
+      // Check if user has enrolled face data
+      const hasEnrolledFace = localStorage.getItem(`faceDescriptor_${userId}`);
+      
+      if (hasEnrolledFace) {
+        // Use new user-specific recognition
+        const result = await faceRecognitionService.recognizeFaceForUser(videoRef.current, userId);
+        
+        if (result.isAuthorized && result.confidence > 0.6) {
+          setVerificationSuccess(true);
+          setTimeout(() => {
+            if (onSuccess) onSuccess();
+          }, 1500);
+        } else {
+          setVerificationFailed(true);
+          if (onFailure) onFailure();
+        }
       } else {
-        setVerificationFailed(true);
-        if (onFailure) onFailure();
+        // Fallback to old TensorFlow-based verification for backward compatibility
+        const result = await facialRecognitionService.processFacialVerification(videoRef.current, userEmail);
+        
+        if (result?.success) {
+          setVerificationSuccess(true);
+          setTimeout(() => {
+            if (onSuccess) onSuccess();
+          }, 1500);
+        } else {
+          setVerificationFailed(true);
+          if (onFailure) onFailure();
+        }
       }
     } catch (error) {
       console.error("Facial verification error:", error);
