@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      face_enrollment: {
+        Row: {
+          confidence_threshold: number | null
+          created_at: string
+          enrolled_by: string | null
+          enrollment_date: string
+          face_descriptor: Json
+          id: string
+          is_active: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence_threshold?: number | null
+          created_at?: string
+          enrolled_by?: string | null
+          enrollment_date?: string
+          face_descriptor: Json
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence_threshold?: number | null
+          created_at?: string
+          enrolled_by?: string | null
+          enrollment_date?: string
+          face_descriptor?: Json
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "face_enrollment_enrolled_by_fkey"
+            columns: ["enrolled_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       face_verification_attempts: {
         Row: {
           confidence_score: number | null
