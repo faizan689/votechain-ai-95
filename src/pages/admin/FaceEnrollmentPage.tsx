@@ -14,11 +14,14 @@ import {
   XCircle, 
   Trash2,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  Shield,
+  Camera
 } from 'lucide-react';
 import { FaceEnrollment } from '@/components/FaceEnrollment';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { faceEnrollmentService } from '@/services/faceEnrollmentService';
 
 interface User {
   id: string;
@@ -43,9 +46,11 @@ const FaceEnrollmentManagement: React.FC = () => {
   const [enrollments, setEnrollments] = useState<FaceEnrollmentData[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showEnrollment, setShowEnrollment] = useState(false);
+  const [showSelfEnrollment, setShowSelfEnrollment] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [currentAdminUser, setCurrentAdminUser] = useState<User | null>(null);
 
   const fetchUsers = async () => {
     try {
@@ -88,10 +93,60 @@ const FaceEnrollmentManagement: React.FC = () => {
     const loadData = async () => {
       setLoading(true);
       await Promise.all([fetchUsers(), fetchEnrollments()]);
+      
+      // Get current admin user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: currentUser } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        setCurrentAdminUser(currentUser);
+      }
+      
       setLoading(false);
     };
 
     loadData();
+
+    // Set up realtime subscriptions
+    const usersChannel = supabase
+      .channel('users-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'users'
+        },
+        (payload) => {
+          console.log('Users table changed:', payload);
+          fetchUsers();
+        }
+      )
+      .subscribe();
+
+    const enrollmentsChannel = supabase
+      .channel('enrollments-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'face_enrollment'
+        },
+        (payload) => {
+          console.log('Face enrollment table changed:', payload);
+          fetchEnrollments();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(usersChannel);
+      supabase.removeChannel(enrollmentsChannel);
+    };
   }, []);
 
   const handleEnrollmentSuccess = async (faceDescriptor: number[]) => {
@@ -119,14 +174,40 @@ const FaceEnrollmentManagement: React.FC = () => {
     }
   };
 
+  const handleSelfEnrollmentSuccess = async (faceDescriptor: number[]) => {
+    if (!currentAdminUser) return;
+
+    try {
+      const result = await faceEnrollmentService.enrollFace(
+        currentAdminUser.id,
+        faceDescriptor,
+        currentAdminUser.id
+      );
+
+      if (result.success) {
+        toast.success('Your face has been enrolled successfully! You can now use facial authentication for voting.');
+        setShowSelfEnrollment(false);
+        // Update current admin user state
+        setCurrentAdminUser({ ...currentAdminUser, face_verified: true });
+      } else {
+        toast.error(result.error || 'Failed to enroll your face');
+      }
+    } catch (error) {
+      console.error('Error enrolling admin face:', error);
+      toast.error('Failed to enroll your face');
+    }
+  };
+
   const handleRemoveEnrollment = async (userId: string) => {
     try {
-      const { faceEnrollmentService } = await import('@/services/faceEnrollmentService');
       const result = await faceEnrollmentService.removeFaceEnrollment(userId);
 
       if (result.success) {
         toast.success('Face enrollment removed successfully');
-        await refreshData();
+        // If removing own enrollment, update current admin user
+        if (currentAdminUser && userId === currentAdminUser.id) {
+          setCurrentAdminUser({ ...currentAdminUser, face_verified: false });
+        }
       } else {
         toast.error(result.error || 'Failed to remove face enrollment');
       }
@@ -151,6 +232,38 @@ const FaceEnrollmentManagement: React.FC = () => {
         <div className="flex items-center space-x-2">
           <RefreshCw className="w-4 h-4 animate-spin" />
           <span>Loading users...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (showSelfEnrollment && currentAdminUser) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Shield className="w-6 h-6 text-primary" />
+              Register Your Face
+            </h2>
+            <p className="text-muted-foreground">
+              Set up facial authentication for secure voting access
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowSelfEnrollment(false)}
+          >
+            Cancel
+          </Button>
+        </div>
+
+        <div className="max-w-md mx-auto">
+          <FaceEnrollment
+            userId={currentAdminUser.id}
+            onSuccess={handleSelfEnrollmentSuccess}
+            onSkip={() => setShowSelfEnrollment(false)}
+          />
         </div>
       </div>
     );
@@ -205,6 +318,70 @@ const FaceEnrollmentManagement: React.FC = () => {
           Refresh
         </Button>
       </div>
+
+      {/* Self Registration Section */}
+      {currentAdminUser && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="p-6 mb-6 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="bg-primary/10 rounded-full p-3">
+                  <Shield className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    Your Face Registration
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {currentAdminUser.face_verified 
+                      ? 'Your face is registered and ready for secure voting authentication'
+                      : 'Register your face to enable secure facial authentication for voting'
+                    }
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Badge variant={currentAdminUser.face_verified ? "default" : "secondary"}>
+                  {currentAdminUser.face_verified ? (
+                    <>
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Registered
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-3 h-3 mr-1" />
+                      Not Registered
+                    </>
+                  )}
+                </Badge>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => setShowSelfEnrollment(true)}
+                    variant={currentAdminUser.face_verified ? "outline" : "default"}
+                    className="flex items-center gap-2"
+                  >
+                    <Camera className="w-4 h-4" />
+                    {currentAdminUser.face_verified ? 'Re-register Face' : 'Register My Face'}
+                  </Button>
+                  {currentAdminUser.face_verified && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleRemoveEnrollment(currentAdminUser.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card className="p-4">
