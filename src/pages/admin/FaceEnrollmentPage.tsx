@@ -22,6 +22,7 @@ import { FaceEnrollment } from '@/components/FaceEnrollment';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { faceEnrollmentService } from '@/services/faceEnrollmentService';
+import AdminLayout from '@/components/admin/AdminLayout';
 
 interface User {
   id: string;
@@ -95,13 +96,16 @@ const FaceEnrollmentManagement: React.FC = () => {
       await Promise.all([fetchUsers(), fetchEnrollments()]);
       
       // Get current admin user
+      console.log('Loading current admin user...');
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('Auth user:', user);
       if (user) {
-        const { data: currentUser } = await supabase
+        const { data: currentUser, error } = await supabase
           .from('users')
           .select('*')
           .eq('id', user.id)
           .single();
+        console.log('Current user from DB:', currentUser, 'Error:', error);
         setCurrentAdminUser(currentUser);
       }
       
@@ -228,258 +232,275 @@ const FaceEnrollmentManagement: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="flex items-center space-x-2">
-          <RefreshCw className="w-4 h-4 animate-spin" />
-          <span>Loading users...</span>
+      <AdminLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="flex items-center space-x-2">
+            <RefreshCw className="w-4 h-4 animate-spin" />
+            <span>Loading users...</span>
+          </div>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   if (showSelfEnrollment && currentAdminUser) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Shield className="w-6 h-6 text-primary" />
-              Register Your Face
-            </h2>
-            <p className="text-muted-foreground">
-              Set up facial authentication for secure voting access
-            </p>
+      <AdminLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Shield className="w-6 h-6 text-primary" />
+                Register Your Face
+              </h2>
+              <p className="text-muted-foreground">
+                Set up facial authentication for secure voting access
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowSelfEnrollment(false)}
+            >
+              Cancel
+            </Button>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={() => setShowSelfEnrollment(false)}
-          >
-            Cancel
-          </Button>
-        </div>
 
-        <div className="max-w-md mx-auto">
-          <FaceEnrollment
-            userId={currentAdminUser.id}
-            onSuccess={handleSelfEnrollmentSuccess}
-            onSkip={() => setShowSelfEnrollment(false)}
-          />
+          <div className="max-w-md mx-auto">
+            <FaceEnrollment
+              userId={currentAdminUser.id}
+              onSuccess={handleSelfEnrollmentSuccess}
+              onSkip={() => setShowSelfEnrollment(false)}
+            />
+          </div>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   if (showEnrollment && selectedUser) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">Face Enrollment</h2>
-            <p className="text-muted-foreground">
-              Enrolling face verification for: {selectedUser.email || selectedUser.phone_number}
-            </p>
+      <AdminLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Face Enrollment</h2>
+              <p className="text-muted-foreground">
+                Enrolling face verification for: {selectedUser.email || selectedUser.phone_number}
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowEnrollment(false);
+                setSelectedUser(null);
+              }}
+            >
+              Cancel
+            </Button>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              setShowEnrollment(false);
-              setSelectedUser(null);
-            }}
-          >
-            Cancel
-          </Button>
-        </div>
 
-        <div className="max-w-md mx-auto">
-          <FaceEnrollment
-            userId={selectedUser.id}
-            onSuccess={handleEnrollmentSuccess}
-            onSkip={() => {
-              setShowEnrollment(false);
-              setSelectedUser(null);
-            }}
-          />
+          <div className="max-w-md mx-auto">
+            <FaceEnrollment
+              userId={selectedUser.id}
+              onSuccess={handleEnrollmentSuccess}
+              onSkip={() => {
+                setShowEnrollment(false);
+                setSelectedUser(null);
+              }}
+            />
+          </div>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Face Enrollment Management</h2>
-          <p className="text-muted-foreground">
-            Manage face verification enrollment for users
-          </p>
+    <AdminLayout>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Face Enrollment Management</h2>
+            <p className="text-muted-foreground">
+              Manage face verification enrollment for users
+            </p>
+          </div>
+          <Button onClick={refreshData} variant="outline" disabled={refreshing}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
-        <Button onClick={refreshData} variant="outline" disabled={refreshing}>
-          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
 
-      {/* Self Registration Section */}
-      {currentAdminUser && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Card className="p-6 mb-6 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="bg-primary/10 rounded-full p-3">
-                  <Shield className="w-6 h-6 text-primary" />
+        {/* Debug info */}
+        {!currentAdminUser && (
+          <Card className="p-4 bg-yellow-50 border-yellow-200">
+            <p className="text-sm text-yellow-800">
+              🔍 Debug: Current admin user not loaded. Check browser console for details.
+            </p>
+          </Card>
+        )}
+
+        {/* Self Registration Section */}
+        {currentAdminUser && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Card className="p-6 mb-6 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="bg-primary/10 rounded-full p-3">
+                    <Shield className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      Your Face Registration
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {currentAdminUser.face_verified 
+                        ? 'Your face is registered and ready for secure voting authentication'
+                        : 'Register your face to enable secure facial authentication for voting'
+                      }
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    Your Face Registration
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {currentAdminUser.face_verified 
-                      ? 'Your face is registered and ready for secure voting authentication'
-                      : 'Register your face to enable secure facial authentication for voting'
-                    }
-                  </p>
+                <div className="flex items-center space-x-3">
+                  <Badge variant={currentAdminUser.face_verified ? "default" : "secondary"}>
+                    {currentAdminUser.face_verified ? (
+                      <>
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Registered
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-3 h-3 mr-1" />
+                        Not Registered
+                      </>
+                    )}
+                  </Badge>
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={() => setShowSelfEnrollment(true)}
+                      variant={currentAdminUser.face_verified ? "outline" : "default"}
+                      className="flex items-center gap-2"
+                    >
+                      <Camera className="w-4 h-4" />
+                      {currentAdminUser.face_verified ? 'Re-register Face' : 'Register My Face'}
+                    </Button>
+                    {currentAdminUser.face_verified && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleRemoveEnrollment(currentAdminUser.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <Badge variant={currentAdminUser.face_verified ? "default" : "secondary"}>
-                  {currentAdminUser.face_verified ? (
-                    <>
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Registered
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="w-3 h-3 mr-1" />
-                      Not Registered
-                    </>
-                  )}
-                </Badge>
-                <div className="flex space-x-2">
-                  <Button
-                    onClick={() => setShowSelfEnrollment(true)}
-                    variant={currentAdminUser.face_verified ? "outline" : "default"}
-                    className="flex items-center gap-2"
-                  >
-                    <Camera className="w-4 h-4" />
-                    {currentAdminUser.face_verified ? 'Re-register Face' : 'Register My Face'}
-                  </Button>
-                  {currentAdminUser.face_verified && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleRemoveEnrollment(currentAdminUser.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
+            </Card>
+          </motion.div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card className="p-4">
+            <div className="flex items-center space-x-2">
+              <Users className="w-5 h-5 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Total Users</p>
+                <p className="text-2xl font-bold">{users.length}</p>
               </div>
             </div>
           </Card>
-        </motion.div>
-      )}
+          
+          <Card className="p-4">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Face Enrolled</p>
+                <p className="text-2xl font-bold">{enrolledUsers.length}</p>
+              </div>
+            </div>
+          </Card>
+          
+          <Card className="p-4">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="w-5 h-5 text-orange-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Not Enrolled</p>
+                <p className="text-2xl font-bold">{unenrolledUsers.length}</p>
+              </div>
+            </div>
+          </Card>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card className="p-4">
-          <div className="flex items-center space-x-2">
-            <Users className="w-5 h-5 text-primary" />
-            <div>
-              <p className="text-sm text-muted-foreground">Total Users</p>
-              <p className="text-2xl font-bold">{users.length}</p>
+        <div className="flex items-center space-x-4 mb-4">
+          <div className="flex-1">
+            <Label htmlFor="search">Search Users</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="search"
+                placeholder="Search by email, phone, or ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4">
-          <div className="flex items-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-green-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Face Enrolled</p>
-              <p className="text-2xl font-bold">{enrolledUsers.length}</p>
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4">
-          <div className="flex items-center space-x-2">
-            <AlertTriangle className="w-5 h-5 text-orange-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Not Enrolled</p>
-              <p className="text-2xl font-bold">{unenrolledUsers.length}</p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <div className="flex items-center space-x-4 mb-4">
-        <div className="flex-1">
-          <Label htmlFor="search">Search Users</Label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              id="search"
-              placeholder="Search by email, phone, or ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
           </div>
         </div>
+
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="all">All Users ({filteredUsers.length})</TabsTrigger>
+            <TabsTrigger value="enrolled">Enrolled ({enrolledUsers.length})</TabsTrigger>
+            <TabsTrigger value="unenrolled">Not Enrolled ({unenrolledUsers.length})</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="space-y-4">
+            <UsersList 
+              users={filteredUsers} 
+              onEnroll={(user) => {
+                setSelectedUser(user);
+                setShowEnrollment(true);
+              }}
+              onRemoveEnrollment={handleRemoveEnrollment}
+            />
+          </TabsContent>
+
+          <TabsContent value="enrolled" className="space-y-4">
+            <UsersList 
+              users={enrolledUsers.filter(user => 
+                (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
+                (user.phone_number?.includes(searchTerm) || '') ||
+                user.id.toLowerCase().includes(searchTerm.toLowerCase())
+              )} 
+              onEnroll={(user) => {
+                setSelectedUser(user);
+                setShowEnrollment(true);
+              }}
+              onRemoveEnrollment={handleRemoveEnrollment}
+            />
+          </TabsContent>
+
+          <TabsContent value="unenrolled" className="space-y-4">
+            <UsersList 
+              users={unenrolledUsers.filter(user => 
+                (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
+                (user.phone_number?.includes(searchTerm) || '') ||
+                user.id.toLowerCase().includes(searchTerm.toLowerCase())
+              )} 
+              onEnroll={(user) => {
+                setSelectedUser(user);
+                setShowEnrollment(true);
+              }}
+              onRemoveEnrollment={handleRemoveEnrollment}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="all">All Users ({filteredUsers.length})</TabsTrigger>
-          <TabsTrigger value="enrolled">Enrolled ({enrolledUsers.length})</TabsTrigger>
-          <TabsTrigger value="unenrolled">Not Enrolled ({unenrolledUsers.length})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="all" className="space-y-4">
-          <UsersList 
-            users={filteredUsers} 
-            onEnroll={(user) => {
-              setSelectedUser(user);
-              setShowEnrollment(true);
-            }}
-            onRemoveEnrollment={handleRemoveEnrollment}
-          />
-        </TabsContent>
-
-        <TabsContent value="enrolled" className="space-y-4">
-          <UsersList 
-            users={enrolledUsers.filter(user => 
-              (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-              (user.phone_number?.includes(searchTerm) || '') ||
-              user.id.toLowerCase().includes(searchTerm.toLowerCase())
-            )} 
-            onEnroll={(user) => {
-              setSelectedUser(user);
-              setShowEnrollment(true);
-            }}
-            onRemoveEnrollment={handleRemoveEnrollment}
-          />
-        </TabsContent>
-
-        <TabsContent value="unenrolled" className="space-y-4">
-          <UsersList 
-            users={unenrolledUsers.filter(user => 
-              (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-              (user.phone_number?.includes(searchTerm) || '') ||
-              user.id.toLowerCase().includes(searchTerm.toLowerCase())
-            )} 
-            onEnroll={(user) => {
-              setSelectedUser(user);
-              setShowEnrollment(true);
-            }}
-            onRemoveEnrollment={handleRemoveEnrollment}
-          />
-        </TabsContent>
-      </Tabs>
-    </div>
+    </AdminLayout>
   );
 };
 
