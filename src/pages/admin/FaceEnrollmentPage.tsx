@@ -106,7 +106,23 @@ const FaceEnrollmentManagement: React.FC = () => {
           .eq('id', user.id)
           .single();
         console.log('Current user from DB:', currentUser, 'Error:', error);
-        setCurrentAdminUser(currentUser);
+        if (currentUser && !error) {
+          setCurrentAdminUser(currentUser);
+          console.log('Admin user set successfully:', currentUser);
+        } else {
+          console.error('Failed to load admin user:', error);
+          // If user doesn't exist in users table, create a minimal admin user object
+          const adminUser: User = {
+            id: user.id,
+            email: user.email || undefined,
+            phone_number: undefined,
+            face_verified: false,
+            created_at: new Date().toISOString(),
+            role: 'admin'
+          };
+          setCurrentAdminUser(adminUser);
+          console.log('Created minimal admin user:', adminUser);
+        }
       }
       
       setLoading(false);
