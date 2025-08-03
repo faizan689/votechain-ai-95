@@ -18,7 +18,7 @@ import {
   Shield,
   Camera
 } from 'lucide-react';
-import { FaceEnrollment } from '@/components/FaceEnrollment';
+import SimpleFaceEnrollment from '@/components/SimpleFaceEnrollment';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { faceEnrollmentService } from '@/services/faceEnrollmentService';
@@ -293,7 +293,7 @@ const FaceEnrollmentManagement: React.FC = () => {
           </div>
 
           <div className="max-w-md mx-auto">
-            <FaceEnrollment
+            <SimpleFaceEnrollment
               userId={currentAdminUser.id}
               onSuccess={handleSelfEnrollmentSuccess}
               onSkip={() => setShowSelfEnrollment(false)}
@@ -327,7 +327,7 @@ const FaceEnrollmentManagement: React.FC = () => {
           </div>
 
           <div className="max-w-md mx-auto">
-            <FaceEnrollment
+            <SimpleFaceEnrollment
               userId={selectedUser.id}
               onSuccess={handleEnrollmentSuccess}
               onSkip={() => {
