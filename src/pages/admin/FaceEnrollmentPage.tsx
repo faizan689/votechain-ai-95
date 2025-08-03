@@ -92,40 +92,51 @@ const FaceEnrollmentManagement: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
+      console.log('🔄 Starting data load...');
       setLoading(true);
       await Promise.all([fetchUsers(), fetchEnrollments()]);
       
       // Get current admin user
-      console.log('Loading current admin user...');
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('Auth user:', user);
-      if (user) {
-        const { data: currentUser, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        console.log('Current user from DB:', currentUser, 'Error:', error);
-        if (currentUser && !error) {
-          setCurrentAdminUser(currentUser);
-          console.log('Admin user set successfully:', currentUser);
+      console.log('🔄 Loading current admin user...');
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        console.log('🔍 Auth user:', user, 'Auth error:', authError);
+        
+        if (user) {
+          console.log('✅ User authenticated, fetching from users table...');
+          const { data: currentUser, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          console.log('📊 Current user from DB:', currentUser, 'DB Error:', error);
+          
+          if (currentUser && !error) {
+            setCurrentAdminUser(currentUser);
+            console.log('✅ Admin user set successfully:', currentUser);
+          } else {
+            console.log('⚠️ User not found in DB, creating minimal admin user...');
+            // If user doesn't exist in users table, create a minimal admin user object
+            const adminUser: User = {
+              id: user.id,
+              email: user.email || undefined,
+              phone_number: undefined,
+              face_verified: false,
+              created_at: new Date().toISOString(),
+              role: 'admin'
+            };
+            setCurrentAdminUser(adminUser);
+            console.log('✅ Created minimal admin user:', adminUser);
+          }
         } else {
-          console.error('Failed to load admin user:', error);
-          // If user doesn't exist in users table, create a minimal admin user object
-          const adminUser: User = {
-            id: user.id,
-            email: user.email || undefined,
-            phone_number: undefined,
-            face_verified: false,
-            created_at: new Date().toISOString(),
-            role: 'admin'
-          };
-          setCurrentAdminUser(adminUser);
-          console.log('Created minimal admin user:', adminUser);
+          console.log('❌ No authenticated user found');
         }
+      } catch (error) {
+        console.error('❌ Error loading admin user:', error);
       }
       
       setLoading(false);
+      console.log('✅ Data load complete');
     };
 
     loadData();
@@ -347,13 +358,21 @@ const FaceEnrollmentManagement: React.FC = () => {
         </div>
 
         {/* Debug info */}
-        {!currentAdminUser && (
-          <Card className="p-4 bg-yellow-50 border-yellow-200">
-            <p className="text-sm text-yellow-800">
-              🔍 Debug: Current admin user not loaded. Check browser console for details.
-            </p>
-          </Card>
-        )}
+        <Card className="p-4 bg-blue-50 border-blue-200 mb-4">
+          <div className="text-sm text-blue-800">
+            <p><strong>🔍 Debug Info:</strong></p>
+            <p>Current Admin User: {currentAdminUser ? 'LOADED' : 'NOT LOADED'}</p>
+            {currentAdminUser && (
+              <div className="mt-2">
+                <p>- ID: {currentAdminUser.id}</p>
+                <p>- Email: {currentAdminUser.email || 'None'}</p>
+                <p>- Role: {currentAdminUser.role}</p>
+                <p>- Face Verified: {currentAdminUser.face_verified ? 'Yes' : 'No'}</p>
+              </div>
+            )}
+            <p className="mt-2">Check browser console for detailed logs.</p>
+          </div>
+        </Card>
 
         {/* Self Registration Section */}
         {currentAdminUser && (
