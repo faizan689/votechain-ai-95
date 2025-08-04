@@ -65,19 +65,6 @@ const Auth = () => {
                     </div>
                   </div>
                   
-                  <div className="flex gap-4">
-                    <div className="mt-1">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Shield size={16} className="text-primary" />
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="font-medium mb-1">Biometric Confirmation</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Facial recognition verifies your identity against government records.
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </motion.div>
               
