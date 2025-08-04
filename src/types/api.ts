@@ -50,6 +50,7 @@ export interface PartiesResponse extends ApiResponse {
 // Vote cast response
 export interface VoteCastResponse extends ApiResponse {
   transactionId?: string;
+  isAdminTest?: boolean;
 }
 
 // Party vote statistics

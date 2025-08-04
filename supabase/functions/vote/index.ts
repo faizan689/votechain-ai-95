@@ -9,8 +9,8 @@ const supabase = createClient(
 
 const JWT_SECRET = Deno.env.get('JWT_SECRET') || 'secret'
 
-// Special admin phone number for testing - allows unlimited voting
-const ADMIN_TEST_PHONE = '+919825751170'
+// Admin role for testing - allows unlimited voting
+const ADMIN_ROLE = 'admin'
 
 // Fixed JWT verification function to match auth-verify-otp implementation
 async function verifyJWT(token: string) {
@@ -193,14 +193,14 @@ serve(async (req) => {
       )
     }
 
-    console.log('Vote - User found:', { id: user.id, has_voted: user.has_voted, phone: user.phone_number });
+    console.log('Vote - User found:', { id: user.id, has_voted: user.has_voted, phone: user.phone_number, role: user.role });
 
-    // Special handling for admin test phone number - allow unlimited voting
-    const isAdminTestUser = user.phone_number === ADMIN_TEST_PHONE;
+    // Check if user has admin role - allow unlimited voting for testing
+    const isAdminTestUser = user.role === ADMIN_ROLE;
     
     if (isAdminTestUser) {
-      console.log('Vote - Admin test user detected, allowing unlimited voting');
-      // For admin test user, we always allow voting regardless of has_voted status
+      console.log('Vote - Admin user detected, allowing unlimited voting for testing');
+      // For admin users, we always allow voting regardless of has_voted status
     } else if (user.has_voted) {
       console.log('Vote - Regular user already voted');
       await supabase
@@ -236,7 +236,7 @@ serve(async (req) => {
     console.log('Vote - Creating blockchain transaction');
     const blockchainResult = await createBlockchainTransaction(user.id, partyId, voteHash)
 
-    // Store vote in database
+    // Store vote in database with admin test flag
     console.log('Vote - Storing vote in database');
     const { data: vote, error: voteError } = await supabase
       .from('votes')
@@ -263,7 +263,7 @@ serve(async (req) => {
     }
 
     // For regular users only: mark as voted
-    // For admin test user: do NOT mark as voted to allow unlimited voting
+    // For admin users: do NOT mark as voted to allow unlimited voting for testing
     if (!isAdminTestUser) {
       console.log('Vote - Marking regular user as voted');
       const { error: updateError } = await supabase
@@ -275,7 +275,7 @@ serve(async (req) => {
         console.error('Vote - User update error:', updateError);
       }
     } else {
-      console.log('Vote - Admin test user - NOT marking as voted to maintain unlimited voting capability');
+      console.log('Vote - Admin user - NOT marking as voted to maintain unlimited testing capability');
     }
 
     console.log(`Vote recorded successfully: User ${user.id} voted for ${partyName} (${partyId})${isAdminTestUser ? ' [ADMIN TEST - UNLIMITED VOTING]' : ''}`);
@@ -283,9 +283,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: isAdminTestUser ? 'Vote recorded successfully (unlimited voting enabled)' : 'Vote recorded successfully',
+        message: isAdminTestUser ? 'Vote recorded successfully (Admin Test Mode - Unlimited Voting)' : 'Vote recorded successfully',
         transactionId: blockchainResult.txHash,
-        voteId: vote.id
+        voteId: vote.id,
+        isAdminTest: isAdminTestUser
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

@@ -25,6 +25,7 @@ const Voting = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showMetaMaskWarning, setShowMetaMaskWarning] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   
   const parties: Party[] = [
@@ -63,8 +64,10 @@ const Voting = () => {
     console.log('Voting: Checking authentication status');
     const isVerified = authService.isVerified();
     const hasToken = !!getAuthToken();
+    const adminStatus = authService.isAdmin();
     
-    console.log('Voting: Auth status:', { isVerified, hasToken });
+    console.log('Voting: Auth status:', { isVerified, hasToken, isAdmin: adminStatus });
+    setIsAdmin(adminStatus);
     
     if (!isVerified || !hasToken) {
       console.log('Voting: User not authenticated, redirecting to auth');
@@ -129,13 +132,18 @@ const Voting = () => {
       console.log('Voting: Vote response received:', response);
       
       if (response.success) {
-        toast.success('Vote cast successfully!');
+        const successMessage = response.isAdminTest 
+          ? 'Admin test vote cast successfully! You can vote again.' 
+          : 'Vote cast successfully!';
+        toast.success(successMessage);
+        
         // Store vote data for confirmation page
         localStorage.setItem('voteData', JSON.stringify({
           transactionId: response.transactionId,
           partyId: selectedParty,
           partyName: selectedPartyDetails.name,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          isAdminTest: response.isAdminTest
         }));
         console.log('Voting: Navigating to confirmation page');
         navigate('/confirmation');
@@ -184,6 +192,28 @@ const Voting = () => {
             <div className="max-w-4xl mx-auto mb-6">
               <MetaMaskConflictWarning />
             </div>
+          )}
+          
+          {isAdmin && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-4xl mx-auto mb-6"
+            >
+              <div className="glass border border-orange-200 rounded-xl p-4 bg-gradient-to-r from-orange-50/50 to-amber-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="bg-orange-500/10 rounded-full p-2">
+                    <ShieldCheck size={18} className="text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-orange-800">Admin Test Mode</h3>
+                    <p className="text-sm text-orange-600">
+                      You can vote multiple times for testing purposes. Test votes are tracked separately.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           )}
           
           <motion.div 
