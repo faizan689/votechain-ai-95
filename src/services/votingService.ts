@@ -10,7 +10,9 @@ export const votingService = {
     console.log('VotingService: Casting vote for:', { partyId, partyName });
     
     try {
-      const response = await apiRequest<VoteCastResponse>('vote', { partyId, partyName });
+      // For admin users, explicitly use admin token
+      const isAdminUser = localStorage.getItem('isAdmin') === 'true';
+      const response = await apiRequest<VoteCastResponse>('vote', { partyId, partyName }, isAdminUser);
       console.log('VotingService: Vote response received:', response);
       return response;
     } catch (error: any) {

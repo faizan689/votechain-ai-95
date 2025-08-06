@@ -48,7 +48,11 @@ export async function apiRequest<T>(
   try {
     console.log(`Making API request to ${functionName} with data:`, data);
     
-    const token = useAdminToken ? getAdminToken() : getAuthToken();
+    // Auto-detect admin token usage for admin users
+    const isAdminUser = localStorage.getItem('isAdmin') === 'true';
+    const shouldUseAdminToken = useAdminToken || (isAdminUser && functionName === 'vote');
+    
+    const token = shouldUseAdminToken ? getAdminToken() : getAuthToken();
     
     // Prepare request options - let Supabase handle Content-Type automatically
     const requestOptions: any = {};
