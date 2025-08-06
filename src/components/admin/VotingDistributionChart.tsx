@@ -53,21 +53,21 @@ const VotingDistributionChart = ({ data }: VotingDistributionChartProps) => {
         <Badge variant="outline" className="text-xs">Live Results</Badge>
       </div>
       
-      <ChartContainer className="h-[240px]" config={chartConfig}>
+      <ChartContainer className="h-[240px] overflow-hidden" config={chartConfig}>
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+          <PieChart margin={{ top: 10, right: 30, bottom: 40, left: 30 }}>
             <Pie
               data={chartData}
               cx="50%"
               cy="45%"
               labelLine={false}
-              outerRadius={70}
-              innerRadius={30}
+              outerRadius={60}
+              innerRadius={25}
               fill="#8884d8"
               dataKey="value"
               nameKey="name"
-              // Simplified labels to prevent overflow
-              label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
+              // Remove labels to prevent overflow - data will be shown in legend and tooltip
+              label={false}
             >
               {chartData.map((entry, index) => (
                 <Cell 
@@ -83,7 +83,21 @@ const VotingDistributionChart = ({ data }: VotingDistributionChartProps) => {
               layout="horizontal" 
               verticalAlign="bottom" 
               align="center"
-              wrapperStyle={{ fontSize: 10, paddingTop: 15 }}
+              wrapperStyle={{ 
+                fontSize: '10px', 
+                paddingTop: '8px',
+                textAlign: 'center',
+                maxWidth: '100%',
+                overflow: 'hidden'
+              }}
+              formatter={(value: string, entry: any) => {
+                const data = chartData.find(item => item.name === value);
+                return (
+                  <span style={{ color: entry.color, fontSize: '10px' }}>
+                    {value}: {data?.percentage.toFixed(1)}%
+                  </span>
+                );
+              }}
             />
           </PieChart>
         </ResponsiveContainer>
