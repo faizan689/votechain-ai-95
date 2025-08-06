@@ -6,24 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  UserPlus, 
-  Search, 
-  Users, 
-  CheckCircle, 
-  XCircle, 
-  Trash2,
-  RefreshCw,
-  AlertTriangle,
-  Shield,
-  Camera
-} from 'lucide-react';
+import { UserPlus, Search, Users, CheckCircle, XCircle, Trash2, RefreshCw, AlertTriangle, Shield, Camera } from 'lucide-react';
 import SimpleFaceEnrollment from '@/components/SimpleFaceEnrollment';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { faceEnrollmentService } from '@/services/faceEnrollmentService';
 import AdminLayout from '@/components/admin/AdminLayout';
-
 interface User {
   id: string;
   email?: string;
@@ -32,7 +20,6 @@ interface User {
   created_at: string;
   role: string;
 }
-
 interface FaceEnrollmentData {
   id: string;
   user_id: string;
@@ -41,7 +28,6 @@ interface FaceEnrollmentData {
   is_active: boolean;
   confidence_threshold: number;
 }
-
 const FaceEnrollmentManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [enrollments, setEnrollments] = useState<FaceEnrollmentData[]>([]);
@@ -52,14 +38,14 @@ const FaceEnrollmentManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentAdminUser, setCurrentAdminUser] = useState<User | null>(null);
-
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      const {
+        data,
+        error
+      } = await supabase.from('users').select('*').order('created_at', {
+        ascending: false
+      });
       if (error) throw error;
       setUsers(data || []);
     } catch (error) {
@@ -67,15 +53,14 @@ const FaceEnrollmentManagement: React.FC = () => {
       toast.error('Failed to fetch users');
     }
   };
-
   const fetchEnrollments = async () => {
     try {
-      const { data, error } = await supabase
-        .from('face_enrollment')
-        .select('*')
-        .eq('is_active', true)
-        .order('enrollment_date', { ascending: false });
-
+      const {
+        data,
+        error
+      } = await supabase.from('face_enrollment').select('*').eq('is_active', true).order('enrollment_date', {
+        ascending: false
+      });
       if (error) throw error;
       setEnrollments(data || []);
     } catch (error) {
@@ -83,34 +68,34 @@ const FaceEnrollmentManagement: React.FC = () => {
       toast.error('Failed to fetch enrollments');
     }
   };
-
   const refreshData = async () => {
     setRefreshing(true);
     await Promise.all([fetchUsers(), fetchEnrollments()]);
     setRefreshing(false);
   };
-
   useEffect(() => {
     const loadData = async () => {
       console.log('🔄 Starting data load...');
       setLoading(true);
       await Promise.all([fetchUsers(), fetchEnrollments()]);
-      
+
       // Get current admin user
       console.log('🔄 Loading current admin user...');
       try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const {
+          data: {
+            user
+          },
+          error: authError
+        } = await supabase.auth.getUser();
         console.log('🔍 Auth user:', user, 'Auth error:', authError);
-        
         if (user) {
           console.log('✅ User authenticated, fetching from users table...');
-          const { data: currentUser, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', user.id)
-            .single();
+          const {
+            data: currentUser,
+            error
+          } = await supabase.from('users').select('*').eq('id', user.id).single();
           console.log('📊 Current user from DB:', currentUser, 'DB Error:', error);
-          
           if (currentUser && !error) {
             setCurrentAdminUser(currentUser);
             console.log('✅ Admin user set successfully:', currentUser);
@@ -134,63 +119,41 @@ const FaceEnrollmentManagement: React.FC = () => {
       } catch (error) {
         console.error('❌ Error loading admin user:', error);
       }
-      
       setLoading(false);
       console.log('✅ Data load complete');
     };
-
     loadData();
 
     // Set up realtime subscriptions
-    const usersChannel = supabase
-      .channel('users-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'users'
-        },
-        (payload) => {
-          console.log('Users table changed:', payload);
-          fetchUsers();
-        }
-      )
-      .subscribe();
-
-    const enrollmentsChannel = supabase
-      .channel('enrollments-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'face_enrollment'
-        },
-        (payload) => {
-          console.log('Face enrollment table changed:', payload);
-          fetchEnrollments();
-        }
-      )
-      .subscribe();
-
+    const usersChannel = supabase.channel('users-channel').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'users'
+    }, payload => {
+      console.log('Users table changed:', payload);
+      fetchUsers();
+    }).subscribe();
+    const enrollmentsChannel = supabase.channel('enrollments-channel').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'face_enrollment'
+    }, payload => {
+      console.log('Face enrollment table changed:', payload);
+      fetchEnrollments();
+    }).subscribe();
     return () => {
       supabase.removeChannel(usersChannel);
       supabase.removeChannel(enrollmentsChannel);
     };
   }, []);
-
   const handleEnrollmentSuccess = async (faceDescriptor: number[]) => {
     if (!selectedUser) return;
-
     try {
-      const { faceEnrollmentService } = await import('@/services/faceEnrollmentService');
-      const result = await faceEnrollmentService.enrollFace(
-        selectedUser.id,
-        faceDescriptor,
-        'admin' // You can get actual admin ID from auth context
+      const {
+        faceEnrollmentService
+      } = await import('@/services/faceEnrollmentService');
+      const result = await faceEnrollmentService.enrollFace(selectedUser.id, faceDescriptor, 'admin' // You can get actual admin ID from auth context
       );
-
       if (result.success) {
         toast.success('Face enrollment completed successfully!');
         setShowEnrollment(false);
@@ -204,22 +167,18 @@ const FaceEnrollmentManagement: React.FC = () => {
       toast.error('Failed to save face enrollment');
     }
   };
-
   const handleSelfEnrollmentSuccess = async (faceDescriptor: number[]) => {
     if (!currentAdminUser) return;
-
     try {
-      const result = await faceEnrollmentService.enrollFace(
-        currentAdminUser.id,
-        faceDescriptor,
-        currentAdminUser.id
-      );
-
+      const result = await faceEnrollmentService.enrollFace(currentAdminUser.id, faceDescriptor, currentAdminUser.id);
       if (result.success) {
         toast.success('Your face has been enrolled successfully! You can now use facial authentication for voting.');
         setShowSelfEnrollment(false);
         // Update current admin user state
-        setCurrentAdminUser({ ...currentAdminUser, face_verified: true });
+        setCurrentAdminUser({
+          ...currentAdminUser,
+          face_verified: true
+        });
       } else {
         toast.error(result.error || 'Failed to enroll your face');
       }
@@ -228,16 +187,17 @@ const FaceEnrollmentManagement: React.FC = () => {
       toast.error('Failed to enroll your face');
     }
   };
-
   const handleRemoveEnrollment = async (userId: string) => {
     try {
       const result = await faceEnrollmentService.removeFaceEnrollment(userId);
-
       if (result.success) {
         toast.success('Face enrollment removed successfully');
         // If removing own enrollment, update current admin user
         if (currentAdminUser && userId === currentAdminUser.id) {
-          setCurrentAdminUser({ ...currentAdminUser, face_verified: false });
+          setCurrentAdminUser({
+            ...currentAdminUser,
+            face_verified: false
+          });
         }
       } else {
         toast.error(result.error || 'Failed to remove face enrollment');
@@ -247,32 +207,21 @@ const FaceEnrollmentManagement: React.FC = () => {
       toast.error('Failed to remove face enrollment');
     }
   };
-
-  const filteredUsers = users.filter(user => 
-    (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-    (user.phone_number?.includes(searchTerm) || '') ||
-    user.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
+  const filteredUsers = users.filter(user => user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || '' || user.phone_number?.includes(searchTerm) || '' || user.id.toLowerCase().includes(searchTerm.toLowerCase()));
   const enrolledUsers = users.filter(user => user.face_verified);
   const unenrolledUsers = users.filter(user => !user.face_verified);
-
   if (loading) {
-    return (
-      <AdminLayout>
+    return <AdminLayout>
         <div className="flex items-center justify-center h-96">
           <div className="flex items-center space-x-2">
             <RefreshCw className="w-4 h-4 animate-spin" />
             <span>Loading users...</span>
           </div>
         </div>
-      </AdminLayout>
-    );
+      </AdminLayout>;
   }
-
   if (showSelfEnrollment && currentAdminUser) {
-    return (
-      <AdminLayout>
+    return <AdminLayout>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -284,29 +233,19 @@ const FaceEnrollmentManagement: React.FC = () => {
                 Set up facial authentication for secure voting access
               </p>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowSelfEnrollment(false)}
-            >
+            <Button variant="outline" onClick={() => setShowSelfEnrollment(false)}>
               Cancel
             </Button>
           </div>
 
           <div className="max-w-md mx-auto">
-            <SimpleFaceEnrollment
-              userId={currentAdminUser.id}
-              onSuccess={handleSelfEnrollmentSuccess}
-              onSkip={() => setShowSelfEnrollment(false)}
-            />
+            <SimpleFaceEnrollment userId={currentAdminUser.id} onSuccess={handleSelfEnrollmentSuccess} onSkip={() => setShowSelfEnrollment(false)} />
           </div>
         </div>
-      </AdminLayout>
-    );
+      </AdminLayout>;
   }
-
   if (showEnrollment && selectedUser) {
-    return (
-      <AdminLayout>
+    return <AdminLayout>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -315,34 +254,24 @@ const FaceEnrollmentManagement: React.FC = () => {
                 Enrolling face verification for: {selectedUser.email || selectedUser.phone_number}
               </p>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setShowEnrollment(false);
-                setSelectedUser(null);
-              }}
-            >
+            <Button variant="outline" onClick={() => {
+            setShowEnrollment(false);
+            setSelectedUser(null);
+          }}>
               Cancel
             </Button>
           </div>
 
           <div className="max-w-md mx-auto">
-            <SimpleFaceEnrollment
-              userId={selectedUser.id}
-              onSuccess={handleEnrollmentSuccess}
-              onSkip={() => {
-                setShowEnrollment(false);
-                setSelectedUser(null);
-              }}
-            />
+            <SimpleFaceEnrollment userId={selectedUser.id} onSuccess={handleEnrollmentSuccess} onSkip={() => {
+            setShowEnrollment(false);
+            setSelectedUser(null);
+          }} />
           </div>
         </div>
-      </AdminLayout>
-    );
+      </AdminLayout>;
   }
-
-  return (
-    <AdminLayout>
+  return <AdminLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -358,29 +287,18 @@ const FaceEnrollmentManagement: React.FC = () => {
         </div>
 
         {/* Debug info */}
-        <Card className="p-4 bg-blue-50 border-blue-200 mb-4">
-          <div className="text-sm text-blue-800">
-            <p><strong>🔍 Debug Info:</strong></p>
-            <p>Current Admin User: {currentAdminUser ? 'LOADED' : 'NOT LOADED'}</p>
-            {currentAdminUser && (
-              <div className="mt-2">
-                <p>- ID: {currentAdminUser.id}</p>
-                <p>- Email: {currentAdminUser.email || 'None'}</p>
-                <p>- Role: {currentAdminUser.role}</p>
-                <p>- Face Verified: {currentAdminUser.face_verified ? 'Yes' : 'No'}</p>
-              </div>
-            )}
-            <p className="mt-2">Check browser console for detailed logs.</p>
-          </div>
-        </Card>
+        
 
         {/* Self Registration Section */}
-        {currentAdminUser && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
+        {currentAdminUser && <motion.div initial={{
+        opacity: 0,
+        y: 20
+      }} animate={{
+        opacity: 1,
+        y: 0
+      }} transition={{
+        duration: 0.5
+      }}>
             <Card className="p-6 mb-6 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -392,51 +310,33 @@ const FaceEnrollmentManagement: React.FC = () => {
                       Your Face Registration
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {currentAdminUser.face_verified 
-                        ? 'Your face is registered and ready for secure voting authentication'
-                        : 'Register your face to enable secure facial authentication for voting'
-                      }
+                      {currentAdminUser.face_verified ? 'Your face is registered and ready for secure voting authentication' : 'Register your face to enable secure facial authentication for voting'}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Badge variant={currentAdminUser.face_verified ? "default" : "secondary"}>
-                    {currentAdminUser.face_verified ? (
-                      <>
+                    {currentAdminUser.face_verified ? <>
                         <CheckCircle className="w-3 h-3 mr-1" />
                         Registered
-                      </>
-                    ) : (
-                      <>
+                      </> : <>
                         <Camera className="w-3 h-3 mr-1" />
                         Not Registered
-                      </>
-                    )}
+                      </>}
                   </Badge>
                   <div className="flex space-x-2">
-                    <Button
-                      onClick={() => setShowSelfEnrollment(true)}
-                      variant={currentAdminUser.face_verified ? "outline" : "default"}
-                      className="flex items-center gap-2"
-                    >
+                    <Button onClick={() => setShowSelfEnrollment(true)} variant={currentAdminUser.face_verified ? "outline" : "default"} className="flex items-center gap-2">
                       <Camera className="w-4 h-4" />
                       {currentAdminUser.face_verified ? 'Re-register Face' : 'Register My Face'}
                     </Button>
-                    {currentAdminUser.face_verified && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleRemoveEnrollment(currentAdminUser.id)}
-                      >
+                    {currentAdminUser.face_verified && <Button variant="destructive" size="sm" onClick={() => handleRemoveEnrollment(currentAdminUser.id)}>
                         <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
+                      </Button>}
                   </div>
                 </div>
               </div>
             </Card>
-          </motion.div>
-        )}
+          </motion.div>}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <Card className="p-4">
@@ -475,13 +375,7 @@ const FaceEnrollmentManagement: React.FC = () => {
             <Label htmlFor="search">Search Users</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="search"
-                placeholder="Search by email, phone, or ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+              <Input id="search" placeholder="Search by email, phone, or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
           </div>
         </div>
@@ -494,77 +388,56 @@ const FaceEnrollmentManagement: React.FC = () => {
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
-            <UsersList 
-              users={filteredUsers} 
-              onEnroll={(user) => {
-                setSelectedUser(user);
-                setShowEnrollment(true);
-              }}
-              onRemoveEnrollment={handleRemoveEnrollment}
-            />
+            <UsersList users={filteredUsers} onEnroll={user => {
+            setSelectedUser(user);
+            setShowEnrollment(true);
+          }} onRemoveEnrollment={handleRemoveEnrollment} />
           </TabsContent>
 
           <TabsContent value="enrolled" className="space-y-4">
-            <UsersList 
-              users={enrolledUsers.filter(user => 
-                (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-                (user.phone_number?.includes(searchTerm) || '') ||
-                user.id.toLowerCase().includes(searchTerm.toLowerCase())
-              )} 
-              onEnroll={(user) => {
-                setSelectedUser(user);
-                setShowEnrollment(true);
-              }}
-              onRemoveEnrollment={handleRemoveEnrollment}
-            />
+            <UsersList users={enrolledUsers.filter(user => user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || '' || user.phone_number?.includes(searchTerm) || '' || user.id.toLowerCase().includes(searchTerm.toLowerCase()))} onEnroll={user => {
+            setSelectedUser(user);
+            setShowEnrollment(true);
+          }} onRemoveEnrollment={handleRemoveEnrollment} />
           </TabsContent>
 
           <TabsContent value="unenrolled" className="space-y-4">
-            <UsersList 
-              users={unenrolledUsers.filter(user => 
-                (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-                (user.phone_number?.includes(searchTerm) || '') ||
-                user.id.toLowerCase().includes(searchTerm.toLowerCase())
-              )} 
-              onEnroll={(user) => {
-                setSelectedUser(user);
-                setShowEnrollment(true);
-              }}
-              onRemoveEnrollment={handleRemoveEnrollment}
-            />
+            <UsersList users={unenrolledUsers.filter(user => user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || '' || user.phone_number?.includes(searchTerm) || '' || user.id.toLowerCase().includes(searchTerm.toLowerCase()))} onEnroll={user => {
+            setSelectedUser(user);
+            setShowEnrollment(true);
+          }} onRemoveEnrollment={handleRemoveEnrollment} />
           </TabsContent>
         </Tabs>
       </div>
-    </AdminLayout>
-  );
+    </AdminLayout>;
 };
-
 interface UsersListProps {
   users: User[];
   onEnroll: (user: User) => void;
   onRemoveEnrollment: (userId: string) => void;
 }
-
-const UsersList: React.FC<UsersListProps> = ({ users, onEnroll, onRemoveEnrollment }) => {
+const UsersList: React.FC<UsersListProps> = ({
+  users,
+  onEnroll,
+  onRemoveEnrollment
+}) => {
   if (users.length === 0) {
-    return (
-      <Card className="p-8 text-center">
+    return <Card className="p-8 text-center">
         <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold mb-2">No users found</h3>
         <p className="text-muted-foreground">Try adjusting your search criteria</p>
-      </Card>
-    );
+      </Card>;
   }
-
-  return (
-    <div className="space-y-3">
-      {users.map((user) => (
-        <motion.div
-          key={user.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
-        >
+  return <div className="space-y-3">
+      {users.map(user => <motion.div key={user.id} initial={{
+      opacity: 0,
+      y: 20
+    }} animate={{
+      opacity: 1,
+      y: 0
+    }} transition={{
+      duration: 0.2
+    }}>
           <Card className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex-1">
@@ -583,46 +456,29 @@ const UsersList: React.FC<UsersListProps> = ({ users, onEnroll, onRemoveEnrollme
 
               <div className="flex items-center space-x-3">
                 <Badge variant={user.face_verified ? "default" : "secondary"}>
-                  {user.face_verified ? (
-                    <>
+                  {user.face_verified ? <>
                       <CheckCircle className="w-3 h-3 mr-1" />
                       Enrolled
-                    </>
-                  ) : (
-                    <>
+                    </> : <>
                       <XCircle className="w-3 h-3 mr-1" />
                       Not Enrolled
-                    </>
-                  )}
+                    </>}
                 </Badge>
 
                 <div className="flex space-x-2">
-                  <Button
-                    size="sm"
-                    variant={user.face_verified ? "outline" : "default"}
-                    onClick={() => onEnroll(user)}
-                  >
+                  <Button size="sm" variant={user.face_verified ? "outline" : "default"} onClick={() => onEnroll(user)}>
                     <UserPlus className="w-4 h-4 mr-1" />
                     {user.face_verified ? 'Re-enroll' : 'Enroll'}
                   </Button>
 
-                  {user.face_verified && (
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => onRemoveEnrollment(user.id)}
-                    >
+                  {user.face_verified && <Button size="sm" variant="destructive" onClick={() => onRemoveEnrollment(user.id)}>
                       <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
+                    </Button>}
                 </div>
               </div>
             </div>
           </Card>
-        </motion.div>
-      ))}
-    </div>
-  );
+        </motion.div>)}
+    </div>;
 };
-
 export default FaceEnrollmentManagement;
