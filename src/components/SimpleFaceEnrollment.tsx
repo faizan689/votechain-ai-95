@@ -68,12 +68,42 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
         }
       });
 
+      console.log('📹 Camera stream obtained:', mediaStream.getVideoTracks().length, 'video tracks');
       setStream(mediaStream);
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        
+        // Wait for video to be ready
+        await new Promise<void>((resolve, reject) => {
+          if (!videoRef.current) {
+            reject(new Error('Video element not available'));
+            return;
+          }
+
+          const onLoadedMetadata = () => {
+            console.log('📹 Video metadata loaded, dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+            videoRef.current?.removeEventListener('loadedmetadata', onLoadedMetadata);
+            videoRef.current?.removeEventListener('error', onError);
+            resolve();
+          };
+
+          const onError = (e: Event) => {
+            console.error('📹 Video error:', e);
+            videoRef.current?.removeEventListener('loadedmetadata', onLoadedMetadata);
+            videoRef.current?.removeEventListener('error', onError);
+            reject(new Error('Video failed to load'));
+          };
+
+          videoRef.current.addEventListener('loadedmetadata', onLoadedMetadata);
+          videoRef.current.addEventListener('error', onError);
+          
+          // Force play if needed
+          videoRef.current.play().catch(console.error);
+        });
       }
     } catch (err) {
+      console.error('📹 Camera access error:', err);
       throw new Error('Camera access denied. Please allow camera permissions.');
     }
   };
@@ -162,20 +192,44 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
           </p>
         </div>
 
-        <div className="relative mb-4">
+        <div className="relative mb-4 flex justify-center">
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className="w-full max-w-md mx-auto rounded-lg border-2 border-dashed border-primary/30"
-            style={{ maxHeight: '360px' }}
+            className="w-full max-w-md rounded-lg border-2 border-dashed border-primary/30 scale-x-[-1]"
+            style={{ 
+              maxHeight: '360px',
+              minHeight: '240px',
+              objectFit: 'cover',
+              background: '#f3f4f6'
+            }}
+            onLoadedMetadata={() => {
+              console.log('📹 Video element loaded metadata');
+            }}
+            onCanPlay={() => {
+              console.log('📹 Video can play');
+            }}
+            onError={(e) => {
+              console.error('📹 Video element error:', e);
+            }}
           />
           
           {/* Face detection overlay */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-48 h-48 border-2 border-primary rounded-full opacity-30" />
           </div>
+          
+          {/* Camera status indicator */}
+          {!cameraReady && !error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
+              <div className="text-white text-center">
+                <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
+                <p className="text-sm">Starting camera...</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {isEnrolling && (
