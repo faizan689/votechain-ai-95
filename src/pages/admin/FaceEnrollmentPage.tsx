@@ -11,6 +11,7 @@ import SimpleFaceEnrollment from '@/components/SimpleFaceEnrollment';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { faceEnrollmentService } from '@/services/faceEnrollmentService';
+import { authService } from '@/services/authService';
 import AdminLayout from '@/components/admin/AdminLayout';
 interface User {
   id: string;
@@ -79,23 +80,23 @@ const FaceEnrollmentManagement: React.FC = () => {
       setLoading(true);
       await Promise.all([fetchUsers(), fetchEnrollments()]);
 
-      // Get current admin user
+      // Get current admin user using OTP-based authentication
       console.log('🔄 Loading current admin user...');
       try {
-        const {
-          data: {
-            user
-          },
-          error: authError
-        } = await supabase.auth.getUser();
-        console.log('🔍 Auth user:', user, 'Auth error:', authError);
-        if (user) {
-          console.log('✅ User authenticated, fetching from users table...');
+        // Check if user is admin using OTP-based auth
+        const isAdmin = authService.isAdmin();
+        const userPhone = localStorage.getItem('userPhone');
+        
+        console.log('🔍 Auth check - isAdmin:', isAdmin, 'userPhone:', userPhone);
+        
+        if (isAdmin && userPhone) {
+          console.log('✅ User authenticated via OTP, fetching from users table...');
           const {
             data: currentUser,
             error
-          } = await supabase.from('users').select('*').eq('id', user.id).single();
+          } = await supabase.from('users').select('*').eq('phone_number', userPhone).maybeSingle();
           console.log('📊 Current user from DB:', currentUser, 'DB Error:', error);
+          
           if (currentUser && !error) {
             setCurrentAdminUser(currentUser);
             console.log('✅ Admin user set successfully:', currentUser);
@@ -103,9 +104,9 @@ const FaceEnrollmentManagement: React.FC = () => {
             console.log('⚠️ User not found in DB, creating minimal admin user...');
             // If user doesn't exist in users table, create a minimal admin user object
             const adminUser: User = {
-              id: user.id,
-              email: user.email || undefined,
-              phone_number: undefined,
+              id: `admin-${userPhone}`, // Use phone as unique identifier
+              email: undefined,
+              phone_number: userPhone,
               face_verified: false,
               created_at: new Date().toISOString(),
               role: 'admin'
