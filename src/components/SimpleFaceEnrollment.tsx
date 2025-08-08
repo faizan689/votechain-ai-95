@@ -24,6 +24,9 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
   const [progress, setProgress] = useState(0);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  const [needsUserInteraction, setNeedsUserInteraction] = useState(false);
+  const [debugInfo, setDebugInfo] = useState('');
 
   useEffect(() => {
     initializeSystem();
@@ -58,8 +61,24 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
     }
   };
 
+  const forceVideoPlay = async () => {
+    if (!videoRef.current) return false;
+    
+    try {
+      await videoRef.current.play();
+      setVideoPlaying(true);
+      setNeedsUserInteraction(false);
+      return true;
+    } catch (err) {
+      console.warn('📹 Video play failed:', err);
+      setNeedsUserInteraction(true);
+      return false;
+    }
+  };
+
   const startCamera = async () => {
     try {
+      setDebugInfo('Requesting camera access...');
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 640 },
@@ -69,6 +88,7 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
       });
 
       console.log('📹 Camera stream obtained:', mediaStream.getVideoTracks().length, 'video tracks');
+      setDebugInfo('Camera stream obtained');
       
       // Validate video tracks
       const videoTracks = mediaStream.getVideoTracks();
@@ -78,13 +98,15 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
       
       const videoTrack = videoTracks[0];
       console.log('📹 Video track state:', videoTrack.readyState, 'enabled:', videoTrack.enabled);
+      setDebugInfo(`Video track: ${videoTrack.readyState}, enabled: ${videoTrack.enabled}`);
       
       setStream(mediaStream);
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        setDebugInfo('Video source assigned');
         
-        // Wait for video to be ready with robust checking
+        // Wait for video to be ready with enhanced validation
         await new Promise<void>((resolve, reject) => {
           if (!videoRef.current) {
             reject(new Error('Video element not available'));
@@ -92,39 +114,60 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
           }
 
           let resolved = false;
+          let playAttempted = false;
           const timeout = setTimeout(() => {
             if (!resolved) {
               resolved = true;
               cleanup();
               reject(new Error('Video failed to load within timeout'));
             }
-          }, 8000); // 8 second timeout
+          }, 10000); // 10 second timeout
 
           const cleanup = () => {
             clearTimeout(timeout);
             videoRef.current?.removeEventListener('loadedmetadata', onLoadedMetadata);
             videoRef.current?.removeEventListener('canplay', onCanPlay);
+            videoRef.current?.removeEventListener('playing', onPlaying);
             videoRef.current?.removeEventListener('error', onError);
+          };
+
+          const attemptPlay = async () => {
+            if (playAttempted || !videoRef.current) return;
+            playAttempted = true;
+            
+            try {
+              await videoRef.current.play();
+              console.log('📹 Video playing successfully');
+              setVideoPlaying(true);
+              setDebugInfo('Video playing');
+            } catch (playError) {
+              console.warn('📹 Autoplay failed:', playError);
+              setNeedsUserInteraction(true);
+              setDebugInfo('Autoplay failed - user interaction needed');
+            }
           };
 
           const onLoadedMetadata = () => {
             console.log('📹 Video metadata loaded, dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+            setDebugInfo(`Video loaded: ${videoRef.current?.videoWidth}x${videoRef.current?.videoHeight}`);
+            
             if (videoRef.current && videoRef.current.videoWidth > 0 && videoRef.current.videoHeight > 0) {
-              // Try to play the video
-              videoRef.current.play()
-                .then(() => {
-                  console.log('📹 Video playing successfully');
-                })
-                .catch((playError) => {
-                  console.warn('📹 Autoplay failed, but video is loaded:', playError);
-                });
+              attemptPlay();
             }
           };
 
           const onCanPlay = () => {
-            if (!resolved && videoRef.current?.videoWidth && videoRef.current.videoWidth > 0) {
+            console.log('📹 Video can play');
+            setDebugInfo('Video can play');
+            attemptPlay();
+          };
+
+          const onPlaying = () => {
+            if (!resolved) {
               resolved = true;
-              console.log('📹 Video can play and has valid dimensions');
+              console.log('📹 Video is playing and ready');
+              setVideoPlaying(true);
+              setDebugInfo('Video playing and ready');
               cleanup();
               resolve();
             }
@@ -134,6 +177,7 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
             if (!resolved) {
               resolved = true;
               console.error('📹 Video error:', e);
+              setDebugInfo('Video error occurred');
               cleanup();
               reject(new Error('Video failed to load'));
             }
@@ -141,11 +185,24 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
 
           videoRef.current.addEventListener('loadedmetadata', onLoadedMetadata);
           videoRef.current.addEventListener('canplay', onCanPlay);
+          videoRef.current.addEventListener('playing', onPlaying);
           videoRef.current.addEventListener('error', onError);
+
+          // Fallback: resolve even if not playing after some time (for browsers blocking autoplay)
+          setTimeout(() => {
+            if (!resolved && videoRef.current?.videoWidth && videoRef.current.videoWidth > 0) {
+              resolved = true;
+              console.log('📹 Video loaded but may need user interaction to play');
+              setDebugInfo('Video loaded - may need user interaction');
+              cleanup();
+              resolve();
+            }
+          }, 5000);
         });
       }
     } catch (err) {
       console.error('📹 Camera access error:', err);
+      setDebugInfo('Camera access failed');
       throw new Error('Camera access denied. Please allow camera permissions.');
     }
   };
@@ -270,6 +327,36 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
               <div className="text-white text-center">
                 <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
                 <p className="text-sm">Starting camera...</p>
+                {debugInfo && <p className="text-xs mt-1 opacity-75">{debugInfo}</p>}
+              </div>
+            </div>
+          )}
+
+          {/* User interaction needed overlay */}
+          {cameraReady && needsUserInteraction && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/75 rounded-lg">
+              <div className="text-white text-center p-4">
+                <Camera className="w-8 h-8 mx-auto mb-3" />
+                <p className="text-sm mb-3">Video needs to start</p>
+                <p className="text-xs mb-4 opacity-75">Click to start camera feed</p>
+                <Button 
+                  onClick={forceVideoPlay}
+                  variant="secondary"
+                  size="sm"
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                >
+                  Start Camera
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Video status indicator */}
+          {cameraReady && !needsUserInteraction && (
+            <div className="absolute top-2 left-2 z-10">
+              <div className="bg-black/60 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                <div className={`w-2 h-2 rounded-full ${videoPlaying ? 'bg-green-400' : 'bg-yellow-400'}`} />
+                {videoPlaying ? 'Live' : 'Ready'}
               </div>
             </div>
           )}
@@ -288,7 +375,7 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
         <div className="flex gap-2 justify-center">
           <Button
             onClick={handleEnrollFace}
-            disabled={!cameraReady || isEnrolling}
+            disabled={!cameraReady || isEnrolling || !videoPlaying}
             className="flex items-center gap-2"
           >
             {isEnrolling ? (
