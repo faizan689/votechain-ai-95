@@ -69,37 +69,79 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
       });
 
       console.log('📹 Camera stream obtained:', mediaStream.getVideoTracks().length, 'video tracks');
+      
+      // Validate video tracks
+      const videoTracks = mediaStream.getVideoTracks();
+      if (videoTracks.length === 0) {
+        throw new Error('No video tracks found in stream');
+      }
+      
+      const videoTrack = videoTracks[0];
+      console.log('📹 Video track state:', videoTrack.readyState, 'enabled:', videoTrack.enabled);
+      
       setStream(mediaStream);
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         
-        // Wait for video to be ready
+        // Wait for video to be ready with robust checking
         await new Promise<void>((resolve, reject) => {
           if (!videoRef.current) {
             reject(new Error('Video element not available'));
             return;
           }
 
+          let resolved = false;
+          const timeout = setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              cleanup();
+              reject(new Error('Video failed to load within timeout'));
+            }
+          }, 8000); // 8 second timeout
+
+          const cleanup = () => {
+            clearTimeout(timeout);
+            videoRef.current?.removeEventListener('loadedmetadata', onLoadedMetadata);
+            videoRef.current?.removeEventListener('canplay', onCanPlay);
+            videoRef.current?.removeEventListener('error', onError);
+          };
+
           const onLoadedMetadata = () => {
             console.log('📹 Video metadata loaded, dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
-            videoRef.current?.removeEventListener('loadedmetadata', onLoadedMetadata);
-            videoRef.current?.removeEventListener('error', onError);
-            resolve();
+            if (videoRef.current && videoRef.current.videoWidth > 0 && videoRef.current.videoHeight > 0) {
+              // Try to play the video
+              videoRef.current.play()
+                .then(() => {
+                  console.log('📹 Video playing successfully');
+                })
+                .catch((playError) => {
+                  console.warn('📹 Autoplay failed, but video is loaded:', playError);
+                });
+            }
+          };
+
+          const onCanPlay = () => {
+            if (!resolved && videoRef.current?.videoWidth && videoRef.current.videoWidth > 0) {
+              resolved = true;
+              console.log('📹 Video can play and has valid dimensions');
+              cleanup();
+              resolve();
+            }
           };
 
           const onError = (e: Event) => {
-            console.error('📹 Video error:', e);
-            videoRef.current?.removeEventListener('loadedmetadata', onLoadedMetadata);
-            videoRef.current?.removeEventListener('error', onError);
-            reject(new Error('Video failed to load'));
+            if (!resolved) {
+              resolved = true;
+              console.error('📹 Video error:', e);
+              cleanup();
+              reject(new Error('Video failed to load'));
+            }
           };
 
           videoRef.current.addEventListener('loadedmetadata', onLoadedMetadata);
+          videoRef.current.addEventListener('canplay', onCanPlay);
           videoRef.current.addEventListener('error', onError);
-          
-          // Force play if needed
-          videoRef.current.play().catch(console.error);
         });
       }
     } catch (err) {
@@ -198,12 +240,13 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
             autoPlay
             playsInline
             muted
-            className="w-full max-w-md rounded-lg border-2 border-dashed border-primary/30 scale-x-[-1]"
+            className="w-full max-w-md rounded-lg border-2 border-dashed border-primary/30"
             style={{ 
               maxHeight: '360px',
               minHeight: '240px',
               objectFit: 'cover',
-              background: '#f3f4f6'
+              background: 'hsl(var(--muted))',
+              display: 'block'
             }}
             onLoadedMetadata={() => {
               console.log('📹 Video element loaded metadata');
