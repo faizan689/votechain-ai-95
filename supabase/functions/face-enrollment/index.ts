@@ -163,6 +163,17 @@ export default async function handler(req: Request) {
           console.error("Error updating user face_verified status:", userUpdateError);
         }
 
+        // Audit log for enrollment (multiple)
+        try {
+          await supabase.from('audit_logs').insert({
+            user_id: userId,
+            event_type: 'enroll',
+            details: { count: (enrollments?.length ?? 0), enrolled_by: enrolledBy ?? null, confidence_threshold: confidenceThreshold }
+          });
+        } catch (e) {
+          console.error('audit_logs insert failed (enroll multiple):', e);
+        }
+
         return new Response(
           JSON.stringify({ success: true, enrollments, message: "Face enrollments completed successfully" }),
           { status: 200, headers: { ...headers, "Content-Type": "application/json" } }
@@ -198,6 +209,17 @@ export default async function handler(req: Request) {
         .eq("id", userId);
       if (userUpdateError) {
         console.error("Error updating user face_verified status:", userUpdateError);
+      }
+
+      // Audit log for enrollment (single)
+      try {
+        await supabase.from('audit_logs').insert({
+          user_id: userId,
+          event_type: 'enroll',
+          details: { enrollment_id: enrollment?.id ?? null, enrolled_by: enrolledBy ?? null, confidence_threshold: confidenceThreshold }
+        });
+      } catch (e) {
+        console.error('audit_logs insert failed (enroll single):', e);
       }
 
       return new Response(
@@ -276,6 +298,17 @@ export default async function handler(req: Request) {
         .from("users")
         .update({ face_verified: false })
         .eq("id", userId);
+
+      // Audit log for enrollment removal
+      try {
+        await supabase.from('audit_logs').insert({
+          user_id: userId,
+          event_type: 'enrollment_removed',
+          details: { reason: 'deactivated_all' }
+        });
+      } catch (e) {
+        console.error('audit_logs insert failed (enrollment removed):', e);
+      }
 
       return new Response(
         JSON.stringify({ success: true, message: "Face enrollment removed" }),

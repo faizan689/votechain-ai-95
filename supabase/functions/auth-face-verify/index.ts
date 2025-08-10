@@ -82,7 +82,18 @@ serve(async (req) => {
         confidence_score: verification.confidence,
         liveness_check_passed: verification.liveness,
         ip_address: clientIP
-      })
+      });
+
+    // Audit log
+    try {
+      await supabase.from('audit_logs').insert({
+        user_id: payload.sub,
+        event_type: 'auth_attempt',
+        details: { success: verification.success, confidence: verification.confidence, liveness: verification.liveness, ip: clientIP }
+      });
+    } catch (e) {
+      console.error('audit_logs insert failed (auth attempt):', e);
+    }
 
     if (!verification.success) {
       await supabase

@@ -101,12 +101,25 @@ export async function detectLiveness(videoElement: HTMLVideoElement): Promise<bo
   }
   
   try {
-    // Capture multiple frames to detect eye blinking or movement
-    const faceLandmarks = await faceLandmarksDetector.estimateFaces(videoElement);
-    
-    // For demo purposes, we'll consider the detection of facial landmarks as proof of liveness
-    // In a production app, you'd implement more sophisticated liveness detection
-    return faceLandmarks.length > 0;
+    const faces = await faceLandmarksDetector.estimateFaces(videoElement);
+    if (!faces || faces.length === 0) return false;
+    const face: any = faces[0];
+
+    // Prefer 3D keypoints if available
+    const points: any[] = (face.keypoints3D?.length ? face.keypoints3D : face.keypoints) || [];
+    if (!points.length) return false;
+
+    const zs = points.map((p: any) => (typeof p.z === 'number' ? p.z : 0)).filter((z: number) => !Number.isNaN(z));
+    if (!zs.length) return false;
+
+    const zMin = Math.min(...zs);
+    const zMax = Math.max(...zs);
+    const zRange = Math.abs(zMax - zMin);
+
+    // Simple depth-based anti-spoofing: flat surfaces have near-zero depth variance
+    const depthPass = zRange > 0.01; // tune as needed per device/camera
+
+    return depthPass;
   } catch (error) {
     console.error('Error detecting liveness:', error);
     return false;

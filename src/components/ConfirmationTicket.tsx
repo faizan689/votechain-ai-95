@@ -147,10 +147,10 @@ Party voted for: ${partyName}
           </div>
           
           <div className="space-y-4">
-            <div className="flex justify-between items-center gap-4 py-2 border-b border-border">
-              <div>
+            <div className="flex justify-between items-center gap-4 py-2 border-b border-border min-w-0">
+              <div className="min-w-0">
                 <div className="text-sm text-muted-foreground mb-1">Transaction ID</div>
-                <div className="font-mono text-xs">{transactionId}</div>
+                <div className="font-mono text-xs break-all overflow-hidden text-ellipsis max-w-[220px] sm:max-w-[360px]">{transactionId}</div>
               </div>
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Time</div>

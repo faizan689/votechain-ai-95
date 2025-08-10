@@ -31,6 +31,7 @@ const Voting = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [faceVerified, setFaceVerified] = useState(false);
+  const [verifyAttempts, setVerifyAttempts] = useState(0);
   // Post-confirmation verification & OTP fallback states
   const [pendingVote, setPendingVote] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
@@ -124,6 +125,7 @@ const Voting = () => {
     // Trigger post-confirmation face verification
     setIsModalOpen(false);
     setPendingVote(true);
+    setVerifyAttempts(0);
     setShowVerification(true);
   };
 
@@ -376,14 +378,22 @@ const Voting = () => {
           <div className="mt-2">
             <CameraVerification
               onSuccess={async () => {
+                setVerifyAttempts(0);
                 setShowVerification(false);
                 toast.success('Facial verification successful');
                 await handleCastVoteAfterAuth();
               }}
               onFailure={async () => {
-                setShowVerification(false);
-                toast.error('Face verification failed. Switching to OTP verification.');
-                await startOtpFlow();
+                const next = verifyAttempts + 1;
+                setVerifyAttempts(next);
+                if (next < 2) {
+                  toast.error('Face verification failed. Please adjust lighting and try again.');
+                  // Keep dialog open for retry
+                } else {
+                  setShowVerification(false);
+                  toast.error('Verification failed twice. Switching to OTP verification.');
+                  await startOtpFlow();
+                }
               }}
             />
           </div>
