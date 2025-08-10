@@ -3,26 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Camera, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
-// import { modernFaceRecognition } from '@/services/modernFaceRecognition'; // *** FIX: REMOVED THIS IMPORT ***
 import { toast } from 'sonner';
-
-// *** FIX: ADDED A MOCK OBJECT TO RESOLVE THE BUILD ERROR ***
-// This mock simulates the behavior of the real face recognition service.
-const modernFaceRecognition = {
-  initialize: async () => {
-    console.log('Mock Face Recognition Initialized');
-    // Simulate a successful initialization
-    return Promise.resolve(true);
-  },
-  enrollFace: async (userId: string, videoElement: HTMLVideoElement) => {
-    console.log(`Mock Enrolling Face for user: ${userId}`, videoElement);
-    // Simulate a successful enrollment with a dummy descriptor array
-    return Promise.resolve({
-      success: true,
-      descriptor: Array.from({ length: 128 }, () => Math.random()),
-    });
-  },
-};
+import * as faceRecognitionService from '@/services/faceRecognitionService';
 
 
 interface SimpleFaceEnrollmentProps {
@@ -72,7 +54,7 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
 
     try {
       // Initialize face recognition
-      const initialized = await modernFaceRecognition.initialize();
+      const initialized = await faceRecognitionService.initializeFaceAPI();
       if (!initialized) {
         throw new Error('Failed to initialize face recognition');
       }
@@ -123,17 +105,37 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
         setProgress(prev => Math.min(prev + 10, 90));
       }, 100);
 
-      // Enroll face
-      const result = await modernFaceRecognition.enrollFace(userId, videoRef.current);
+      // Capture current frame to canvas and create an Image
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas not supported');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const img = new Image();
+      img.src = canvas.toDataURL('image/jpeg', 0.9);
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Failed to load captured image'));
+      });
+
+      // Create face descriptor using face-api.js
+      const descriptor = await faceRecognitionService.createFaceDescriptor(img);
 
       clearInterval(progressInterval);
       setProgress(100);
 
-      if (result.success && result.descriptor) {
+      if (descriptor) {
+        // Cache locally for compatibility with legacy flows
+        try {
+          localStorage.setItem(`faceDescriptor_${userId}`, JSON.stringify(descriptor));
+        } catch {}
         toast.success('Face enrolled successfully!');
-        onSuccess(result.descriptor);
+        onSuccess(descriptor);
       } else {
-        throw new Error((result as any).error || 'Failed to enroll face');
+        throw new Error('No face detected. Please ensure your face is centered and well lit.');
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Enrollment failed';

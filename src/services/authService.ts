@@ -51,8 +51,11 @@ export const authService = {
       console.log('AuthService: OTP verification response:', response);
       
       if (response && response.success && response.token) {
-        // Store user phone for facial verification
+        // Store identifiers for facial verification
         localStorage.setItem('userPhone', phoneNumber);
+        if (response.user?.id) {
+          localStorage.setItem('userId', response.user.id);
+        }
         
         // Check if this is an admin user based on response
         const isAdminUser = response.user?.role === 'admin';

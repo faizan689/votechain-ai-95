@@ -61,10 +61,11 @@ export function useFacialVerification({
     setVerificationFailed(false);
     
     try {
-      // Get user identifier from localStorage
+      // Get user identifier from localStorage (prefer UUID)
+      const storedUserId = localStorage.getItem('userId') || '';
       const userPhone = localStorage.getItem('userPhone') || '';
       const userEmail = localStorage.getItem('userEmail') || '';
-      const userId = userPhone || userEmail;
+      const userId = storedUserId || userPhone || userEmail;
       
       if (!userId) {
         throw new Error('No user identifier found');
@@ -76,27 +77,18 @@ export function useFacialVerification({
         throw new Error('Failed to initialize face recognition');
       }
 
-      // Check if user has enrolled face data
-      const hasEnrolledFace = localStorage.getItem(`faceDescriptor_${userId}`);
+      // Always attempt user-specific recognition using enrolled data from Supabase
+      const result = await faceRecognitionService.recognizeFaceForUser(videoRef.current, userId);
       
-      if (hasEnrolledFace) {
-        // Use new user-specific recognition
-        const result = await faceRecognitionService.recognizeFaceForUser(videoRef.current, userId);
-        
-        if (result.isAuthorized && result.confidence > 0.6) {
-          setVerificationSuccess(true);
-          setTimeout(() => {
-            if (onSuccess) onSuccess();
-          }, 1500);
-        } else {
-          setVerificationFailed(true);
-          if (onFailure) onFailure();
-        }
+      if (result.isAuthorized && result.confidence > 0.6) {
+        setVerificationSuccess(true);
+        setTimeout(() => {
+          if (onSuccess) onSuccess();
+        }, 1500);
       } else {
-        // Fallback to old TensorFlow-based verification for backward compatibility
-        const result = await facialRecognitionService.processFacialVerification(videoRef.current, userEmail);
-        
-        if (result?.success) {
+        // Fallback to legacy verification (optional)
+        const legacyResult = userEmail ? await facialRecognitionService.processFacialVerification(videoRef.current, userEmail) : null;
+        if (legacyResult?.success) {
           setVerificationSuccess(true);
           setTimeout(() => {
             if (onSuccess) onSuccess();
