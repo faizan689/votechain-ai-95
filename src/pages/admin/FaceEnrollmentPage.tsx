@@ -147,13 +147,13 @@ const FaceEnrollmentManagement: React.FC = () => {
       supabase.removeChannel(enrollmentsChannel);
     };
   }, []);
-  const handleEnrollmentSuccess = async (faceDescriptor: number[]) => {
+  const handleEnrollmentSuccess = async (faceDescriptors: number[][]) => {
     if (!selectedUser) return;
     try {
-      const {
-        faceEnrollmentService
-      } = await import('@/services/faceEnrollmentService');
-      const result = await faceEnrollmentService.enrollFace(selectedUser.id, faceDescriptor, 'admin' // You can get actual admin ID from auth context
+      const result = await faceEnrollmentService.enrollFaceMultiple(
+        selectedUser.id,
+        faceDescriptors,
+        'admin'
       );
       if (result.success) {
         toast.success('Face enrollment completed successfully!');
@@ -168,10 +168,14 @@ const FaceEnrollmentManagement: React.FC = () => {
       toast.error('Failed to save face enrollment');
     }
   };
-  const handleSelfEnrollmentSuccess = async (faceDescriptor: number[]) => {
+  const handleSelfEnrollmentSuccess = async (faceDescriptors: number[][]) => {
     if (!currentAdminUser) return;
     try {
-      const result = await faceEnrollmentService.enrollFace(currentAdminUser.id, faceDescriptor, currentAdminUser.id);
+      const result = await faceEnrollmentService.enrollFaceMultiple(
+        currentAdminUser.id,
+        faceDescriptors,
+        currentAdminUser.id
+      );
       if (result.success) {
         toast.success('Your face has been enrolled successfully! You can now use facial authentication for voting.');
         setShowSelfEnrollment(false);

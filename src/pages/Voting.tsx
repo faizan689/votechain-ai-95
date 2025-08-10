@@ -11,6 +11,8 @@ import { votingService } from "@/services/votingService";
 import { authService } from "@/services/authService";
 import { getAuthToken } from "@/services/api";
 import { toast } from "sonner";
+import CameraVerification from "@/components/CameraVerification";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 type Party = {
   id: string;
@@ -26,6 +28,8 @@ const Voting = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showMetaMaskWarning, setShowMetaMaskWarning] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
+  const [faceVerified, setFaceVerified] = useState(false);
   const navigate = useNavigate();
   
   const parties: Party[] = [
@@ -102,9 +106,8 @@ const Voting = () => {
       toast.error('Please select a party first');
       return;
     }
-    
-    console.log('Voting: Opening confirmation modal for party:', selectedParty);
-    setIsModalOpen(true);
+    // Require facial verification before showing confirmation
+    setShowVerification(true);
   };
   
   const handleVoteConfirm = async () => {

@@ -150,7 +150,7 @@ export const recognizeFaceForUser = async (
     
     // Security threshold for user verification
     const isAuthorized = bestMatch.label !== 'unknown' && 
-                        distance <= 0.4 && // Reasonable distance threshold 
+                        distance <= 0.45 && // Slightly more forgiving distance threshold for robustness
                         confidence >= 0.6;  // Require good confidence
     
     console.log('Face recognition result:', {
@@ -278,26 +278,36 @@ export const createFaceDescriptor = async (imageElement: HTMLImageElement): Prom
  */
 export const loadUserFaceDescriptors = async (userId: string): Promise<faceapi.LabeledFaceDescriptors | null> => {
   try {
-    // Try to get from database first
+    // Try to get all active descriptors from database first
     const { supabase } = await import('@/integrations/supabase/client');
-    const { data: enrollment, error } = await supabase
+    const { data, error } = await supabase
       .from('face_enrollment')
       .select('face_descriptor')
       .eq('user_id', userId)
       .eq('is_active', true)
-      .single();
+      .order('enrollment_date', { ascending: false });
 
-    if (!error && enrollment?.face_descriptor) {
-      const descriptor = enrollment.face_descriptor as number[];
-      return new faceapi.LabeledFaceDescriptors(userId, [new Float32Array(descriptor)]);
+    let descriptors: Float32Array[] = [];
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      descriptors = data
+        .map((row: any) => row.face_descriptor as number[] | null)
+        .filter((d): d is number[] => Array.isArray(d))
+        .map((d) => new Float32Array(d));
     }
 
     // Fallback to localStorage for backward compatibility
-    const storedDescriptor = localStorage.getItem(`faceDescriptor_${userId}`);
-    if (!storedDescriptor) return null;
-    
-    const descriptor = JSON.parse(storedDescriptor);
-    return new faceapi.LabeledFaceDescriptors(userId, [new Float32Array(descriptor)]);
+    if (descriptors.length === 0) {
+      const storedDescriptor = localStorage.getItem(`faceDescriptor_${userId}`);
+      if (storedDescriptor) {
+        const d = JSON.parse(storedDescriptor);
+        if (Array.isArray(d)) descriptors.push(new Float32Array(d));
+      }
+    }
+
+    if (descriptors.length === 0) return null;
+
+    return new faceapi.LabeledFaceDescriptors(userId, descriptors);
   } catch (error) {
     console.error('Error loading user face descriptors:', error);
     return null;

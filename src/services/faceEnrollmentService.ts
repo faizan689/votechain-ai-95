@@ -49,6 +49,43 @@ export const faceEnrollmentService = {
   },
 
   /**
+   * Enroll multiple face descriptors for a user (recommended)
+   */
+  async enrollFaceMultiple(
+    userId: string,
+    faceDescriptors: number[][],
+    enrolledBy?: string,
+    confidenceThreshold: number = 0.6
+  ): Promise<{ success: boolean; error?: string; data?: FaceEnrollmentData[] }> {
+    try {
+      const response = await fetch(`https://zjymowjrqidmgslauauv.supabase.co/functions/v1/face-enrollment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqeW1vd2pycWlkbWdzbGF1YXV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5NTg5NDksImV4cCI6MjA2NTUzNDk0OX0.Vgr0rW3Xi6eoD-hKX5R_4IeL5ABNPP0w80EUVzUAG8k`,
+        },
+        body: JSON.stringify({
+          userId,
+          faceDescriptors,
+          enrolledBy,
+          confidenceThreshold
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        return { success: true, data: result.enrollments };
+      } else {
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error('Error enrolling faces:', error);
+      return { success: false, error: 'Failed to enroll faces' };
+    }
+  },
+
+  /**
    * Get user's face enrollment data
    */
   async getFaceEnrollment(userId: string): Promise<FaceEnrollmentData | null> {

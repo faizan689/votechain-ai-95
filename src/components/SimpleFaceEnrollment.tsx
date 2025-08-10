@@ -9,7 +9,7 @@ import * as faceRecognitionService from '@/services/faceRecognitionService';
 
 interface SimpleFaceEnrollmentProps {
   userId: string;
-  onSuccess: (faceDescriptor: number[]) => void;
+  onSuccess: (faceDescriptors: number[][]) => void;
   onSkip: () => void;
 }
 
@@ -131,43 +131,53 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
     setProgress(0);
 
     try {
-      // Simulate progress
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
-      }, 100);
-
-      // Capture current frame to canvas and create an Image
       const video = videoRef.current;
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas not supported');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      const img = new Image();
-      img.src = canvas.toDataURL('image/jpeg', 0.9);
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Failed to load captured image'));
-      });
+      const captureImage = async (): Promise<HTMLImageElement> => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Canvas not supported');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const img = new Image();
+        img.src = canvas.toDataURL('image/jpeg', 0.92);
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('Failed to load captured image'));
+        });
+        return img;
+      };
 
-      // Create face descriptor using face-api.js
-      const descriptor = await faceRecognitionService.createFaceDescriptor(img);
+      const totalSamples = 5;
+      const descriptors: number[][] = [];
 
-      clearInterval(progressInterval);
-      setProgress(100);
-
-      if (descriptor) {
-        // Cache locally for compatibility with legacy flows
-        try {
-          localStorage.setItem(`faceDescriptor_${userId}`, JSON.stringify(descriptor));
-        } catch {}
-        toast.success('Face enrolled successfully!');
-        onSuccess(descriptor);
-      } else {
-        throw new Error('No face detected. Please ensure your face is centered and well lit.');
+      for (let i = 0; i < totalSamples; i++) {
+        const img = await captureImage();
+        const desc = await faceRecognitionService.createFaceDescriptor(img);
+        if (desc) descriptors.push(desc);
+        setProgress(Math.min(95, Math.round(((i + 1) / totalSamples) * 95)));
+        await new Promise((r) => setTimeout(r, 250));
       }
+
+      if (descriptors.length < 3) {
+        throw new Error('No face detected consistently. Please adjust lighting and try again.');
+      }
+
+      // Cache an averaged descriptor for backward compatibility flows
+      try {
+        const length = descriptors[0].length;
+        const avg = new Array(length).fill(0);
+        descriptors.forEach((d) => {
+          for (let i = 0; i < length; i++) avg[i] += d[i];
+        });
+        for (let i = 0; i < length; i++) avg[i] /= descriptors.length;
+        localStorage.setItem(`faceDescriptor_${userId}`, JSON.stringify(avg));
+      } catch {}
+
+      setProgress(100);
+      toast.success('Captured multiple samples successfully');
+      onSuccess(descriptors);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Enrollment failed';
       setError(errorMsg);

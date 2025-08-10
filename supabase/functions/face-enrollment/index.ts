@@ -27,11 +27,21 @@ export default async function handler(req: Request) {
 
   try {
     if (req.method === "POST") {
-      const { userId, faceDescriptor, enrolledBy, confidenceThreshold = 0.6 }: FaceEnrollmentRequest = await req.json();
+      const body = await req.json();
+      const {
+        userId,
+        faceDescriptor,
+        faceDescriptors,
+        enrolledBy,
+        confidenceThreshold = 0.6,
+      } = body;
 
-      if (!userId || !faceDescriptor || !Array.isArray(faceDescriptor)) {
+      const hasSingle = Array.isArray(faceDescriptor);
+      const hasMultiple = Array.isArray(faceDescriptors) && faceDescriptors.length > 0;
+
+      if (!userId || (!hasSingle && !hasMultiple)) {
         return new Response(
-          JSON.stringify({ error: "Missing required fields: userId, faceDescriptor" }),
+          JSON.stringify({ error: "Missing required fields: userId and faceDescriptor(s)" }),
           { status: 400, headers: { ...headers, "Content-Type": "application/json" } }
         );
       }
@@ -42,7 +52,47 @@ export default async function handler(req: Request) {
         .update({ is_active: false })
         .eq("user_id", userId);
 
-      // Insert new face enrollment
+      if (hasMultiple) {
+        // Insert multiple active enrollments
+        const rows = faceDescriptors
+          .filter((d: any) => Array.isArray(d))
+          .map((d: number[]) => ({
+            user_id: userId,
+            face_descriptor: d,
+            enrolled_by: enrolledBy,
+            confidence_threshold: confidenceThreshold,
+            is_active: true,
+          }));
+
+        const { data: enrollments, error: insertManyError } = await supabase
+          .from("face_enrollment")
+          .insert(rows)
+          .select();
+
+        if (insertManyError) {
+          console.error("Error inserting multiple face enrollments:", insertManyError);
+          return new Response(
+            JSON.stringify({ error: "Failed to save face enrollments" }),
+            { status: 500, headers: { ...headers, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Update user's face_verified status
+        const { error: userUpdateError } = await supabase
+          .from("users")
+          .update({ face_verified: true })
+          .eq("id", userId);
+        if (userUpdateError) {
+          console.error("Error updating user face_verified status:", userUpdateError);
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, enrollments, message: "Face enrollments completed successfully" }),
+          { status: 200, headers: { ...headers, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Fallback: insert single enrollment
       const { data: enrollment, error: insertError } = await supabase
         .from("face_enrollment")
         .insert({
@@ -50,7 +100,7 @@ export default async function handler(req: Request) {
           face_descriptor: faceDescriptor,
           enrolled_by: enrolledBy,
           confidence_threshold: confidenceThreshold,
-          is_active: true
+          is_active: true,
         })
         .select()
         .single();
@@ -68,17 +118,12 @@ export default async function handler(req: Request) {
         .from("users")
         .update({ face_verified: true })
         .eq("id", userId);
-
       if (userUpdateError) {
         console.error("Error updating user face_verified status:", userUpdateError);
       }
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          enrollment: enrollment,
-          message: "Face enrollment completed successfully" 
-        }),
+        JSON.stringify({ success: true, enrollment, message: "Face enrollment completed successfully" }),
         { status: 200, headers: { ...headers, "Content-Type": "application/json" } }
       );
     }
@@ -94,24 +139,24 @@ export default async function handler(req: Request) {
         );
       }
 
-      // Get active face enrollment for user
-      const { data: enrollment, error } = await supabase
+      // Get all active face enrollments for user (may be multiple samples)
+      const { data: enrollments, error } = await supabase
         .from("face_enrollment")
         .select("*")
         .eq("user_id", userId)
         .eq("is_active", true)
-        .single();
+        .order("enrollment_date", { ascending: false });
 
-      if (error && error.code !== "PGRST116") { // PGRST116 = no rows returned
-        console.error("Error fetching face enrollment:", error);
+      if (error) {
+        console.error("Error fetching face enrollments:", error);
         return new Response(
-          JSON.stringify({ error: "Failed to fetch face enrollment" }),
+          JSON.stringify({ error: "Failed to fetch face enrollments" }),
           { status: 500, headers: { ...headers, "Content-Type": "application/json" } }
         );
       }
 
       return new Response(
-        JSON.stringify({ enrollment: enrollment || null }),
+        JSON.stringify({ enrollments: enrollments || [] }),
         { status: 200, headers: { ...headers, "Content-Type": "application/json" } }
       );
     }
