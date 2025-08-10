@@ -1,12 +1,13 @@
 
-import * as tf from '@tensorflow/tfjs';
-import * as faceDetection from '@tensorflow-models/face-detection';
-import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
+let tf: any;
+let faceDetection: any;
+let faceLandmarksDetection: any;
 import { authService } from './authService';
 
 // Models
-let faceDetector: faceDetection.FaceDetector | null = null;
-let faceLandmarksDetector: faceLandmarksDetection.FaceLandmarksDetector | null = null;
+let faceDetector: any = null;
+let faceLandmarksDetector: any = null;
+let initPromise: Promise<boolean> | null = null;
 
 // Face detection configurations
 const FACE_DETECTION_CONFIG = {
@@ -25,30 +26,45 @@ const FACE_LANDMARKS_CONFIG = {
  * Initialize TensorFlow.js and face detection models
  */
 export async function initFacialRecognition(): Promise<boolean> {
-  try {
-    // Initialize TensorFlow.js
-    await tf.ready();
-    console.log('TensorFlow.js initialized');
-    
-    // Load face detection model
-    faceDetector = await faceDetection.createDetector(
-      faceDetection.SupportedModels.MediaPipeFaceDetector,
-      FACE_DETECTION_CONFIG
-    );
-    console.log('Face detection model loaded');
-    
-    // Load face landmarks model
-    faceLandmarksDetector = await faceLandmarksDetection.createDetector(
-      faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh,
-      FACE_LANDMARKS_CONFIG
-    );
-    console.log('Face landmarks model loaded');
-    
-    return true;
-  } catch (error) {
-    console.error('Error initializing facial recognition:', error);
-    return false;
-  }
+  if (faceDetector && faceLandmarksDetector) return true;
+  if (initPromise) return initPromise;
+  initPromise = (async () => {
+    try {
+      if (!tf) {
+        tf = await import('@tensorflow/tfjs');
+      }
+      if (!faceDetection) {
+        faceDetection = await import('@tensorflow-models/face-detection');
+      }
+      if (!faceLandmarksDetection) {
+        faceLandmarksDetection = await import('@tensorflow-models/face-landmarks-detection');
+      }
+      await tf.ready();
+      console.log('TensorFlow.js initialized');
+      
+      // Load face detection model
+      faceDetector = await faceDetection.createDetector(
+        faceDetection.SupportedModels.MediaPipeFaceDetector,
+        FACE_DETECTION_CONFIG
+      );
+      console.log('Face detection model loaded');
+      
+      // Load face landmarks model
+      faceLandmarksDetector = await faceLandmarksDetection.createDetector(
+        faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh,
+        FACE_LANDMARKS_CONFIG
+      );
+      console.log('Face landmarks model loaded');
+      
+      return true;
+    } catch (error) {
+      console.error('Error initializing facial recognition:', error);
+      return false;
+    } finally {
+      initPromise = null;
+    }
+  })();
+  return initPromise;
 }
 
 /**
@@ -56,7 +72,11 @@ export async function initFacialRecognition(): Promise<boolean> {
  */
 export async function detectFace(imageElement: HTMLImageElement | HTMLVideoElement): Promise<boolean> {
   if (!faceDetector) {
-    throw new Error('Face detector not initialized');
+    const ok = await initFacialRecognition();
+    if (!ok || !faceDetector) {
+      console.error('Face detector not initialized');
+      return false;
+    }
   }
   
   try {
@@ -73,7 +93,11 @@ export async function detectFace(imageElement: HTMLImageElement | HTMLVideoEleme
  */
 export async function detectLiveness(videoElement: HTMLVideoElement): Promise<boolean> {
   if (!faceLandmarksDetector) {
-    throw new Error('Face landmarks detector not initialized');
+    const ok = await initFacialRecognition();
+    if (!ok || !faceLandmarksDetector) {
+      console.error('Face landmarks detector not initialized');
+      return false;
+    }
   }
   
   try {
