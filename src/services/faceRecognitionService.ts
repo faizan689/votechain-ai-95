@@ -278,22 +278,36 @@ export const createFaceDescriptor = async (imageElement: HTMLImageElement): Prom
  */
 export const loadUserFaceDescriptors = async (userId: string): Promise<faceapi.LabeledFaceDescriptors | null> => {
   try {
-    // Try to get all active descriptors from database first
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data, error } = await supabase
-      .from('face_enrollment')
-      .select('face_descriptor')
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .order('enrollment_date', { ascending: false });
-
+    // Prefer secure retrieval via Edge Function (handles decryption)
+    const SUPABASE_URL = 'https://zjymowjrqidmgslauauv.supabase.co';
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/face-enrollment?userId=${encodeURIComponent(userId)}`);
     let descriptors: Float32Array[] = [];
 
-    if (!error && Array.isArray(data) && data.length > 0) {
-      descriptors = data
-        .map((row: any) => row.face_descriptor as number[] | null)
-        .filter((d): d is number[] => Array.isArray(d))
-        .map((d) => new Float32Array(d));
+    if (resp.ok) {
+      const json = await resp.json();
+      const enrollments = Array.isArray(json?.enrollments) ? json.enrollments : [];
+      descriptors = enrollments
+        .map((row: any) => row?.face_descriptor as number[] | null)
+        .filter((d: any): d is number[] => Array.isArray(d))
+        .map((d: number[]) => new Float32Array(d));
+    }
+
+    // Fallback: direct DB query (legacy, expects plaintext descriptors)
+    if (descriptors.length === 0) {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data, error } = await supabase
+        .from('face_enrollment')
+        .select('face_descriptor')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .order('enrollment_date', { ascending: false });
+
+      if (!error && Array.isArray(data)) {
+        descriptors = data
+          .map((row: any) => row.face_descriptor as number[] | null)
+          .filter((d): d is number[] => Array.isArray(d))
+          .map((d) => new Float32Array(d));
+      }
     }
 
     // Fallback to localStorage for backward compatibility

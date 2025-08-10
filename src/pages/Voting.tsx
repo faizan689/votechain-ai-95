@@ -12,6 +12,7 @@ import { authService } from "@/services/authService";
 import { getAuthToken } from "@/services/api";
 import { toast } from "sonner";
 import CameraVerification from "@/components/CameraVerification";
+import OTPVerification from "@/components/auth/OTPVerification";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 type Party = {
@@ -30,6 +31,12 @@ const Voting = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [faceVerified, setFaceVerified] = useState(false);
+  // Post-confirmation verification & OTP fallback states
+  const [pendingVote, setPendingVote] = useState(false);
+  const [showOtp, setShowOtp] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [otpSendTime, setOtpSendTime] = useState<Date | null>(null);
+  const [isOtpLoading, setIsOtpLoading] = useState(false);
   const navigate = useNavigate();
   
   const parties: Party[] = [
@@ -106,45 +113,45 @@ const Voting = () => {
       toast.error('Please select a party first');
       return;
     }
-    // If already verified in this session, go straight to confirmation
-    if (faceVerified) {
-      setIsModalOpen(true);
-    } else {
-      setShowVerification(true);
-    }
+    setIsModalOpen(true);
   };
   
-  const handleVoteConfirm = async () => {
+  const handleVoteConfirm = () => {
     if (!selectedParty) {
       toast.error('No party selected');
       return;
     }
-    
+    // Trigger post-confirmation face verification
+    setIsModalOpen(false);
+    setPendingVote(true);
+    setShowVerification(true);
+  };
+
+  const handleCastVoteAfterAuth = async () => {
+    if (!selectedParty) return;
+
     const selectedPartyDetails = parties.find(party => party.id === selectedParty);
     if (!selectedPartyDetails) {
       toast.error('Selected party not found');
       return;
     }
-    
+
     setIsLoading(true);
-    
-    // Debug token before voting
+
     const currentToken = getAuthToken();
     console.log('Voting: Current auth token present:', !!currentToken);
-    console.log('Voting: Token first 20 chars:', currentToken?.substring(0, 20) || 'none');
-    
+
     try {
       console.log('Voting: Attempting to cast vote for:', selectedPartyDetails);
       const response = await votingService.castVote(selectedPartyDetails.id, selectedPartyDetails.name);
       console.log('Voting: Vote response received:', response);
-      
+
       if (response.success) {
-        const successMessage = response.isAdminTest 
-          ? 'Admin test vote cast successfully! You can vote again.' 
+        const successMessage = response.isAdminTest
+          ? 'Admin test vote cast successfully! You can vote again.'
           : 'Vote cast successfully!';
         toast.success(successMessage);
-        
-        // Store vote data for confirmation page
+
         localStorage.setItem('voteData', JSON.stringify({
           transactionId: response.transactionId,
           partyId: selectedParty,
@@ -152,7 +159,6 @@ const Voting = () => {
           timestamp: new Date().toISOString(),
           isAdminTest: response.isAdminTest
         }));
-        console.log('Voting: Navigating to confirmation page');
         navigate('/confirmation');
       } else {
         console.error('Voting: Vote failed with response error:', response.error);
@@ -160,8 +166,6 @@ const Voting = () => {
       }
     } catch (error: any) {
       console.error('Voting: Vote casting error details:', error);
-      
-      // Handle specific error types
       if (error.message === 'already_voted') {
         toast.error('You have already cast your vote.');
         navigate('/confirmation');
@@ -176,7 +180,54 @@ const Voting = () => {
       }
     } finally {
       setIsLoading(false);
-      setIsModalOpen(false);
+      setPendingVote(false);
+    }
+  };
+
+  const formatPhoneDisplay = (phone: string) =>
+    phone.replace(/(\d{2})(\d{5})(\d{3})/, '+$1 **** $3');
+
+  const getTimeSinceOTP = () => {
+    if (!otpSendTime) return '';
+    const seconds = Math.floor((Date.now() - otpSendTime.getTime()) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes}m ago`;
+  };
+
+  const startOtpFlow = async () => {
+    const userPhone = localStorage.getItem('userPhone') || '';
+    if (!userPhone) {
+      toast.error('No phone number found for OTP.');
+      return;
+    }
+    try {
+      setIsOtpLoading(true);
+      await authService.requestOTP(userPhone);
+      setOtp('');
+      setOtpSendTime(new Date());
+      setShowOtp(true);
+      toast.success('OTP sent for secondary verification');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to send OTP');
+    } finally {
+      setIsOtpLoading(false);
+    }
+  };
+
+  const verifyOtpAndCast = async () => {
+    const userPhone = localStorage.getItem('userPhone') || '';
+    if (!userPhone) return;
+    try {
+      setIsOtpLoading(true);
+      await authService.verifyOTP(userPhone, otp);
+      setShowOtp(false);
+      toast.success('OTP verified');
+      await handleCastVoteAfterAuth();
+    } catch (e: any) {
+      toast.error(e.message || 'Invalid OTP, please try again');
+    } finally {
+      setIsOtpLoading(false);
     }
   };
   
@@ -324,17 +375,40 @@ const Voting = () => {
           </DialogHeader>
           <div className="mt-2">
             <CameraVerification
-              onSuccess={() => {
-                setFaceVerified(true);
+              onSuccess={async () => {
                 setShowVerification(false);
                 toast.success('Facial verification successful');
-                setIsModalOpen(true);
+                await handleCastVoteAfterAuth();
               }}
-              onFailure={() => {
-                toast.error('Face verification failed. Please try again.');
+              onFailure={async () => {
+                setShowVerification(false);
+                toast.error('Face verification failed. Switching to OTP verification.');
+                await startOtpFlow();
               }}
             />
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showOtp} onOpenChange={setShowOtp}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Secondary Verification</DialogTitle>
+            <DialogDescription>
+              Enter the OTP sent to your phone to confirm your vote.
+            </DialogDescription>
+          </DialogHeader>
+          <OTPVerification
+            otp={otp}
+            onOtpChange={setOtp}
+            onVerify={verifyOtpAndCast}
+            onResend={startOtpFlow}
+            phoneNumber={localStorage.getItem('userPhone') || ''}
+            formatPhoneDisplay={formatPhoneDisplay}
+            getTimeSinceOTP={getTimeSinceOTP}
+            otpSendTime={otpSendTime}
+            isLoading={isOtpLoading}
+          />
         </DialogContent>
       </Dialog>
     </div>
