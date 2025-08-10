@@ -39,6 +39,7 @@ const FaceEnrollmentManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentAdminUser, setCurrentAdminUser] = useState<User | null>(null);
+  const [justEnrolled, setJustEnrolled] = useState(false);
   const fetchUsers = async () => {
     try {
       const {
@@ -160,6 +161,8 @@ const FaceEnrollmentManagement: React.FC = () => {
         setShowEnrollment(false);
         setSelectedUser(null);
         await refreshData();
+        setJustEnrolled(true);
+        setTimeout(() => setJustEnrolled(false), 4000);
       } else {
         toast.error(result.error || 'Failed to save face enrollment');
       }
@@ -184,6 +187,8 @@ const FaceEnrollmentManagement: React.FC = () => {
           ...currentAdminUser,
           face_verified: true
         });
+        setJustEnrolled(true);
+        setTimeout(() => setJustEnrolled(false), 4000);
       } else {
         toast.error(result.error || 'Failed to enroll your face');
       }
@@ -278,6 +283,20 @@ const FaceEnrollmentManagement: React.FC = () => {
   }
   return <AdminLayout>
       <div className="space-y-6">
+        {justEnrolled && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-2"
+          >
+            <div className="border border-green-200 rounded-xl p-3 bg-gradient-to-r from-green-50/80 to-emerald-50/80">
+              <div className="flex items-center gap-2 text-green-700">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">Enrollment confirmed</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">Face Enrollment Management</h2>

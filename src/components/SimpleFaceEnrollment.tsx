@@ -177,6 +177,7 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
 
       setProgress(100);
       toast.success('Captured multiple samples successfully');
+      // Show a saving overlay while parent persists descriptors
       onSuccess(descriptors);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Enrollment failed';

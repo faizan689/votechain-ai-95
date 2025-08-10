@@ -106,8 +106,12 @@ const Voting = () => {
       toast.error('Please select a party first');
       return;
     }
-    // Require facial verification before showing confirmation
-    setShowVerification(true);
+    // If already verified in this session, go straight to confirmation
+    if (faceVerified) {
+      setIsModalOpen(true);
+    } else {
+      setShowVerification(true);
+    }
   };
   
   const handleVoteConfirm = async () => {
@@ -309,6 +313,30 @@ const Voting = () => {
         onConfirm={handleVoteConfirm}
         isLoading={isLoading}
       />
+
+      <Dialog open={showVerification} onOpenChange={setShowVerification}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Facial Verification</DialogTitle>
+            <DialogDescription>
+              Please verify your identity to continue to vote confirmation.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2">
+            <CameraVerification
+              onSuccess={() => {
+                setFaceVerified(true);
+                setShowVerification(false);
+                toast.success('Facial verification successful');
+                setIsModalOpen(true);
+              }}
+              onFailure={() => {
+                toast.error('Face verification failed. Please try again.');
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
