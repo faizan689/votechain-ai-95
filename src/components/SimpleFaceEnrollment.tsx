@@ -78,12 +78,43 @@ const SimpleFaceEnrollment: React.FC<SimpleFaceEnrollmentProps> = ({
         video: {
           width: { ideal: 640 },
           height: { ideal: 480 },
-          facingMode: 'user'
-        }
+          facingMode: 'user',
+        },
+        audio: false,
       });
 
-      // Just set the stream in the state. The new useEffect will handle attaching it.
       setStream(mediaStream);
+
+      // Attach and ensure the video is actually playing with valid dimensions
+      if (videoRef.current) {
+        const v = videoRef.current;
+        v.srcObject = mediaStream;
+
+        await new Promise<void>((resolve) => {
+          const onLoaded = () => {
+            v.removeEventListener('loadedmetadata', onLoaded);
+            resolve();
+          };
+          if (v.readyState >= 1) resolve();
+          else v.addEventListener('loadedmetadata', onLoaded);
+        });
+
+        try { await v.play(); } catch {}
+
+        // Wait briefly for dimensions to populate
+        let tries = 0;
+        while ((v.videoWidth === 0 || v.videoHeight === 0) && tries < 20) {
+          await new Promise(r => setTimeout(r, 100));
+          tries++;
+        }
+
+        if (v.videoWidth > 0 && v.videoHeight > 0) {
+          setCameraReady(true);
+          toast.success('Camera ready for face enrollment');
+        } else {
+          throw new Error('Camera stream not ready. Please try again.');
+        }
+      }
 
     } catch (err) {
       throw new Error('Camera access denied. Please allow camera permissions.');

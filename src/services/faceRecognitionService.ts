@@ -252,10 +252,19 @@ export const recognizeFace = async (
  */
 export const createFaceDescriptor = async (imageElement: HTMLImageElement): Promise<number[] | null> => {
   try {
-    const detection = await faceapi
-      .detectSingleFace(imageElement, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+    // Try SSD first with a slightly lower confidence threshold
+    let detection = await faceapi
+      .detectSingleFace(imageElement, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 }))
       .withFaceLandmarks()
       .withFaceDescriptor();
+
+    // Fallback to TinyFaceDetector if SSD fails
+    if (!detection) {
+      detection = await faceapi
+        .detectSingleFace(imageElement, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 }))
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+    }
     
     return detection ? Array.from(detection.descriptor) : null;
   } catch (error) {
