@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { faceEnrollmentService } from '@/services/faceEnrollmentService';
 import { authService } from '@/services/authService';
+import { getAdminToken } from '@/services/api';
 import AdminLayout from '@/components/admin/AdminLayout';
 interface User {
   id: string;
@@ -40,46 +41,33 @@ const FaceEnrollmentManagement: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [currentAdminUser, setCurrentAdminUser] = useState<User | null>(null);
   const [justEnrolled, setJustEnrolled] = useState(false);
-  const fetchUsers = async () => {
+
+  const fetchAllData = async () => {
     try {
-      const {
-        data,
-        error
-      } = await supabase.from('users').select('*').order('created_at', {
-        ascending: false
+      const token = getAdminToken();
+      const { data: result, error } = await supabase.functions.invoke('admin-face-data', {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       if (error) throw error;
-      setUsers(data || []);
+      setUsers((result as any)?.users || []);
+      setEnrollments((result as any)?.enrollments || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('Failed to fetch users');
+      console.error('Error fetching admin face data:', error);
+      toast.error('Failed to fetch admin face data');
     }
   };
-  const fetchEnrollments = async () => {
-    try {
-      const {
-        data,
-        error
-      } = await supabase.from('face_enrollment').select('*').eq('is_active', true).order('enrollment_date', {
-        ascending: false
-      });
-      if (error) throw error;
-      setEnrollments(data || []);
-    } catch (error) {
-      console.error('Error fetching enrollments:', error);
-      toast.error('Failed to fetch enrollments');
-    }
-  };
+
   const refreshData = async () => {
     setRefreshing(true);
-    await Promise.all([fetchUsers(), fetchEnrollments()]);
+    await fetchAllData();
     setRefreshing(false);
   };
+
   useEffect(() => {
     const loadData = async () => {
       console.log('🔄 Starting data load...');
       setLoading(true);
-      await Promise.all([fetchUsers(), fetchEnrollments()]);
+      await fetchAllData();
 
       // Get current admin user using OTP-based authentication
       console.log('🔄 Loading current admin user...');
@@ -133,7 +121,7 @@ const FaceEnrollmentManagement: React.FC = () => {
       table: 'users'
     }, payload => {
       console.log('Users table changed:', payload);
-      fetchUsers();
+      fetchAllData();
     }).subscribe();
     const enrollmentsChannel = supabase.channel('enrollments-channel').on('postgres_changes', {
       event: '*',
@@ -141,7 +129,7 @@ const FaceEnrollmentManagement: React.FC = () => {
       table: 'face_enrollment'
     }, payload => {
       console.log('Face enrollment table changed:', payload);
-      fetchEnrollments();
+      fetchAllData();
     }).subscribe();
     return () => {
       supabase.removeChannel(usersChannel);
