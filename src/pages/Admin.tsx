@@ -57,17 +57,7 @@ const Admin = () => {
   electionEndTime.setHours(electionEndTime.getHours() + 4); // End in 4 hours from now
 
   // Remove socket setup
-  // useEffect(() => {
-  //   initializeSocket();
-  //   joinElection();
-  //   const unsubscribe = onVoteUpdate((data) => {
-  //     setElectionStats(data);
-  //     setLoading(false);
-  //   });
-  //   return () => {
-  //     unsubscribe();
-  //   };
-  // }, []);
+  // Realtime metrics are handled via Supabase subscriptions in hooks
 
   return (
     <AdminLayout>
