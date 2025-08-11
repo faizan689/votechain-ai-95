@@ -255,6 +255,14 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Election Active</Label>
+                      <p className="text-xs text-muted-foreground">Toggle to open/close voting</p>
+                    </div>
+                    <Switch checked={isActive} onCheckedChange={setIsActive} />
+                  </div>
+
                   <Separator />
 
                   <div className="space-y-2">
