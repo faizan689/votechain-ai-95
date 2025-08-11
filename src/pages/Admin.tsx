@@ -48,7 +48,7 @@ const cardHoverVariant = {
 
 const Admin = () => {
   // Election data realtime
-  const { stats: electionStats, loading } = useRealtimeElectionStats();
+  const { metrics, loading } = useAdminMetrics();
   // Security logs realtime for the Security tab
   const { logs: securityLogs } = useRealtimeSecurityLogs(50);
 
@@ -113,7 +113,7 @@ const Admin = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        {loading ? "Loading..." : electionStats?.totalRegisteredVoters.toLocaleString()}
+                        {loading ? "Loading..." : metrics?.totalRegisteredVoters.toLocaleString()}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         Eligible to vote in this election
@@ -134,7 +134,7 @@ const Admin = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        {loading ? "Loading..." : electionStats?.totalVotesCast.toLocaleString()}
+                        {loading ? "Loading..." : metrics?.totalVotesCast.toLocaleString()}
                       </div>
                       <div className="flex items-center mt-1">
                         <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600">
@@ -160,7 +160,7 @@ const Admin = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
-                        {loading ? "Loading..." : `${electionStats?.voterTurnoutPercentage.toFixed(1)}%`}
+                        {loading ? "Loading..." : `${(metrics?.voterTurnoutPercentage ?? 0).toFixed(1)}%`}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         Of registered voters
@@ -198,7 +198,7 @@ const Admin = () => {
                       {loading ? (
                         <div className="flex items-center justify-center h-[300px]">Loading chart data...</div>
                       ) : (
-                        <VotingDistributionChart data={electionStats?.partywiseVotes || []} />
+                        <VotingDistributionChart data={metrics?.partywiseVotes || []} />
                       )}
                     </CardContent>
                   </Card>
@@ -212,7 +212,7 @@ const Admin = () => {
                       {loading ? (
                         <div className="flex items-center justify-center h-[300px]">Loading chart data...</div>
                       ) : (
-                        <TurnoutChart data={electionStats?.districtWiseTurnout || []} />
+                        <TurnoutChart data={metrics ? [{ district: 'Unknown', totalVoters: metrics.totalRegisteredVoters, votesCast: metrics.totalVotesCast, turnout: metrics.voterTurnoutPercentage }] : []} />
                       )}
                     </CardContent>
                   </Card>
@@ -228,7 +228,7 @@ const Admin = () => {
                       {loading ? (
                         <div className="flex items-center justify-center h-[300px]">Loading chart data...</div>
                       ) : (
-                        <ProjectedResultsChart data={electionStats?.partywiseVotes || []} />
+                        <ProjectedResultsChart data={metrics?.partywiseVotes || []} />
                       )}
                     </CardContent>
                   </Card>
@@ -243,8 +243,9 @@ const Admin = () => {
                         <div className="flex items-center justify-center h-[300px]">Loading chart data...</div>
                       ) : (
                         <HourlyActivityChart 
-                          totalVoters={electionStats?.totalRegisteredVoters || 0} 
-                          totalVotesCast={electionStats?.totalVotesCast || 0}
+                          data={metrics?.hourlyActivity}
+                          totalVoters={metrics?.totalRegisteredVoters || 0} 
+                          totalVotesCast={metrics?.totalVotesCast || 0}
                         />
                       )}
                     </CardContent>

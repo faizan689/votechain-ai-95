@@ -57,7 +57,7 @@ const HourlyActivityChart = ({ totalVoters = 0, totalVotesCast = 0, data }: Hour
       });
     }
 
-    return data;
+    return synthetic;
   }, [data, totalVoters, totalVotesCast]);
   
   // Chart configuration
