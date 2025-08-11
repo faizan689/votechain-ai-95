@@ -175,6 +175,7 @@ const FaceEnrollmentManagement: React.FC = () => {
           ...currentAdminUser,
           face_verified: true
         });
+        await refreshData();
         setJustEnrolled(true);
         setTimeout(() => setJustEnrolled(false), 4000);
       } else {

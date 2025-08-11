@@ -9,7 +9,7 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-const JWT_SECRET = new TextEncoder().encode(Deno.env.get('SUPABASE_JWT_SECRET') || 'secret')
+const JWT_SECRET = new TextEncoder().encode(Deno.env.get('JWT_SECRET') || Deno.env.get('SUPABASE_JWT_SECRET') || 'secret')
 
 async function verifyJWT(token: string) {
   try {
