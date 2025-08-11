@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_public_metrics: {
+        Row: {
+          hourly_activity: Json
+          id: number
+          partywise_votes: Json
+          total_registered_voters: number
+          total_votes_cast: number
+          updated_at: string
+          voter_turnout_percentage: number
+        }
+        Insert: {
+          hourly_activity?: Json
+          id?: number
+          partywise_votes?: Json
+          total_registered_voters?: number
+          total_votes_cast?: number
+          updated_at?: string
+          voter_turnout_percentage?: number
+        }
+        Update: {
+          hourly_activity?: Json
+          id?: number
+          partywise_votes?: Json
+          total_registered_voters?: number
+          total_votes_cast?: number
+          updated_at?: string
+          voter_turnout_percentage?: number
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           created_at: string
@@ -329,7 +359,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      recompute_admin_public_metrics: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       alert_type:

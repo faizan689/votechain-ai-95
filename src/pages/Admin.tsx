@@ -15,7 +15,7 @@ import ProjectedResultsChart from "@/components/admin/ProjectedResultsChart";
 import HourlyActivityChart from "@/components/admin/HourlyActivityChart";
 import { Badge } from "@/components/ui/badge";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { useRealtimeElectionStats } from "@/hooks/admin/useRealtimeElectionStats";
+import { useAdminMetrics } from "@/hooks/admin/useAdminMetrics";
 import { useRealtimeSecurityLogs } from "@/hooks/admin/useRealtimeSecurityLogs";
 
 // Animation variants
