@@ -45,12 +45,13 @@ const KYCUpload: React.FC<KYCUploadProps> = ({ userId, onComplete }) => {
       const ivBase64 = toBase64(iv.buffer);
 
       // Send to Edge Function for secure storage + DB insert
+      const isAdmin = typeof window !== 'undefined' && localStorage.getItem('isAdmin') === 'true';
       const res = await apiRequest<{ success: boolean; document_path?: string; error?: string }>('kyc-submit', {
         fileName: file.name,
         contentType: file.type || 'application/octet-stream',
         base64Data,
         ivBase64
-      });
+      }, isAdmin);
 
       if (res && (res as any).success) {
         toast({ title: 'KYC uploaded', description: 'Your document was securely stored.' });

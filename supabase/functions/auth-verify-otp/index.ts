@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { create } from 'https://deno.land/x/djwt@v2.8/mod.ts'
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -31,29 +32,16 @@ function formatPhoneNumber(phone: string): string {
   return digits.startsWith('+') ? phone : `+91${digits}`;
 }
 
-// Simple JWT creation function
-async function createJWT(payload: any, secret: string): Promise<string> {
-  const header = {
-    alg: "HS256",
-    typ: "JWT"
-  };
-
-  const encodedHeader = btoa(JSON.stringify(header));
-  const encodedPayload = btoa(JSON.stringify(payload));
-  
-  const signatureInput = `${encodedHeader}.${encodedPayload}`;
+// JWT creation with base64url using djwt
+async function createHS256JWT(payload: any, secret: string): Promise<string> {
   const key = await crypto.subtle.importKey(
-    "raw",
+    'raw',
     new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
+    { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ["sign"]
+    ['sign', 'verify']
   );
-  
-  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signatureInput));
-  const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)));
-  
-  return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+  return await create({ alg: 'HS256', typ: 'JWT' }, payload, key);
 }
 
 serve(async (req) => {
@@ -149,7 +137,7 @@ serve(async (req) => {
         exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
       }
 
-      const token = await createJWT(payload, JWT_SECRET);
+      const token = await createHS256JWT(payload, JWT_SECRET);
       console.log('OTP Verification - Admin token generated successfully');
 
       return new Response(
@@ -275,7 +263,7 @@ serve(async (req) => {
     }
 
     try {
-      const token = await createJWT(payload, JWT_SECRET);
+      const token = await createHS256JWT(payload, JWT_SECRET);
       console.log('OTP Verification - JWT token generated successfully');
 
       console.log('OTP Verification - Success, returning token');
