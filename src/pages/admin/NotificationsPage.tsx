@@ -1,13 +1,14 @@
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Bell, Check, Trash2, AlertTriangle, UserCheck, BarChart } from "lucide-react";
+import { Bell, Check, Trash2 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Toggle } from "@/components/ui/toggle";
+import { useRealtimeNotifications } from "@/hooks/admin/useRealtimeNotifications";
 
 // Animation variants
 const containerVariant = {
@@ -29,105 +30,26 @@ const itemVariant = {
   }
 };
 
-interface Notification {
-  id: number;
-  type: 'registration' | 'security' | 'milestone';
-  title: string;
-  description: string;
-  time: string;
-  isRead: boolean;
-  icon: React.ElementType;
-  iconColor: string;
-  iconBgColor: string;
-}
-
-// Mock notifications data
-const initialNotifications: Notification[] = [
-  {
-    id: 1,
-    type: 'security',
-    title: 'Suspicious Activity Detected',
-    description: 'Multiple failed verification attempts from IP 103.54.12.87',
-    time: '10 minutes ago',
-    isRead: false,
-    icon: AlertTriangle,
-    iconColor: 'text-amber-500',
-    iconBgColor: 'bg-amber-100'
-  },
-  {
-    id: 2,
-    type: 'registration',
-    title: 'New Voter Registered',
-    description: 'Voter ID: BTR78932 has completed registration process',
-    time: '25 minutes ago',
-    isRead: true,
-    icon: UserCheck,
-    iconColor: 'text-green-500',
-    iconBgColor: 'bg-green-100'
-  },
-  {
-    id: 3,
-    type: 'milestone',
-    title: '1,000 Votes Milestone Reached',
-    description: 'The voting system has recorded 1,000 votes',
-    time: '2 hours ago',
-    isRead: false,
-    icon: BarChart,
-    iconColor: 'text-blue-500',
-    iconBgColor: 'bg-blue-100'
-  },
-  {
-    id: 4,
-    type: 'security',
-    title: 'Deepfake Detection Alert',
-    description: 'Potential deepfake detected during verification for voter INR56782',
-    time: '3 hours ago',
-    isRead: false,
-    icon: AlertTriangle,
-    iconColor: 'text-red-500',
-    iconBgColor: 'bg-red-100'
-  },
-  {
-    id: 5,
-    type: 'milestone',
-    title: '30% Turnout Reached',
-    description: 'Voter turnout has reached 30% of registered voters',
-    time: '4 hours ago',
-    isRead: true,
-    icon: BarChart,
-    iconColor: 'text-purple-500',
-    iconBgColor: 'bg-purple-100'
-  },
-];
-
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const { notifications, markAsRead, deleteNotification } = useRealtimeNotifications();
   const [activeFilter, setActiveFilter] = useState<string>("all");
 
-  const unreadCount = notifications.filter(notification => !notification.isRead).length;
+  const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
 
-  const filteredNotifications = notifications.filter(notification => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'unread') return !notification.isRead;
-    return notification.type === activeFilter;
-  });
-
-  const markAsRead = (id: number) => {
-    setNotifications(notifications.map(notification =>
-      notification.id === id ? { ...notification, isRead: true } : notification
-    ));
-  };
-
-  const deleteNotification = (id: number) => {
-    setNotifications(notifications.filter(notification => notification.id !== id));
-  };
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter(notification => {
+      if (activeFilter === 'all') return true;
+      if (activeFilter === 'unread') return !notification.isRead;
+      return notification.type === activeFilter;
+    });
+  }, [notifications, activeFilter]);
 
   const markAllAsRead = () => {
-    setNotifications(notifications.map(notification => ({ ...notification, isRead: true })));
+    notifications.forEach(n => markAsRead(n.id));
   };
 
   const deleteAllNotifications = () => {
-    setNotifications([]);
+    notifications.forEach(n => deleteNotification(n.id));
   };
 
   return (
@@ -183,7 +105,6 @@ export default function NotificationsPage() {
             </TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="registration">Registration</TabsTrigger>
-            <TabsTrigger value="milestone">Milestones</TabsTrigger>
           </TabsList>
 
           <TabsContent value={activeFilter}>
@@ -197,7 +118,6 @@ export default function NotificationsPage() {
                       {activeFilter === 'unread' && 'Unread Notifications'}
                       {activeFilter === 'security' && 'Security Alerts'}
                       {activeFilter === 'registration' && 'Registration Updates'}
-                      {activeFilter === 'milestone' && 'Voting Milestones'}
                     </span>
                   </CardTitle>
                 </CardHeader>

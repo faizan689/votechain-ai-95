@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Search, Filter, Download, UserCheck, UserX, Info } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { useRealtimeUsers } from "@/hooks/admin/useRealtimeUsers";
 
 // Animation variants
 const containerVariant = {
@@ -31,68 +32,22 @@ const itemVariant = {
   }
 };
 
-// Mock data for users
-const mockUsers = [
-  { 
-    id: 1, 
-    name: "Rahul Sharma", 
-    voterId: "ABS123456", 
-    status: "Verified", 
-    lastActivity: "2023-04-15 10:30 AM",
-    address: "123 Main St, Mumbai",
-    mobile: "+91 98765 43210"
-  },
-  { 
-    id: 2, 
-    name: "Priya Patel", 
-    voterId: "XYZ789012", 
-    status: "Pending", 
-    lastActivity: "2023-04-14 02:15 PM",
-    address: "456 Park Ave, Delhi",
-    mobile: "+91 87654 32109"
-  },
-  { 
-    id: 3, 
-    name: "Amit Kumar", 
-    voterId: "PQR345678", 
-    status: "Flagged", 
-    lastActivity: "2023-04-16 09:45 AM",
-    address: "789 Lake View, Chennai",
-    mobile: "+91 76543 21098"
-  },
-  { 
-    id: 4, 
-    name: "Sunita Devi", 
-    voterId: "LMN901234", 
-    status: "Verified", 
-    lastActivity: "2023-04-13 11:20 AM",
-    address: "321 Hill Road, Bangalore",
-    mobile: "+91 65432 10987"
-  },
-  { 
-    id: 5, 
-    name: "Vikram Singh", 
-    voterId: "DEF567890", 
-    status: "Pending", 
-    lastActivity: "2023-04-15 03:50 PM",
-    address: "654 River Side, Kolkata",
-    mobile: "+91 54321 09876"
-  },
-];
-
 export default function UsersPage() {
+  const { users, loading } = useRealtimeUsers();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 5;
 
   // Filter users based on search query and status filter
-  const filteredUsers = mockUsers.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         user.voterId.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || user.status.toLowerCase() === statusFilter.toLowerCase();
-    return matchesSearch && matchesStatus;
-  });
+  const filteredUsers = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return users.filter(user => {
+      const matchesSearch = user.name.toLowerCase().includes(q) || user.voterId.toLowerCase().includes(q);
+      const matchesStatus = statusFilter === "all" || user.status.toLowerCase() === statusFilter.toLowerCase();
+      return matchesSearch && matchesStatus;
+    });
+  }, [users, searchQuery, statusFilter]);
 
   // Get current users for pagination
   const indexOfLastUser = currentPage * usersPerPage;
@@ -125,7 +80,7 @@ export default function UsersPage() {
             <h1 className="text-2xl font-bold">Voter Management</h1>
             <p className="text-sm text-muted-foreground">View and manage registered voters</p>
           </div>
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2" onClick={() => console.log("Export users CSV")}>
             <Download size={16} />
             Export Data
           </Button>
@@ -181,25 +136,39 @@ export default function UsersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {currentUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>{user.name}</TableCell>
-                        <TableCell>{user.voterId}</TableCell>
-                        <TableCell>{getStatusBadge(user.status)}</TableCell>
-                        <TableCell>{user.lastActivity}</TableCell>
-                        <TableCell className="text-right space-x-1">
-                          <Button variant="ghost" size="icon" title="Verify">
-                            <UserCheck className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" title="Flag">
-                            <UserX className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" title="Details">
-                            <Info className="h-4 w-4" />
-                          </Button>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
+                          Loading users...
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : currentUsers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
+                          No users found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      currentUsers.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell>{user.name}</TableCell>
+                          <TableCell>{user.voterId}</TableCell>
+                          <TableCell>{getStatusBadge(user.status)}</TableCell>
+                          <TableCell>{user.lastActivity}</TableCell>
+                          <TableCell className="text-right space-x-1">
+                            <Button variant="ghost" size="icon" title="Verify">
+                              <UserCheck className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" title="Flag">
+                              <UserX className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" title="Details">
+                              <Info className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>

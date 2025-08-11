@@ -1,10 +1,12 @@
+
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Shield, User, BarChart3, Clock, AlertTriangle, TrendingUp, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { initializeSocket, joinElection, onVoteUpdate } from "@/lib/socket";
-import { ElectionStats, SecurityLog } from "@/types/api";
+// Remove socket imports and types, replace with realtime hooks
+// import { initializeSocket, joinElection, onVoteUpdate } from "@/lib/socket";
+// import { ElectionStats, SecurityLog } from "@/types/api";
 import SecurityLogsTable from "@/components/admin/SecurityLogsTable";
 import VotingDistributionChart from "@/components/admin/VotingDistributionChart";
 import TurnoutChart from "@/components/admin/TurnoutChart";
@@ -13,6 +15,8 @@ import ProjectedResultsChart from "@/components/admin/ProjectedResultsChart";
 import HourlyActivityChart from "@/components/admin/HourlyActivityChart";
 import { Badge } from "@/components/ui/badge";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { useRealtimeElectionStats } from "@/hooks/admin/useRealtimeElectionStats";
+import { useRealtimeSecurityLogs } from "@/hooks/admin/useRealtimeSecurityLogs";
 
 // Animation variants
 const containerVariant = {
@@ -43,67 +47,27 @@ const cardHoverVariant = {
 };
 
 const Admin = () => {
-  // Election data state
-  const [electionStats, setElectionStats] = useState<ElectionStats | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  
-  // Mock security logs
-  const [securityLogs, setSecurityLogs] = useState<SecurityLog[]>([
-    {
-      id: "log-001",
-      timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-      type: "facial-verification",
-      status: "failed",
-      voter: "John Smith",
-      voterID: "V-1234",
-      location: "North District",
-      description: "Low confidence score (42%)",
-      severity: "medium",
-    },
-    {
-      id: "log-002",
-      timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-      type: "duplicate-vote",
-      status: "blocked",
-      voter: "Alice Johnson",
-      voterID: "V-5678",
-      location: "Central District",
-      description: "Previous vote recorded at 10:22 AM",
-      severity: "high",
-    },
-    {
-      id: "log-003",
-      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      type: "unauthorized-access",
-      status: "blocked",
-      voter: "Unknown",
-      voterID: "N/A",
-      location: "East District",
-      description: "Multiple failed login attempts",
-      severity: "critical",
-    },
-  ]);
+  // Election data realtime
+  const { stats: electionStats, loading } = useRealtimeElectionStats();
+  // Security logs realtime for the Security tab
+  const { logs: securityLogs } = useRealtimeSecurityLogs(50);
 
   // Election timing
   const electionEndTime = new Date();
   electionEndTime.setHours(electionEndTime.getHours() + 4); // End in 4 hours from now
 
-  useEffect(() => {
-    // Initialize the socket connection for real-time updates
-    initializeSocket();
-    joinElection();
-    
-    // Subscribe to vote updates
-    const unsubscribe = onVoteUpdate((data) => {
-      setElectionStats(data);
-      setLoading(false);
-    });
-    
-    // Cleanup on unmount
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+  // Remove socket setup
+  // useEffect(() => {
+  //   initializeSocket();
+  //   joinElection();
+  //   const unsubscribe = onVoteUpdate((data) => {
+  //     setElectionStats(data);
+  //     setLoading(false);
+  //   });
+  //   return () => {
+  //     unsubscribe();
+  //   };
+  // }, []);
 
   return (
     <AdminLayout>

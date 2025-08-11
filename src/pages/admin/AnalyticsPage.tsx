@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Download, BarChart3, PieChart, MapPin, BarChart } from "lucide-react";
+import { Download, BarChart3, PieChart, MapPin } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AreaChart,
   Area,
-  LineChart,
-  Line,
-  BarChart as ReBarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -21,8 +17,11 @@ import {
   PieChart as RePieChart,
   Pie,
   Cell,
-  Legend
+  Legend,
+  BarChart as ReBarChart,
+  Bar,
 } from "recharts";
+import { useRealtimeAnalytics } from "@/hooks/admin/useRealtimeAnalytics";
 
 // Animation variants
 const containerVariant = {
@@ -44,46 +43,14 @@ const itemVariant = {
   }
 };
 
-// Mock data for voting trends
-const votingTrends = [
-  { time: '8:00 AM', votes: 120 },
-  { time: '9:00 AM', votes: 180 },
-  { time: '10:00 AM', votes: 250 },
-  { time: '11:00 AM', votes: 320 },
-  { time: '12:00 PM', votes: 180 },
-  { time: '1:00 PM', votes: 290 },
-  { time: '2:00 PM', votes: 370 },
-  { time: '3:00 PM', votes: 410 },
-  { time: '4:00 PM', votes: 380 },
-  { time: '5:00 PM', votes: 450 },
-];
-
-// Mock data for platform usage
-const platformUsage = [
-  { name: 'Mobile', value: 65 },
-  { name: 'Web', value: 25 },
-  { name: 'Desktop App', value: 10 },
-];
-
-// Mock data for regional distribution
-const regionalDistribution = [
-  { region: 'North', votes: 1200 },
-  { region: 'South', votes: 980 },
-  { region: 'East', votes: 1100 },
-  { region: 'West', votes: 890 },
-  { region: 'Central', votes: 750 },
-];
-
-// Platform usage chart colors
-const PLATFORM_COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
+const PLATFORM_COLORS = ['#0088FE', '#00C49F'];
 
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState("trends");
+  const { hourly, platforms, regional, loading } = useRealtimeAnalytics();
 
   const exportData = (dataType: string) => {
-    // In a real implementation, this would generate and download a CSV file
     console.log(`Exporting ${dataType} data as CSV`);
-    // Mock success message
     alert(`${dataType} data exported successfully!`);
   };
 
@@ -138,7 +105,7 @@ export default function AnalyticsPage() {
                   <div className="h-[400px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart
-                        data={votingTrends}
+                        data={hourly}
                         margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                       >
                         <defs>
@@ -185,7 +152,7 @@ export default function AnalyticsPage() {
                     <ResponsiveContainer width="100%" height="100%">
                       <RePieChart>
                         <Pie
-                          data={platformUsage}
+                          data={platforms}
                           cx="50%"
                           cy="50%"
                           labelLine={false}
@@ -194,7 +161,7 @@ export default function AnalyticsPage() {
                           dataKey="value"
                           label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                         >
-                          {platformUsage.map((entry, index) => (
+                          {platforms.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={PLATFORM_COLORS[index % PLATFORM_COLORS.length]} />
                           ))}
                         </Pie>
@@ -226,7 +193,7 @@ export default function AnalyticsPage() {
                   <div className="h-[400px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <ReBarChart
-                        data={regionalDistribution}
+                        data={regional}
                         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" />
