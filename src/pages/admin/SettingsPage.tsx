@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { 
   Settings, 
@@ -26,6 +26,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { getAdminToken } from "@/services/api";
 
 // Animation variants
 const containerVariant = {
@@ -52,9 +54,10 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("election");
   
   // Election settings
-  const [electionStart, setElectionStart] = useState<string>("2023-04-18T08:00");
-  const [electionEnd, setElectionEnd] = useState<string>("2023-04-18T18:00");
+  const [electionStart, setElectionStart] = useState<string>("");
+  const [electionEnd, setElectionEnd] = useState<string>("");
   const [votesGoal, setVotesGoal] = useState<string>("5000");
+  const [isActive, setIsActive] = useState<boolean>(false);
   
   // Security settings
   const [facialAuthEnabled, setFacialAuthEnabled] = useState<boolean>(true);
@@ -72,14 +75,81 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
 
-  const handleSaveSettings = (settingType: string) => {
-    // In a real implementation, this would save the settings to a backend
+  // Load schedule and subscribe to realtime updates
+  useEffect(() => {
+    const fetchSchedule = async () => {
+      try {
+        const token = getAdminToken();
+        const url = "https://zjymowjrqidmgslauauv.supabase.co/functions/v1/admin-schedule";
+        const res = await fetch(url, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        const json = await res.json();
+        const schedule = (json as any)?.schedule;
+        if (schedule) {
+          setElectionStart(schedule.voting_start ? schedule.voting_start.slice(0, 16) : "");
+          setElectionEnd(schedule.voting_end ? schedule.voting_end.slice(0, 16) : "");
+          setIsActive(!!schedule.is_active);
+        }
+      } catch (e) {
+        console.error("[Settings] fetchSchedule error", e);
+      }
+    };
+
+    fetchSchedule();
+
+    const channel = supabase
+      .channel("realtime-voting-schedule")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "voting_schedule" },
+        () => fetchSchedule()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleSaveSettings = async (settingType: string) => {
+    if (settingType === "election") {
+      try {
+        const token = getAdminToken();
+        const url = "https://zjymowjrqidmgslauauv.supabase.co/functions/v1/admin-schedule";
+        const res = await fetch(url, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            votingStart: electionStart,
+            votingEnd: electionEnd,
+            isActive,
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error((json as any)?.error || "Failed to update schedule");
+        toast({ title: "Election schedule saved", description: "Schedule updated successfully." });
+        return;
+      } catch (e: any) {
+        console.error("[Settings] save election error", e);
+        toast({ title: "Save failed", description: e.message || "Unable to save schedule.", variant: "destructive" });
+        return;
+      }
+    }
+
+    // Default toast for other tabs
     toast({
       title: "Settings saved",
       description: `Your ${settingType} settings have been updated successfully.`,
     });
   };
-
   const handlePasswordChange = () => {
     // Simple validation
     if (!currentPassword) {
