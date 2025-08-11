@@ -10,7 +10,7 @@ interface ProjectedResultsChartProps {
   data: PartyVoteStats[];
 }
 
-const ProjectedResultsChart = ({ data }: ProjectedResultsChartProps) => {
+const ProjectedResultsChart = ({ data = [] }: ProjectedResultsChartProps) => {
   // Map party IDs to short names and colors
   const partyMap = {
     "PTY-001": { short: "INC", color: "#0078D7", full: "Indian National Congress" },
