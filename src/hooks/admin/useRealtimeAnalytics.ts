@@ -34,10 +34,10 @@ export function useRealtimeAnalytics() {
         .select("user_id, timestamp");
       if (votesErr) throw votesErr;
 
-      // Users for district mapping
+      // Users for mapping (district not available; default to "Unknown")
       const { data: users, error: usersErr } = await supabase
         .from("users")
-        .select("id, district");
+        .select("id"); // removed 'district' column to match current schema
       if (usersErr) throw usersErr;
 
       // Security alerts for platform usage
@@ -80,9 +80,9 @@ export function useRealtimeAnalytics() {
             { name: "Web/Desktop", value: Math.round((desktop / totalUA) * 100) },
           ];
 
-      // Regional distribution
+      // Regional distribution (default to "Unknown" without district column)
       const userDistrict = new Map<string, string>();
-      users?.forEach((u) => userDistrict.set(u.id, u.district || "Unknown"));
+      users?.forEach((u) => userDistrict.set(u.id, "Unknown"));
       const regionCounts = new Map<string, number>();
       votes?.forEach((v) => {
         const d = userDistrict.get(v.user_id) || "Unknown";

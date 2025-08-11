@@ -29,10 +29,10 @@ export function useRealtimeElectionStats() {
         .select("user_id, party_id, party_name, timestamp");
       if (votesErr) throw votesErr;
 
-      // Users for district map
+      // Users for district map (district not present; default to "Unknown")
       const { data: usersDistricts, error: usersDistrictErr } = await supabase
         .from("users")
-        .select("id, district");
+        .select("id"); // removed 'district' column to match current schema
       if (usersDistrictErr) throw usersDistrictErr;
 
       const totalVotesCast = votes?.length ?? 0;
@@ -60,15 +60,15 @@ export function useRealtimeElectionStats() {
         percentage: totalVotesCast > 0 ? (p.votes / totalVotesCast) * 100 : 0,
       }));
 
-      // District-wise turnout
+      // District-wise turnout (default "Unknown")
       const usersByDistrict = new Map<string, number>();
       usersDistricts?.forEach((u) => {
-        const d = u.district || "Unknown";
+        const d = "Unknown";
         usersByDistrict.set(d, (usersByDistrict.get(d) || 0) + 1);
       });
       const votesByDistrict = new Map<string, number>();
       const userDistrictLookup = new Map<string, string>();
-      usersDistricts?.forEach((u) => userDistrictLookup.set(u.id, u.district || "Unknown"));
+      usersDistricts?.forEach((u) => userDistrictLookup.set(u.id, "Unknown"));
       votes?.forEach((v) => {
         const d = userDistrictLookup.get(v.user_id) || "Unknown";
         votesByDistrict.set(d, (votesByDistrict.get(d) || 0) + 1);

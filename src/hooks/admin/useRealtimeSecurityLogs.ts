@@ -48,7 +48,7 @@ export function useRealtimeSecurityLogs(limit: number = 50) {
           status: r.resolved ? "blocked" : "failed",
           voter: r.user_email || r.user_phone || "Unknown",
           voterID: r.user_id || "N/A",
-          location: r.ip_address || "N/A",
+          location: String(r.ip_address || "N/A"),
           description:
             (r.details && typeof r.details === "object" && (r.details as any).message) ||
             (r.user_agent ? `User agent: ${r.user_agent}` : "Security alert"),
@@ -76,7 +76,7 @@ export function useRealtimeSecurityLogs(limit: number = 50) {
       })
       .subscribe();
 
-    return () => {
+  return () => {
       supabase.removeChannel(channel);
     };
   }, [limit]);
