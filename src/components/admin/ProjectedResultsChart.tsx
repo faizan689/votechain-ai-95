@@ -46,7 +46,7 @@ const ProjectedResultsChart = ({ data }: ProjectedResultsChartProps) => {
   }).sort((a, b) => b.projected - a.projected);
   
   // Find projected winner
-  const projectedWinner = [...projectedData].sort((a, b) => b.projected - a.projected)[0];
+  const projectedWinner = projectedData.length ? [...projectedData].sort((a, b) => b.projected - a.projected)[0] : undefined;
   
   // Chart configuration
   const chartConfig = {
@@ -69,7 +69,7 @@ const ProjectedResultsChart = ({ data }: ProjectedResultsChartProps) => {
           <h3 className="text-sm font-medium text-muted-foreground">Projected Results</h3>
         </div>
         <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
-          Projected Winner: {projectedWinner.name}
+          Projected Winner: {projectedWinner?.name ?? "N/A"}
         </Badge>
       </div>
 
