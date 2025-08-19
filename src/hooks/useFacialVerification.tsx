@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from "react";
-import * as facialRecognitionService from "@/services/facialRecognitionService";
 import * as faceRecognitionService from "@/services/faceRecognitionService";
 
 interface UseFacialVerificationOptions {
@@ -80,23 +79,14 @@ export function useFacialVerification({
       // Always attempt user-specific recognition using enrolled data from Supabase
       const result = await faceRecognitionService.recognizeFaceForUser(videoRef.current, userId);
       
-      if (result.isAuthorized && result.confidence > 0.6) {
+      if (result.isAuthorized && result.confidence > 0.65) {
         setVerificationSuccess(true);
         setTimeout(() => {
           if (onSuccess) onSuccess();
         }, 1500);
       } else {
-        // Fallback to legacy verification (optional)
-        const legacyResult = userEmail ? await facialRecognitionService.processFacialVerification(videoRef.current, userEmail) : null;
-        if (legacyResult?.success) {
-          setVerificationSuccess(true);
-          setTimeout(() => {
-            if (onSuccess) onSuccess();
-          }, 1500);
-        } else {
-          setVerificationFailed(true);
-          if (onFailure) onFailure();
-        }
+        setVerificationFailed(true);
+        if (onFailure) onFailure();
       }
     } catch (error) {
       console.error("Facial verification error:", error);

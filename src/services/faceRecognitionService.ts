@@ -354,3 +354,36 @@ export const detectLiveness = (
   const changePercentage = (diffCount * sampleRate) / (currentFrame.data.length / 4) * 100;
   return changePercentage > 1;
 };
+
+/**
+ * Face detection for video stream
+ */
+export const detectFaceInVideo = async (videoElement: HTMLVideoElement): Promise<{
+  box: { x: number; y: number; width: number; height: number };
+  confidence: number;
+} | null> => {
+  try {
+    const detections = await faceapi
+      .detectAllFaces(videoElement, getFaceDetectorOptions())
+      .withFaceLandmarks();
+    
+    if (!detections || detections.length === 0) {
+      return null;
+    }
+    
+    // Return the first detection with highest confidence
+    const detection = detections[0];
+    return {
+      box: {
+        x: detection.detection.box.x,
+        y: detection.detection.box.y,
+        width: detection.detection.box.width,
+        height: detection.detection.box.height
+      },
+      confidence: detection.detection.score
+    };
+  } catch (error) {
+    console.error('Face detection error:', error);
+    return null;
+  }
+};

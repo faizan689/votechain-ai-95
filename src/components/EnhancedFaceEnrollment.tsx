@@ -2,18 +2,21 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Camera, CheckCircle, XCircle, RefreshCw, Shield, Eye } from 'lucide-react';
-import * as faceRecognitionService from '@/services/faceRecognitionService';
+import { Camera, CheckCircle, XCircle, RefreshCw, Eye, Shield } from 'lucide-react';
 import { toast } from 'sonner';
+import * as faceRecognitionService from '@/services/faceRecognitionService';
+import * as enhancedFaceRecognition from '@/services/enhancedFaceRecognition';
 
-interface SimpleFaceVerificationProps {
-  onSuccess: (confidence: number) => void;
-  onFailure: (error: string) => void;
+interface EnhancedFaceEnrollmentProps {
+  userId: string;
+  onSuccess: (faceDescriptors: number[][]) => void;
+  onSkip: () => void;
 }
 
-const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
+const EnhancedFaceEnrollment: React.FC<EnhancedFaceEnrollmentProps> = ({
+  userId,
   onSuccess,
-  onFailure
+  onSkip
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -21,11 +24,17 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
-  const [isVerifying, setIsVerifying] = useState(false);
+  const [isEnrolling, setIsEnrolling] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
-  const [confidence, setConfidence] = useState(0);
-  const [livenessScore, setLivenessScore] = useState(0);
+  const [faceQuality, setFaceQuality] = useState<{
+    isGoodQuality: boolean;
+    issues: string[];
+    brightness: number;
+    sharpness: number;
+  } | null>(null);
+  const [captureCount, setCaptureCount] = useState(0);
+  const [totalCaptures] = useState(5);
 
   useEffect(() => {
     initializeSystem();
@@ -36,25 +45,28 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
     };
   }, []);
 
-  // Real-time face detection
+  // Real-time face detection and quality analysis
   useEffect(() => {
     let animationFrame: number;
     
-    const detectFaceInRealTime = async () => {
-      if (videoRef.current && cameraReady && !isVerifying) {
+    const analyzeRealTime = async () => {
+      if (videoRef.current && cameraReady && !isEnrolling) {
         try {
-          const video = videoRef.current;
-          const detection = await faceRecognitionService.detectFaceInVideo(video);
+          const detection = await enhancedFaceRecognition.detectFaceWithQuality(videoRef.current);
           
           if (detection) {
             setFaceDetected(true);
-            setConfidence(detection.confidence);
+            setFaceQuality({
+              isGoodQuality: detection.quality.isGoodQuality,
+              issues: detection.quality.issues,
+              brightness: detection.quality.brightness,
+              sharpness: detection.quality.sharpness
+            });
             
-            // Draw detection overlay
             drawFaceOverlay(detection);
           } else {
             setFaceDetected(false);
-            setConfidence(0);
+            setFaceQuality(null);
             clearCanvas();
           }
         } catch (error) {
@@ -62,11 +74,11 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
         }
       }
       
-      animationFrame = requestAnimationFrame(detectFaceInRealTime);
+      animationFrame = requestAnimationFrame(analyzeRealTime);
     };
 
-    if (cameraReady && !isVerifying) {
-      detectFaceInRealTime();
+    if (cameraReady && !isEnrolling) {
+      analyzeRealTime();
     }
 
     return () => {
@@ -74,7 +86,7 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
         cancelAnimationFrame(animationFrame);
       }
     };
-  }, [cameraReady, isVerifying]);
+  }, [cameraReady, isEnrolling]);
 
   const drawFaceOverlay = (detection: any) => {
     if (!canvasRef.current || !videoRef.current) return;
@@ -91,14 +103,21 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
     
     // Draw bounding box
     const { x, y, width, height } = detection.box;
-    ctx.strokeStyle = faceDetected && confidence > 0.7 ? '#10b981' : '#f59e0b';
+    const color = detection.quality.isGoodQuality ? '#10b981' : '#f59e0b';
+    ctx.strokeStyle = color;
     ctx.lineWidth = 3;
     ctx.strokeRect(x, y, width, height);
     
-    // Draw confidence
-    ctx.fillStyle = ctx.strokeStyle;
-    ctx.font = '16px Arial';
-    ctx.fillText(`${Math.round(confidence * 100)}%`, x, y - 10);
+    // Draw confidence and quality indicators
+    ctx.fillStyle = color;
+    ctx.font = '14px Arial';
+    ctx.fillText(`${Math.round(detection.confidence * 100)}%`, x, y - 25);
+    
+    if (detection.quality.issues.length > 0) {
+      ctx.fillStyle = '#ef4444';
+      ctx.font = '12px Arial';
+      ctx.fillText(detection.quality.issues[0], x, y - 10);
+    }
   };
 
   const clearCanvas = () => {
@@ -123,7 +142,7 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
       // Start camera
       await startCamera();
       setCameraReady(true);
-      toast.success('Camera ready for verification');
+      toast.success('Camera ready for face enrollment');
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to initialize';
       setError(errorMsg);
@@ -146,28 +165,36 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
       setStream(mediaStream);
       
       if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
+        const video = videoRef.current;
+        video.srcObject = mediaStream;
         
         // Wait for video to be ready
         await new Promise<void>((resolve) => {
           const onLoaded = () => {
-            videoRef.current?.removeEventListener('loadedmetadata', onLoaded);
+            video.removeEventListener('loadedmetadata', onLoaded);
             resolve();
           };
           
-          if (videoRef.current!.readyState >= 1) {
+          if (video.readyState >= 1) {
             resolve();
           } else {
-            videoRef.current!.addEventListener('loadedmetadata', onLoaded);
+            video.addEventListener('loadedmetadata', onLoaded);
           }
         });
+
+        // Wait for video dimensions
+        let tries = 0;
+        while ((video.videoWidth === 0 || video.videoHeight === 0) && tries < 20) {
+          await new Promise(r => setTimeout(r, 100));
+          tries++;
+        }
       }
     } catch (err) {
       throw new Error('Camera access denied. Please allow camera permissions.');
     }
   };
 
-  const handleVerifyFace = async () => {
+  const handleEnrollFace = async () => {
     if (!videoRef.current || !cameraReady) {
       toast.error('Camera not ready');
       return;
@@ -178,57 +205,59 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
       return;
     }
 
-    setIsVerifying(true);
+    if (!faceQuality?.isGoodQuality) {
+      toast.error(`Please improve: ${faceQuality?.issues.join(', ')}`);
+      return;
+    }
+
+    setIsEnrolling(true);
     setProgress(0);
+    setCaptureCount(0);
 
     try {
-      // Progress simulation
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 8, 85));
-      }, 100);
+      // Use enhanced enrollment with quality validation
+      const enrollmentResult = await enhancedFaceRecognition.enrollFaceWithQuality(
+        videoRef.current,
+        totalCaptures
+      );
 
-      // Get user ID from storage
-      const storedUserId = localStorage.getItem('userId') || '';
-      const userPhone = localStorage.getItem('userPhone') || '';
-      const userEmail = localStorage.getItem('userEmail') || '';
-      const userId = storedUserId || userPhone || userEmail;
-
-      if (!userId) {
-        throw new Error('No user identifier found. Please log in again.');
+      if (!enrollmentResult.success) {
+        throw new Error(enrollmentResult.error || 'Enrollment failed');
       }
 
-      // Perform face recognition
-      const result = await faceRecognitionService.recognizeFaceForUser(videoRef.current, userId);
+      // Convert descriptors to regular arrays for compatibility
+      const descriptorArrays = enrollmentResult.descriptors.map(desc => Array.from(desc));
 
-      clearInterval(progressInterval);
+      // Cache averaged descriptor for backward compatibility
+      if (enrollmentResult.averageDescriptor) {
+        const avgArray = Array.from(enrollmentResult.averageDescriptor);
+        localStorage.setItem(`faceDescriptor_${userId}`, JSON.stringify(avgArray));
+      }
+
       setProgress(100);
+      toast.success(`Successfully enrolled ${enrollmentResult.descriptors.length} face samples!`);
+      
+      // Brief delay to show completion
+      setTimeout(() => {
+        onSuccess(descriptorArrays);
+      }, 1000);
 
-      // Enhanced validation with multiple checks
-      const isSuccessful = result.isAuthorized && result.confidence >= 0.65;
-
-      if (isSuccessful) {
-        toast.success(`Face verified! Confidence: ${(result.confidence * 100).toFixed(1)}%`);
-        onSuccess(result.confidence);
-      } else {
-        const errorMsg = `Face verification failed. Confidence: ${(result.confidence * 100).toFixed(1)}%`;
-        toast.error(errorMsg);
-        onFailure(errorMsg);
-      }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Verification failed';
+      const errorMsg = err instanceof Error ? err.message : 'Enrollment failed';
       setError(errorMsg);
       toast.error(errorMsg);
-      onFailure(errorMsg);
     } finally {
-      setIsVerifying(false);
+      setIsEnrolling(false);
       setProgress(0);
+      setCaptureCount(0);
     }
   };
 
   const handleRetry = () => {
     setError(null);
     setFaceDetected(false);
-    setConfidence(0);
+    setFaceQuality(null);
+    setCaptureCount(0);
     initializeSystem();
   };
 
@@ -250,10 +279,15 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
         <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-red-700 mb-2">Error</h3>
         <p className="text-red-600 mb-4">{error}</p>
-        <Button onClick={handleRetry} variant="outline">
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Try Again
-        </Button>
+        <div className="flex gap-2 justify-center">
+          <Button onClick={handleRetry} variant="outline">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Try Again
+          </Button>
+          <Button onClick={onSkip} variant="ghost">
+            Skip for Now
+          </Button>
+        </div>
       </Card>
     );
   }
@@ -262,10 +296,10 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
     <div className="space-y-6">
       <Card className="p-6">
         <div className="text-center mb-4">
-          <Shield className="w-12 h-12 mx-auto mb-2 text-primary" />
-          <h3 className="text-lg font-semibold">Face Verification</h3>
+          <Camera className="w-12 h-12 mx-auto mb-2 text-primary" />
+          <h3 className="text-lg font-semibold">Enhanced Face Enrollment</h3>
           <p className="text-muted-foreground">
-            Position your face in the camera view for verification
+            We'll capture multiple high-quality face samples for accurate recognition
           </p>
         </div>
 
@@ -298,20 +332,40 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
               {faceDetected ? 'Face Detected' : 'No Face'}
             </div>
             
-            {faceDetected && (
-              <div className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-100 text-blue-700 border border-blue-200">
+            {faceQuality && (
+              <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
+                faceQuality.isGoodQuality
+                  ? 'bg-green-100 text-green-700 border border-green-200'
+                  : 'bg-yellow-100 text-yellow-700 border border-yellow-200'
+              }`}>
                 <Shield className="w-3 h-3" />
-                {Math.round(confidence * 100)}%
+                {faceQuality.isGoodQuality ? 'Good Quality' : 'Poor Quality'}
               </div>
             )}
           </div>
+          
+          {/* Quality issues overlay */}
+          {faceQuality && !faceQuality.isGoodQuality && (
+            <div className="absolute bottom-2 left-2 right-2">
+              <div className="bg-yellow-100 border border-yellow-200 rounded p-2">
+                <p className="text-xs text-yellow-800 font-medium">Issues:</p>
+                <ul className="text-xs text-yellow-700">
+                  {faceQuality.issues.map((issue, index) => (
+                    <li key={index}>• {issue}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
 
-        {isVerifying && (
+        {isEnrolling && (
           <div className="mb-4">
             <div className="flex items-center justify-center space-x-2 mb-2">
               <RefreshCw className="w-4 h-4 animate-spin" />
-              <span className="text-sm">Verifying face...</span>
+              <span className="text-sm">
+                Capturing face samples... ({captureCount}/{totalCaptures})
+              </span>
             </div>
             <Progress value={progress} className="w-full" />
           </div>
@@ -319,34 +373,51 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
 
         <div className="flex gap-2 justify-center">
           <Button
-            onClick={handleVerifyFace}
-            disabled={!cameraReady || isVerifying || !faceDetected}
+            onClick={handleEnrollFace}
+            disabled={!cameraReady || isEnrolling || !faceDetected || !faceQuality?.isGoodQuality}
             className="flex items-center gap-2"
           >
-            {isVerifying ? (
+            {isEnrolling ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
             ) : (
-              <Shield className="w-4 h-4" />
+              <CheckCircle className="w-4 h-4" />
             )}
-            {isVerifying ? 'Verifying...' : 'Verify Face'}
+            {isEnrolling ? 'Enrolling...' : 'Enroll Face'}
+          </Button>
+          
+          <Button onClick={onSkip} variant="outline">
+            Skip for Now
           </Button>
         </div>
       </Card>
 
       <Card className="p-4 bg-blue-50 border-blue-200">
         <div className="text-sm text-blue-800">
-          <p className="font-medium mb-1">🔒 Face Verification Tips:</p>
+          <p className="font-medium mb-1">👤 Enhanced Enrollment Tips:</p>
           <ul className="text-xs space-y-1">
             <li>• Look directly at the camera</li>
-            <li>• Ensure good lighting on your face</li>
+            <li>• Ensure bright, even lighting</li>
             <li>• Keep your face centered and still</li>
-            <li>• Remove glasses or face coverings if possible</li>
-            <li>• Wait for "Face Detected" indicator before verifying</li>
+            <li>• Remove glasses for better accuracy</li>
+            <li>• Wait for "Good Quality" indicator</li>
+            <li>• We'll capture {totalCaptures} samples automatically</li>
           </ul>
         </div>
       </Card>
+
+      {faceQuality && (
+        <Card className="p-4 bg-gray-50 border-gray-200">
+          <div className="text-sm text-gray-700">
+            <p className="font-medium mb-1">📊 Face Quality Metrics:</p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>Brightness: {Math.round(faceQuality.brightness)}</div>
+              <div>Sharpness: {faceQuality.sharpness.toFixed(2)}</div>
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };
 
-export default SimpleFaceVerification;
+export default EnhancedFaceEnrollment;
