@@ -126,18 +126,15 @@ serve(async (req) => {
     console.log('OTP Request - Original phone:', phoneNumber);
     console.log('OTP Request - Formatted phone:', formattedPhone);
 
+    console.log('OTP Request - Generating OTP');
     const otp = generateOTP();
-    console.log('OTP Request - Generated OTP:', otp);
 
     // Hash the OTP for security - ensure EXACT same format as verification
     const otpString = otp.padStart(6, '0'); // Ensure 6-digit string with leading zeros
-    console.log('OTP Request - OTP as padded string for hashing:', otpString);
     
     const jwtSecret = Deno.env.get('JWT_SECRET') || 'secret';
-    console.log('OTP Request - JWT_SECRET length:', jwtSecret?.length);
     
     const hashInput = otpString + jwtSecret;
-    console.log('OTP Request - Hash input length:', hashInput.length);
     
     const otpHash = await crypto.subtle.digest(
       'SHA-256',
@@ -147,10 +144,8 @@ serve(async (req) => {
       .map(b => b.toString(16).padStart(2, '0'))
       .join('')
 
-    console.log('OTP Request - Generated hash:', otpHashString);
-
-    // Set expiration time (5 minutes from now)
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    // Set expiration time (3 minutes from now)
+    const expiresAt = new Date(Date.now() + 3 * 60 * 1000).toISOString();
     console.log('OTP Request - Expires at:', expiresAt);
 
     // Check if user exists, if not create them
@@ -208,7 +203,7 @@ serve(async (req) => {
     }
 
     // Send OTP via SMS using Twilio
-    const smsMessage = `Your VoteGuard verification code is: ${otp}. This code will expire in 5 minutes. Do not share this code with anyone.`;
+    const smsMessage = `Your VoteGuard verification code is: ${otp}. This code will expire in 3 minutes. Do not share this code with anyone.`;
     const smsResult = await sendSMS(formattedPhone, smsMessage);
 
     if (smsResult.success) {

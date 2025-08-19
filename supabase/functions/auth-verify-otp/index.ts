@@ -11,9 +11,6 @@ const supabase = createClient(
 
 const JWT_SECRET = Deno.env.get('JWT_SECRET') || 'secret'
 
-// Special admin phone number for testing
-const ADMIN_TEST_PHONE = '+919825751170'
-
 // Format phone number to Indian E.164 format
 function formatPhoneNumber(phone: string): string {
   const digits = phone.replace(/\D/g, '');
@@ -53,7 +50,6 @@ serve(async (req) => {
 
   try {
     const { phoneNumber, otp } = await req.json()
-    console.log('OTP Verification - Input:', { phoneNumber, otp: otp?.toString() });
     
     if (!phoneNumber || !otp) {
       console.log('OTP Verification - Missing phone number or OTP');
@@ -64,98 +60,7 @@ serve(async (req) => {
     }
 
     const formattedPhone = formatPhoneNumber(phoneNumber);
-    console.log('OTP Verification - Formatted phone:', formattedPhone);
 
-    // Special handling for admin test phone number
-    if (formattedPhone === ADMIN_TEST_PHONE) {
-      console.log('OTP Verification - Admin test phone detected, providing special handling');
-      
-      // Check if user exists, if not create them as admin
-      let { data: user, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('phone_number', formattedPhone)
-        .single()
-
-      if (userError || !user) {
-        console.log('OTP Verification - Creating new admin user for test phone');
-        const { data: newUser, error: createError } = await supabase
-          .from('users')
-          .insert({
-            phone_number: formattedPhone,
-            role: 'admin',
-            otp_verified: true,
-            face_verified: true,
-            has_voted: false
-          })
-          .select()
-          .single()
-
-        if (createError) {
-          console.error('OTP Verification - Failed to create admin user:', createError);
-          return new Response(
-            JSON.stringify({ error: 'Failed to create admin user' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-        user = newUser;
-      } else {
-        // Update existing user to ensure admin privileges and reset voting status for testing
-        console.log('OTP Verification - Updating existing user to admin with reset voting status');
-        const { data: updatedUser, error: updateError } = await supabase
-          .from('users')
-          .update({
-            role: 'admin',
-            otp_verified: true,
-            face_verified: true,
-            has_voted: false, // Reset for testing
-            otp_hash: null,
-            otp_expires: null,
-            failed_otp_attempts: 0
-          })
-          .eq('id', user.id)
-          .select()
-          .single()
-
-        if (updateError) {
-          console.error('OTP Verification - Failed to update admin user:', updateError);
-          return new Response(
-            JSON.stringify({ error: 'Failed to update admin user' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-        user = updatedUser;
-      }
-
-      // Generate JWT token for admin
-      const payload = {
-        sub: user.id,
-        phone_number: user.phone_number,
-        role: 'admin',
-        otp_verified: true,
-        face_verified: true,
-        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
-      }
-
-      const token = await createHS256JWT(payload, JWT_SECRET);
-      console.log('OTP Verification - Admin token generated successfully');
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Admin authentication successful',
-          token,
-          user: {
-            id: user.id,
-            phone_number: user.phone_number,
-            role: 'admin',
-            face_verified: true,
-            has_voted: false
-          }
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
 
     // Regular user authentication flow
     // Get user with OTP details
@@ -192,16 +97,10 @@ serve(async (req) => {
       )
     }
 
-    // Verify OTP - ensure we're using the EXACT same format as when generating
-    console.log('OTP Verification - Creating hash for provided OTP');
-    
     // Convert to string and ensure it's a 6-digit string with leading zeros if needed
     const otpString = String(otp).padStart(6, '0');
-    console.log('OTP Verification - OTP as padded string:', otpString);
-    console.log('OTP Verification - JWT_SECRET length:', JWT_SECRET.length);
     
     const hashInput = otpString + JWT_SECRET;
-    console.log('OTP Verification - Hash input length:', hashInput.length);
     
     const providedOtpHash = await crypto.subtle.digest(
       'SHA-256',
@@ -210,11 +109,6 @@ serve(async (req) => {
     const providedOtpHashString = Array.from(new Uint8Array(providedOtpHash))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('')
-
-    console.log('OTP Verification - Comparing hashes');
-    console.log('Stored hash:', user.otp_hash);
-    console.log('Provided hash:', providedOtpHashString);
-    console.log('Hash match:', providedOtpHashString === user.otp_hash);
 
     if (providedOtpHashString !== user.otp_hash) {
       console.log('OTP Verification - Invalid OTP');
@@ -252,7 +146,6 @@ serve(async (req) => {
       .eq('id', user.id)
 
     // Generate JWT token using our custom function
-    console.log('OTP Verification - Generating JWT token');
     const payload = {
       sub: user.id,
       phone_number: user.phone_number,
@@ -264,9 +157,7 @@ serve(async (req) => {
 
     try {
       const token = await createHS256JWT(payload, JWT_SECRET);
-      console.log('OTP Verification - JWT token generated successfully');
 
-      console.log('OTP Verification - Success, returning token');
       return new Response(
         JSON.stringify({ 
           success: true, 

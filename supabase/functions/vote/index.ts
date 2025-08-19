@@ -9,9 +9,6 @@ const supabase = createClient(
 
 const JWT_SECRET = Deno.env.get('JWT_SECRET') || 'secret'
 
-// Admin role for testing - allows unlimited voting
-const ADMIN_ROLE = 'admin'
-
 // Fixed JWT verification function to match auth-verify-otp implementation
 async function verifyJWT(token: string) {
   try {
@@ -193,16 +190,9 @@ serve(async (req) => {
       )
     }
 
-    console.log('Vote - User found:', { id: user.id, has_voted: user.has_voted, phone: user.phone_number, role: user.role });
-
-    // Check if user has admin role - allow unlimited voting for testing
-    const isAdminTestUser = user.role === ADMIN_ROLE;
-    
-    if (isAdminTestUser) {
-      console.log('Vote - Admin user detected, allowing unlimited voting for testing');
-      // For admin users, we always allow voting regardless of has_voted status
-    } else if (user.has_voted) {
-      console.log('Vote - Regular user already voted');
+    // Check if user has already voted
+    if (user.has_voted) {
+      console.log('Vote - User already voted');
       await supabase
         .from('security_alerts')
         .insert({
@@ -262,31 +252,25 @@ serve(async (req) => {
       )
     }
 
-    // For regular users only: mark as voted
-    // For admin users: do NOT mark as voted to allow unlimited voting for testing
-    if (!isAdminTestUser) {
-      console.log('Vote - Marking regular user as voted');
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ has_voted: true })
-        .eq('id', user.id)
+    // Mark user as voted to enforce one person, one vote
+    console.log('Vote - Marking user as voted');
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ has_voted: true })
+      .eq('id', user.id)
 
-      if (updateError) {
-        console.error('Vote - User update error:', updateError);
-      }
-    } else {
-      console.log('Vote - Admin user - NOT marking as voted to maintain unlimited testing capability');
+    if (updateError) {
+      console.error('Vote - User update error:', updateError);
     }
 
-    console.log(`Vote recorded successfully: User ${user.id} voted for ${partyName} (${partyId})${isAdminTestUser ? ' [ADMIN TEST - UNLIMITED VOTING]' : ''}`);
+    console.log(`Vote recorded successfully: User ${user.id} voted for ${partyName} (${partyId})`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: isAdminTestUser ? 'Vote recorded successfully (Admin Test Mode - Unlimited Voting)' : 'Vote recorded successfully',
+        message: 'Vote recorded successfully',
         transactionId: blockchainResult.txHash,
-        voteId: vote.id,
-        isAdminTest: isAdminTestUser
+        voteId: vote.id
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

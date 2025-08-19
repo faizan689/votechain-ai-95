@@ -9,14 +9,48 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
-const JWT_SECRET = new TextEncoder().encode(Deno.env.get('SUPABASE_JWT_SECRET') || 'secret')
+const JWT_SECRET = Deno.env.get('JWT_SECRET') || 'secret'
 
 async function verifyJWT(token: string) {
   try {
-    const payload = await verify(token, JWT_SECRET)
-    return payload
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return null;
+    }
+
+    const [headerB64, payloadB64, signatureB64] = parts;
+    
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(JWT_SECRET),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"]
+    );
+    
+    const providedSignature = Uint8Array.from(atob(signatureB64), c => c.charCodeAt(0));
+    const signatureInput = `${headerB64}.${payloadB64}`;
+    
+    const isValid = await crypto.subtle.verify(
+      "HMAC",
+      key,
+      providedSignature,
+      new TextEncoder().encode(signatureInput)
+    );
+    
+    if (!isValid) {
+      return null;
+    }
+    
+    const payload = JSON.parse(atob(payloadB64));
+    
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      return null;
+    }
+    
+    return payload;
   } catch {
-    return null
+    return null;
   }
 }
 
