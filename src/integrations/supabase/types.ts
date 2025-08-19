@@ -262,6 +262,7 @@ export type Database = {
       }
       users: {
         Row: {
+          account_locked_until: string | null
           created_at: string | null
           email: string | null
           face_embedding: Json | null
@@ -278,6 +279,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          account_locked_until?: string | null
           created_at?: string | null
           email?: string | null
           face_embedding?: Json | null
@@ -294,6 +296,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          account_locked_until?: string | null
           created_at?: string | null
           email?: string | null
           face_embedding?: Json | null
@@ -392,6 +395,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      is_account_locked: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       recompute_admin_public_metrics: {
         Args: Record<PropertyKey, never>
         Returns: undefined
