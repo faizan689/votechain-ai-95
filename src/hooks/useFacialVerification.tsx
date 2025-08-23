@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as faceRecognitionService from "@/services/faceRecognitionService";
 
 interface UseFacialVerificationOptions {
@@ -26,202 +26,230 @@ export function useFacialVerification({
   const [verificationSuccess, setVerificationSuccess] = useState(false);
   const [verificationFailed, setVerificationFailed] = useState(false);
   const [scanningProgress, setScanningProgress] = useState(0);
-
   const [initialized, setInitialized] = useState(false);
   const [realtimeVerification, setRealtimeVerification] = useState(false);
   const [modelReady, setModelReady] = useState(false);
   const [lastVerificationAttempt, setLastVerificationAttempt] = useState(0);
 
+  const animationFrameRef = useRef<number>();
+
+  // Get video element reference
+  const videoElement = videoRef.current;
+
   // Initialize face recognition system
   useEffect(() => {
     const initializeSystem = async () => {
-      try {
-        const initialized = await faceRecognitionService.initializeFaceAPI();
-        if (initialized) {
-          setInitialized(true);
-          // Start realtime verification after initialization
-          setRealtimeVerification(true);
+      if (videoElement && !initialized) {
+        console.log('🔄 Initializing face recognition system...');
+        try {
+          const success = await faceRecognitionService.initializeFaceAPI();
+          if (success) {
+            console.log('✅ Face API models loaded');
+            // Add delay to ensure camera and models are ready
+            setTimeout(() => {
+              setInitialized(true);
+              setModelReady(true);
+              setRealtimeVerification(true);
+              console.log('✅ Face recognition system fully initialized');
+            }, 2000); // 2 second delay for stabilization
+          } else {
+            console.error('❌ Failed to initialize face recognition system');
+          }
+        } catch (error) {
+          console.error('❌ Error initializing face recognition:', error);
         }
-      } catch (error) {
-        console.error("Failed to initialize face recognition:", error);
       }
     };
 
-    if (videoRef.current && !initialized) {
-      initializeSystem();
-    }
-  }, [videoRef.current, initialized]);
+    initializeSystem();
+  }, [videoElement, initialized]);
 
-  // Realtime face detection and verification
+  // Realtime verification effect
   useEffect(() => {
-    let animationFrame: number;
-    let lastVerificationTime = 0;
-    
-    const performRealtimeVerification = async () => {
-      if (!videoRef.current || !initialized || isVerifying || verificationSuccess || verificationFailed) {
-        animationFrame = requestAnimationFrame(performRealtimeVerification);
-        return;
-      }
+    if (!realtimeVerification || !initialized || !modelReady || !videoElement || isVerifying || verificationSuccess) {
+      return;
+    }
 
+    const performRealtimeVerification = async () => {
       try {
-        const now = Date.now();
-        // Only attempt verification every 2 seconds to avoid overwhelming the system
-        if (now - lastVerificationTime < 2000) {
-          animationFrame = requestAnimationFrame(performRealtimeVerification);
+        // Get face detection first with lower threshold for initial attempts
+        const faceDetection = await faceRecognitionService.detectFaceInVideo(videoElement);
+        
+        if (!faceDetection || faceDetection.confidence < 0.5) { // Lowered from 0.7 to 0.5
+          console.log('👤 No sufficient face detected, confidence:', faceDetection?.confidence);
           return;
         }
 
-        // Detect face first
-        const detection = await faceRecognitionService.detectFaceInVideo(videoRef.current);
+        // Get user identifiers with better error handling
+        const userPhone = localStorage.getItem('userPhone');
+        const userId = localStorage.getItem('userId');
         
-        if (detection && detection.confidence > 0.7) {
-          lastVerificationTime = now;
-          
-          // Get user identifier
-          const storedUserId = localStorage.getItem('userId') || '';
-          const userPhone = localStorage.getItem('userPhone') || '';
-          const userEmail = localStorage.getItem('userEmail') || '';
-          const userId = storedUserId || userPhone || userEmail;
-          
-          if (userId) {
-            // Start verification process
-            setIsVerifying(true);
-            setScanningProgress(0);
-            
-            // Animate progress
-            const progressInterval = setInterval(() => {
-              setScanningProgress((prev) => {
-                const newProgress = prev + 10;
-                return newProgress > 90 ? 90 : newProgress;
-              });
-            }, 100);
-
-            // Perform face recognition
-            const result = await faceRecognitionService.recognizeFaceForUser(videoRef.current, userId);
-            
-            clearInterval(progressInterval);
-            setScanningProgress(100);
-            
-            if (result.isAuthorized && result.confidence > 0.65) {
-              setVerificationSuccess(true);
-              setRealtimeVerification(false); // Stop realtime verification
-              setTimeout(() => {
-                if (onSuccess) onSuccess();
-              }, 1500);
-              return; // Stop the loop
-            } else {
-              // Reset for next attempt
-              setIsVerifying(false);
-              setScanningProgress(0);
-            }
-          }
+        console.log('🔍 User identifiers:', { userPhone, userId });
+        
+        if (!userPhone && !userId) {
+          console.log('⚠️ No user identifiers found for verification');
+          return;
         }
+
+        // Use phone number as userId if userId is not available
+        const verificationId = userId || userPhone;
+        
+        if (!verificationId) {
+          console.log('⚠️ No verification ID available');
+          return;
+        }
+
+        console.log('🔍 Performing realtime face verification for user:', verificationId);
+        
+        // Perform face recognition with retry logic
+        const result = await faceRecognitionService.recognizeFaceForUser(videoElement, verificationId);
+        console.log('🎯 Realtime verification result:', result);
+        
+        // Progressive confidence threshold - start lower and increase over time
+        const progressiveThreshold = Math.max(0.4, 0.6 - (scanningProgress / 100) * 0.2);
+        
+        if (result.isAuthorized && result.confidence >= progressiveThreshold) {
+          console.log('✅ Face verification successful!', { 
+            confidence: result.confidence, 
+            threshold: progressiveThreshold 
+          });
+          setVerificationSuccess(true);
+          setRealtimeVerification(false);
+          setScanningProgress(100);
+          onSuccess?.();
+        } else if (result.confidence > 0.2) {
+          console.log('⚠️ Face detected but not authorized', { 
+            confidence: result.confidence, 
+            threshold: progressiveThreshold 
+          });
+          // Don't immediately fail, keep trying
+        }
+        
       } catch (error) {
-        console.error("Realtime verification error:", error);
-        setIsVerifying(false);
-        setScanningProgress(0);
+        console.error('❌ Realtime verification error:', error);
+        // Don't stop verification on single errors
+      }
+    };
+
+    // Progressive scanning animation and verification attempts
+    const interval = setInterval(() => {
+      if (scanningProgress < 100) {
+        setScanningProgress(prev => Math.min(prev + 1.5, 100)); // Slower progress
       }
       
-      animationFrame = requestAnimationFrame(performRealtimeVerification);
-    };
-
-    if (realtimeVerification && initialized) {
-      performRealtimeVerification();
-    }
-
-    return () => {
-      if (animationFrame) {
-        cancelAnimationFrame(animationFrame);
+      // Attempt verification every 3 seconds initially, then every 2 seconds
+      const verificationInterval = scanningProgress < 50 ? 3000 : 2000;
+      const now = Date.now();
+      if (now - lastVerificationAttempt > verificationInterval) {
+        setLastVerificationAttempt(now);
+        performRealtimeVerification();
       }
-    };
-  }, [realtimeVerification, initialized, isVerifying, verificationSuccess, verificationFailed, onSuccess]);
+    }, 150); // Update progress every 150ms
 
-  useEffect(() => {
-    let progressInterval: NodeJS.Timeout;
-    
-    if (isVerifying) {
-      progressInterval = setInterval(() => {
-        setScanningProgress((prev) => {
-          const newProgress = prev + Math.random() * 5;
-          return newProgress > 95 ? 95 : newProgress;
-        });
-      }, 200);
-    }
-    
-    return () => {
-      if (progressInterval) clearInterval(progressInterval);
-    };
-  }, [isVerifying]);
-  
-  // On verification complete, jump to 100%
-  useEffect(() => {
-    if (verificationSuccess || verificationFailed) {
-      setScanningProgress(100);
-    }
-  }, [verificationSuccess, verificationFailed]);
+    return () => clearInterval(interval);
+  }, [realtimeVerification, initialized, modelReady, videoElement, isVerifying, verificationSuccess, scanningProgress, onSuccess, lastVerificationAttempt]);
 
   const handleVerifyFace = async () => {
-    if (!videoRef.current) return;
-    
-    // If realtime verification is already running, don't start manual verification
-    if (realtimeVerification) {
+    if (!videoElement) {
+      console.log('❌ No video element available');
       return;
     }
     
+    console.log('🔄 Manual face verification started');
     setIsVerifying(true);
     setVerificationSuccess(false);
     setVerificationFailed(false);
+    setScanningProgress(0);
     
     try {
-      // Get user identifier from localStorage (prefer UUID)
-      const storedUserId = localStorage.getItem('userId') || '';
-      const userPhone = localStorage.getItem('userPhone') || '';
-      const userEmail = localStorage.getItem('userEmail') || '';
-      const userId = storedUserId || userPhone || userEmail;
+      // Get user identifiers with better error handling
+      const userPhone = localStorage.getItem('userPhone');
+      const userId = localStorage.getItem('userId');
       
-      if (!userId) {
-        throw new Error('No user identifier found');
+      console.log('🔍 Retrieved user identifiers:', { userPhone, userId });
+      
+      if (!userPhone && !userId) {
+        throw new Error('No user identifier found for verification');
       }
 
-      // Initialize face API first
-      const initialized = await faceRecognitionService.initializeFaceAPI();
+      // Use phone number as userId if userId is not available
+      const verificationId = userId || userPhone;
+      
+      if (!verificationId) {
+        throw new Error('No verification ID available');
+      }
+
+      // Initialize face API if not already done
       if (!initialized) {
-        throw new Error('Failed to initialize face recognition');
+        console.log('🔄 Initializing face API for manual verification');
+        const success = await faceRecognitionService.initializeFaceAPI();
+        if (!success) {
+          throw new Error('Failed to initialize face recognition');
+        }
+        setInitialized(true);
       }
 
-      // Always attempt user-specific recognition using enrolled data from Supabase
-      const result = await faceRecognitionService.recognizeFaceForUser(videoRef.current, userId);
+      // Animate scanning progress
+      const progressInterval = setInterval(() => {
+        setScanningProgress(prev => {
+          const newProgress = prev + 10;
+          return newProgress > 90 ? 90 : newProgress;
+        });
+      }, 100);
+
+      console.log('🔍 Performing face recognition for user:', verificationId);
+      const result = await faceRecognitionService.recognizeFaceForUser(videoElement, verificationId);
       
-      if (result.isAuthorized && result.confidence > 0.65) {
+      clearInterval(progressInterval);
+      setScanningProgress(100);
+      
+      console.log('🎯 Manual verification result:', {
+        isAuthorized: result.isAuthorized,
+        confidence: result.confidence
+      });
+      
+      if (result.isAuthorized && result.confidence >= 0.5) { // Lower threshold for manual verification
+        console.log('✅ Manual face verification successful!');
         setVerificationSuccess(true);
         setTimeout(() => {
-          if (onSuccess) onSuccess();
+          onSuccess?.();
         }, 1500);
       } else {
+        console.log('❌ Manual face verification failed');
         setVerificationFailed(true);
-        if (onFailure) onFailure();
+        onFailure?.();
       }
     } catch (error) {
-      console.error("Facial verification error:", error);
+      console.error('❌ Manual facial verification error:', error);
       setVerificationFailed(true);
-      if (onFailure) onFailure();
+      onFailure?.();
     } finally {
       setIsVerifying(false);
     }
   };
 
   const resetVerification = () => {
+    console.log('🔄 Resetting verification state');
     setIsVerifying(false);
     setVerificationSuccess(false);
     setVerificationFailed(false);
     setScanningProgress(0);
-    setRealtimeVerification(true); // Restart realtime verification
+    setLastVerificationAttempt(0);
+    
+    // Restart realtime verification with delay
+    setTimeout(() => {
+      setRealtimeVerification(true);
+    }, 1000);
   };
   
   const startVerification = () => {
-    // With realtime verification, manual start isn't needed
-    // But we can ensure realtime verification is running
-    if (!realtimeVerification && initialized) {
+    console.log('🚀 Starting face verification');
+    
+    // If realtime verification is not running, start manual verification
+    if (!realtimeVerification || !initialized) {
+      handleVerifyFace();
+    } else {
+      // Ensure realtime verification is active
       setRealtimeVerification(true);
     }
   };
