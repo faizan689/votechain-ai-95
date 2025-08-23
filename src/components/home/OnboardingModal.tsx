@@ -4,7 +4,7 @@ import PhoneNumberInput from '@/components/auth/PhoneNumberInput';
 import OTPVerification from '@/components/auth/OTPVerification';
 import { FaceEnrollmentStep } from '@/components/auth/FaceEnrollmentStep';
 import { authService } from '@/services/authService';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 
 interface OnboardingModalProps {
@@ -15,7 +15,7 @@ interface OnboardingModalProps {
 type Step = 'phone' | 'otp' | 'face' | 'done';
 
 const OnboardingModal: React.FC<OnboardingModalProps> = ({ open, onOpenChange }) => {
-  const { toast } = useToast();
+  
   const [step, setStep] = useState<Step>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
@@ -41,12 +41,12 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ open, onOpenChange })
       if (res.success) {
         setOtpSendTime(new Date());
         setStep('otp');
-        toast({ title: 'OTP sent', description: 'Check your phone for the verification code.' });
+        toast.success('OTP sent successfully');
       } else {
-        toast({ title: 'Failed to send OTP', description: res.error || 'Please try again.', variant: 'destructive' });
+        toast.error(res.error || 'Failed to send OTP');
       }
     } catch (e: any) {
-      toast({ title: 'Error', description: e?.message || 'Something went wrong', variant: 'destructive' });
+      toast.error(e?.message || 'Something went wrong');
     } finally {
       setIsLoading(false);
     }
@@ -58,13 +58,13 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ open, onOpenChange })
     try {
       const res = await authService.verifyOTP(phoneNumber, otp);
       if (res.success) {
-        toast({ title: 'Verified', description: 'Phone number verified successfully.' });
+        toast.success('Phone number verified successfully');
         setStep('face');
       } else {
-        toast({ title: 'Verification failed', description: res.error || 'Please try again.', variant: 'destructive' });
+        toast.error(res.error || 'Verification failed');
       }
     } catch (e: any) {
-      toast({ title: 'Error', description: e?.message || 'Something went wrong', variant: 'destructive' });
+      toast.error(e?.message || 'Something went wrong');
     } finally {
       setIsLoading(false);
     }
@@ -109,20 +109,43 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ open, onOpenChange })
           <FaceEnrollmentStep
             userId={userId}
             onEnrollmentComplete={() => {
-              toast({ title: 'Face enrolled', description: 'Facial data captured successfully.' });
+              toast.success('🎉 Registration Complete! Face enrollment successful.');
               setStep('done');
             }}
           />
         )}
 
         {step === 'done' && (
-          <div className="space-y-3">
-            <p className="text-sm">All set! Your account is ready.</p>
-            <div className="text-sm grid gap-2">
-              <div>• Phone verified</div>
-              <div>• Face enrolled</div>
+          <div className="text-center space-y-6">
+            <div className="space-y-4">
+              <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 text-green-600">✓</div>
+              </div>
+              <h3 className="text-xl font-semibold text-green-700">Registration Complete!</h3>
+              <p className="text-muted-foreground">
+                Your account has been successfully set up with secure facial verification.
+              </p>
             </div>
-            <a href="/voting" className="underline">Go to Voting</a>
+            
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="text-sm space-y-2">
+                <div className="flex items-center justify-center space-x-2">
+                  <span className="text-green-600">✓</span>
+                  <span>Phone verified</span>
+                </div>
+                <div className="flex items-center justify-center space-x-2">
+                  <span className="text-green-600">✓</span>
+                  <span>Face enrolled</span>
+                </div>
+              </div>
+            </div>
+            
+            <a 
+              href="/voting" 
+              className="inline-block bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+            >
+              Go to Voting
+            </a>
           </div>
         )}
       </DialogContent>
