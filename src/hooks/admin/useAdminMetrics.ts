@@ -61,19 +61,41 @@ export function useAdminMetrics() {
     fetchMetrics();
 
     const channel = supabase
-      .channel("realtime-admin-public-metrics")
+      .channel("realtime-admin-metrics-comprehensive")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "admin_public_metrics" },
         (payload) => {
-          console.log("[useAdminMetrics] change", payload);
+          console.log("[useAdminMetrics] Admin metrics update:", payload);
           fetchMetrics();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "votes" },
+        (payload) => {
+          console.log("[useAdminMetrics] Votes update:", payload);
+          // Small delay to allow function to process
+          setTimeout(fetchMetrics, 500);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "users" },
+        (payload) => {
+          console.log("[useAdminMetrics] Users update:", payload);
+          // Small delay to allow function to process
+          setTimeout(fetchMetrics, 500);
         }
       )
       .subscribe();
 
+    // Periodic refresh every 10 seconds for real-time feel
+    const interval = setInterval(fetchMetrics, 10000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, []);
 

@@ -75,46 +75,53 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
 
-  // Load schedule and subscribe to realtime updates
-  useEffect(() => {
-    const fetchSchedule = async () => {
-      try {
-        const token = getAdminToken();
-        const url = "https://zjymowjrqidmgslauauv.supabase.co/functions/v1/admin-schedule";
-        const res = await fetch(url, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
-        const json = await res.json();
-        const schedule = (json as any)?.schedule;
-        if (schedule) {
-          setElectionStart(schedule.voting_start ? schedule.voting_start.slice(0, 16) : "");
-          setElectionEnd(schedule.voting_end ? schedule.voting_end.slice(0, 16) : "");
-          setIsActive(!!schedule.is_active);
-        }
-      } catch (e) {
-        console.error("[Settings] fetchSchedule error", e);
+// Load schedule and subscribe to realtime updates
+useEffect(() => {
+  const fetchSchedule = async () => {
+    try {
+      const token = getAdminToken();
+      const url = "https://zjymowjrqidmgslauauv.supabase.co/functions/v1/admin-schedule";
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const json = await res.json();
+      const schedule = (json as any)?.schedule;
+      if (schedule) {
+        setElectionStart(schedule.voting_start ? schedule.voting_start.slice(0, 16) : "");
+        setElectionEnd(schedule.voting_end ? schedule.voting_end.slice(0, 16) : "");
+        setIsActive(!!schedule.is_active);
       }
-    };
+    } catch (e) {
+      console.error("[Settings] fetchSchedule error", e);
+    }
+  };
 
-    fetchSchedule();
+  fetchSchedule();
 
-    const channel = supabase
-      .channel("realtime-voting-schedule")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "voting_schedule" },
-        () => fetchSchedule()
-      )
-      .subscribe();
+  const channel = supabase
+    .channel("realtime-voting-schedule-settings")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "voting_schedule" },
+      () => {
+        console.log("[Settings] Real-time schedule update");
+        fetchSchedule();
+      }
+    )
+    .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+  // Refresh every 15 seconds for real-time schedule updates
+  const interval = setInterval(fetchSchedule, 15000);
+
+  return () => {
+    supabase.removeChannel(channel);
+    clearInterval(interval);
+  };
+}, []);
 
   const handleSaveSettings = async (settingType: string) => {
     if (settingType === "election") {

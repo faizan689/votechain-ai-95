@@ -67,17 +67,41 @@ export function useRealtimeSecurityLogs(limit: number = 50) {
 
   useEffect(() => {
     fetchLogs();
-
+    
     const channel = supabase
-      .channel("realtime-security-logs")
-      .on("postgres_changes", { event: "*", schema: "public", table: "security_alerts" }, (payload) => {
-        console.log("[useRealtimeSecurityLogs] change", payload);
-        fetchLogs();
-      })
+      .channel("realtime-security-logs-comprehensive")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "security_alerts" },
+        (payload) => {
+          console.log("[useRealtimeSecurityLogs] Security alerts change", payload);
+          fetchLogs();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "face_verification_attempts" },
+        (payload) => {
+          console.log("[useRealtimeSecurityLogs] Face verification attempts change", payload);
+          fetchLogs();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "audit_logs" },
+        (payload) => {
+          console.log("[useRealtimeSecurityLogs] Audit logs change", payload);
+          fetchLogs();
+        }
+      )
       .subscribe();
 
-  return () => {
+    // Refresh every 3 seconds for security real-time monitoring
+    const interval = setInterval(fetchLogs, 3000);
+
+    return () => {
       supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, [limit]);
 

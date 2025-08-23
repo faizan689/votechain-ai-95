@@ -114,27 +114,42 @@ const FaceEnrollmentManagement: React.FC = () => {
     };
     loadData();
 
-    // Set up realtime subscriptions
-    const usersChannel = supabase.channel('users-channel').on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'users'
-    }, payload => {
-      console.log('Users table changed:', payload);
-      fetchAllData();
-    }).subscribe();
-    const enrollmentsChannel = supabase.channel('enrollments-channel').on('postgres_changes', {
-      event: '*',
-      schema: 'public',
-      table: 'face_enrollment'
-    }, payload => {
-      console.log('Face enrollment table changed:', payload);
-      fetchAllData();
-    }).subscribe();
-    return () => {
-      supabase.removeChannel(usersChannel);
-      supabase.removeChannel(enrollmentsChannel);
-    };
+// Set up realtime subscriptions for comprehensive updates
+const channel = supabase
+  .channel('face-enrollment-realtime')
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'users'
+  }, payload => {
+    console.log('Users table changed:', payload);
+    fetchAllData();
+  })
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'face_enrollment'
+  }, payload => {
+    console.log('Face enrollment table changed:', payload);
+    fetchAllData();
+  })
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'face_verification_attempts'
+  }, payload => {
+    console.log('Face verification attempts changed:', payload);
+    fetchAllData();
+  })
+  .subscribe();
+
+// Refresh every 4 seconds for real-time enrollment monitoring
+const interval = setInterval(fetchAllData, 4000);
+
+return () => {
+  supabase.removeChannel(channel);
+  clearInterval(interval);
+};
   }, []);
   const handleEnrollmentSuccess = async (faceDescriptors: number[][]) => {
     if (!selectedUser) return;

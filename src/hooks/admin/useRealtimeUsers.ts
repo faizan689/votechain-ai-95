@@ -59,16 +59,41 @@ export function useRealtimeUsers() {
 
   useEffect(() => {
     fetchUsers();
+    
     const channel = supabase
-      .channel("realtime-users")
-      .on("postgres_changes", { event: "*", schema: "public", table: "users" }, (payload) => {
-        console.log("[useRealtimeUsers] change", payload);
-        fetchUsers();
-      })
+      .channel("realtime-users-comprehensive")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "users" },
+        (payload) => {
+          console.log("[useRealtimeUsers] Users change", payload);
+          fetchUsers();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "face_enrollment" },
+        (payload) => {
+          console.log("[useRealtimeUsers] Face enrollment change", payload);
+          fetchUsers();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "votes" },
+        (payload) => {
+          console.log("[useRealtimeUsers] Votes change affecting users", payload);
+          fetchUsers();
+        }
+      )
       .subscribe();
+
+    // Refresh every 5 seconds for real-time updates
+    const interval = setInterval(fetchUsers, 5000);
 
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, []);
 

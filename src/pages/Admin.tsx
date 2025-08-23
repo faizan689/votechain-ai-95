@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useAdminMetrics } from "@/hooks/admin/useAdminMetrics";
 import { useRealtimeSecurityLogs } from "@/hooks/admin/useRealtimeSecurityLogs";
+import RealtimeIndicator from "@/components/admin/RealtimeIndicator";
 
 // Animation variants
 const containerVariant = {
@@ -67,14 +68,17 @@ const Admin = () => {
         variants={containerVariant}
         className="space-y-6"
       >
-        <motion.div variants={itemVariant} className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-full">
-            <Shield className="w-6 h-6 text-primary" />
+        <motion.div variants={itemVariant} className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-full">
+              <Shield className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+              <p className="text-sm text-muted-foreground">Secure Election Monitoring</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-            <p className="text-sm text-muted-foreground">Secure Election Monitoring</p>
-          </div>
+          <RealtimeIndicator />
         </motion.div>
 
         <Tabs defaultValue="overview" className="w-full">

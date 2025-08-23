@@ -135,8 +135,8 @@ export default function NotificationsPage() {
                           initial={{ opacity: 1 }}
                           className={`flex items-start p-4 rounded-lg border ${notification.isRead ? 'bg-transparent' : 'bg-muted/30'}`}
                         >
-                          <div className={`p-2 rounded-full ${notification.iconBgColor} mr-3`}>
-                            <notification.icon className={`h-5 w-5 ${notification.iconColor}`} />
+                          <div className={`p-2 rounded-full bg-primary/10 mr-3`}>
+                            <notification.icon className={`h-5 w-5 ${notification.color}`} />
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center justify-between">

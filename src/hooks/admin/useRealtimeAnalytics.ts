@@ -107,25 +107,49 @@ export function useRealtimeAnalytics() {
 
   useEffect(() => {
     fetchAll();
-
+    
     const channel = supabase
-      .channel("realtime-analytics")
-      .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, (payload) => {
-        console.log("[useRealtimeAnalytics] votes change", payload);
-        fetchAll();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "users" }, (payload) => {
-        console.log("[useRealtimeAnalytics] users change", payload);
-        fetchAll();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "security_alerts" }, (payload) => {
-        console.log("[useRealtimeAnalytics] alerts change", payload);
-        fetchAll();
-      })
+      .channel("realtime-analytics-comprehensive")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "votes" },
+        (payload) => {
+          console.log("[useRealtimeAnalytics] Votes change", payload);
+          fetchAll();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "users" },
+        (payload) => {
+          console.log("[useRealtimeAnalytics] Users change", payload);
+          fetchAll();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "security_alerts" },
+        (payload) => {
+          console.log("[useRealtimeAnalytics] Security alerts change", payload);
+          fetchAll();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "face_verification_attempts" },
+        (payload) => {
+          console.log("[useRealtimeAnalytics] Face verification change", payload);
+          fetchAll();
+        }
+      )
       .subscribe();
+
+    // Refresh every 8 seconds for analytics updates
+    const interval = setInterval(fetchAll, 8000);
 
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, []);
 

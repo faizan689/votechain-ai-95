@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, BarChart, UserCheck } from "lucide-react";
+import { AlertTriangle, BarChart, UserCheck, CheckCircle, UserPlus, Shield } from "lucide-react";
 
 export type NotificationItem = {
   id: string;
-  type: "registration" | "security" | "milestone";
+  type: "registration" | "security" | "milestone" | "vote" | "face_enrollment";
   title: string;
   description: string;
   time: string;
   isRead: boolean;
   icon: any;
-  iconColor: string;
-  iconBgColor: string;
+  color: string;
 };
 
 function toTime(ts?: string | null) {
@@ -59,8 +58,7 @@ export function useRealtimeNotifications() {
           time: toTime(a.timestamp as any),
           isRead: false,
           icon: AlertTriangle,
-          iconColor: "text-amber-500",
-          iconBgColor: "bg-amber-100",
+          color: "text-red-500",
         })) || [];
 
       const userItems: NotificationItem[] =
@@ -72,8 +70,7 @@ export function useRealtimeNotifications() {
           time: toTime(u.created_at as any),
           isRead: false,
           icon: UserCheck,
-          iconColor: "text-green-500",
-          iconBgColor: "bg-green-100",
+          color: "text-green-500",
         })) || [];
 
       // No milestone persistence in DB; we keep it simple and omit auto milestones
@@ -87,45 +84,93 @@ export function useRealtimeNotifications() {
 
   useEffect(() => {
     fetchInitial();
-
+    
     const channel = supabase
-      .channel("realtime-notifications")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "security_alerts" }, (payload) => {
-        const a: any = payload.new;
-        const item: NotificationItem = {
-          id: `sec-${a.id}`,
-          type: "security",
-          title: "Security Alert",
-          description:
-            (a.details && typeof a.details === "object" && (a.details as any).message) ||
-            `Alert for ${a.user_email || a.user_phone || "Unknown user"}`,
-          time: toTime(a.timestamp),
-          isRead: false,
-          icon: AlertTriangle,
-          iconColor: "text-amber-500",
-          iconBgColor: "bg-amber-100",
-        };
-        setItems((prev) => [item, ...prev]);
-      })
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "users" }, (payload) => {
-        const u: any = payload.new;
-        const item: NotificationItem = {
-          id: `reg-${u.id}`,
-          type: "registration",
-          title: "New Voter Registered",
-          description: u.email || u.phone_number || "New registration",
-          time: toTime(u.created_at),
-          isRead: false,
-          icon: UserCheck,
-          iconColor: "text-green-500",
-          iconBgColor: "bg-green-100",
-        };
-        setItems((prev) => [item, ...prev]);
-      })
+      .channel("realtime-notifications-comprehensive")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "security_alerts" },
+        (payload) => {
+          console.log("[useRealtimeNotifications] New security alert", payload);
+          const newAlert = payload.new as any;
+          const notification: NotificationItem = {
+            id: newAlert.id,
+            type: 'security',
+            title: 'Security Alert',
+            description: `${newAlert.type} detected`,
+            time: new Date(newAlert.timestamp).toLocaleTimeString(),
+            isRead: false,
+            icon: Shield,
+            color: 'text-red-500'
+          };
+          setItems(prev => [notification, ...prev]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "users" },
+        (payload) => {
+          console.log("[useRealtimeNotifications] New user registration", payload);
+          const newUser = payload.new as any;
+          const notification: NotificationItem = {
+            id: `user-${newUser.id}`,
+            type: 'registration',
+            title: 'New User Registration',
+            description: `${newUser.email || newUser.phone_number || 'Unknown'} registered`,
+            time: new Date(newUser.created_at).toLocaleTimeString(),
+            isRead: false,
+            icon: UserPlus,
+            color: 'text-green-500'
+          };
+          setItems(prev => [notification, ...prev]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "votes" },
+        (payload) => {
+          console.log("[useRealtimeNotifications] New vote cast", payload);
+          const newVote = payload.new as any;
+          const notification: NotificationItem = {
+            id: `vote-${newVote.id}`,
+            type: 'vote',
+            title: 'New Vote Cast',
+            description: `Vote for ${newVote.party_name}`,
+            time: new Date(newVote.timestamp).toLocaleTimeString(),
+            isRead: false,
+            icon: CheckCircle,
+            color: 'text-blue-500'
+          };
+          setItems(prev => [notification, ...prev]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "face_enrollment" },
+        (payload) => {
+          console.log("[useRealtimeNotifications] New face enrollment", payload);
+          const newEnrollment = payload.new as any;
+          const notification: NotificationItem = {
+            id: `face-${newEnrollment.id}`,
+            type: 'face_enrollment',
+            title: 'Face Enrollment Complete',
+            description: `User face verification enrolled`,
+            time: new Date(newEnrollment.enrollment_date).toLocaleTimeString(),
+            isRead: false,
+            icon: UserCheck,
+            color: 'text-purple-500'
+          };
+          setItems(prev => [notification, ...prev]);
+        }
+      )
       .subscribe();
+
+    // Periodic refresh for missed notifications
+    const interval = setInterval(fetchInitial, 30000);
 
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, []);
 
