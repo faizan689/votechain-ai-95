@@ -96,12 +96,10 @@ const VerificationActions: React.FC<VerificationActionsProps> = ({
           </p>
         )}
         
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.98 }}
+        <button
           onClick={onStartVerification}
           disabled={!cameraActive || isVerifying}
-          className="w-full bg-primary text-primary-foreground py-2 rounded-md font-medium disabled:bg-muted disabled:text-muted-foreground flex items-center justify-center gap-2"
+          className="w-full bg-primary text-primary-foreground py-2 rounded-md font-medium disabled:bg-muted disabled:text-muted-foreground flex items-center justify-center gap-2 hover:bg-primary/90 active:bg-primary/80 transition-colors duration-200"
         >
           {cameraActive ? (
             <>
@@ -114,7 +112,7 @@ const VerificationActions: React.FC<VerificationActionsProps> = ({
               <span>Enable Camera</span>
             </>
           )}
-        </motion.button>
+        </button>
       </>
     );
   }
