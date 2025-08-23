@@ -97,9 +97,15 @@ const VerificationActions: React.FC<VerificationActionsProps> = ({
         )}
         
         <button
-          onClick={onStartVerification}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Verify Face button clicked', { cameraActive, isVerifying });
+            onStartVerification();
+          }}
           disabled={!cameraActive || isVerifying}
-          className="w-full bg-primary text-primary-foreground py-2 rounded-md font-medium disabled:bg-muted disabled:text-muted-foreground flex items-center justify-center gap-2 hover:bg-primary/90 active:bg-primary/80 transition-colors duration-200"
+          className="w-full bg-primary text-primary-foreground py-2 rounded-md font-medium disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:bg-primary/90 active:bg-primary/80 transition-colors duration-200 cursor-pointer"
+          type="button"
         >
           {cameraActive ? (
             <>
