@@ -387,14 +387,14 @@ const Voting = () => {
           </DialogHeader>
           <div className="mt-2">
             <CameraVerification
-              onSuccess={() => {
+              onSuccess={async () => {
                 console.log('✅ Facial verification successful - proceeding with vote');
                 setVerifyAttempts(0);
                 setShowVerification(false);
                 setFaceVerified(true);
                 toast.success('Facial verification successful');
                 // Immediately cast vote after successful verification
-                handleCastVoteAfterAuth();
+                await handleCastVoteAfterAuth();
               }}
               onFailure={async () => {
                 const next = verifyAttempts + 1;
