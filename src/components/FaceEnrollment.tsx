@@ -26,10 +26,39 @@ export const FaceEnrollment: React.FC<FaceEnrollmentProps> = ({
   const [progress, setProgress] = useState(0);
   const [currentCapture, setCurrentCapture] = useState(0);
   const [faceDescriptor, setFaceDescriptor] = useState<number[] | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
-  const { cameraActive, cameraError, enableCamera, stopCamera } = useCamera();
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   const REQUIRED_CAPTURES = 3;
+
+  const enableCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" }
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        setStream(mediaStream);
+        setCameraActive(true);
+        setCameraError(null);
+      }
+    } catch (error: any) {
+      console.error("Error accessing camera:", error);
+      setCameraError("Failed to access camera. Please check permissions.");
+      setCameraActive(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+      setCameraActive(false);
+    }
+  };
 
   useEffect(() => {
     const initializeSystem = async () => {
@@ -73,9 +102,13 @@ export const FaceEnrollment: React.FC<FaceEnrollmentProps> = ({
   };
 
   const startEnrollment = async () => {
+    console.log('Starting face enrollment...');
+    
     if (!cameraActive) {
+      console.log('Camera not active, enabling camera...');
       await enableCamera();
-      return;
+      // Wait a moment for camera to initialize
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     setEnrollmentStep('capturing');
@@ -190,7 +223,12 @@ export const FaceEnrollment: React.FC<FaceEnrollmentProps> = ({
             </div>
 
             <div className="space-y-3">
-              <Button onClick={startEnrollment} className="w-full">
+              <Button 
+                onClick={startEnrollment} 
+                className="w-full"
+                disabled={enrollmentStep !== 'instruction'}
+              >
+                <Camera className="w-4 h-4 mr-2" />
                 Start Face Enrollment
               </Button>
               {onSkip && (
@@ -291,15 +329,23 @@ export const FaceEnrollment: React.FC<FaceEnrollmentProps> = ({
       )}
 
       {(enrollmentStep === 'capturing' || enrollmentStep === 'processing') && (
-        <div className="mb-6">
+        <div className="mb-6 relative">
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
             className="w-full h-48 object-cover rounded-lg bg-muted"
+            onLoadedMetadata={() => {
+              console.log('Video metadata loaded, camera ready');
+            }}
           />
           <canvas ref={canvasRef} className="hidden" />
+          
+          {/* Face detection overlay */}
+          <div className="absolute inset-0 rounded-lg border-2 border-primary/50 flex items-center justify-center">
+            <div className="w-32 h-32 border-2 border-primary rounded-full opacity-70"></div>
+          </div>
         </div>
       )}
 
