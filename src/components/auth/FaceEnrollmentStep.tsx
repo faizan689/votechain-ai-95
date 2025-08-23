@@ -38,7 +38,9 @@ export const FaceEnrollmentStep: React.FC<FaceEnrollmentStepProps> = ({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
         className="text-center space-y-6"
+        style={{ pointerEvents: 'auto' }}
       >
         <div className="space-y-4">
           <UserPlus className="w-16 h-16 mx-auto text-primary" />
@@ -60,14 +62,23 @@ export const FaceEnrollmentStep: React.FC<FaceEnrollmentStepProps> = ({
           </div>
         </div>
 
-        <div className="space-y-3">
-          <Button onClick={() => setShowEnrollment(true)} className="w-full">
+        <div className="space-y-3" style={{ position: 'relative', zIndex: 10 }}>
+          <Button 
+            onClick={() => setShowEnrollment(true)} 
+            className="w-full relative z-10"
+            style={{ pointerEvents: 'auto', transform: 'none' }}
+          >
             <UserPlus className="w-4 h-4 mr-2" />
             Set Up Face Verification
           </Button>
           
           {onSkip && (
-            <Button variant="outline" onClick={onSkip} className="w-full">
+            <Button 
+              variant="outline" 
+              onClick={onSkip} 
+              className="w-full relative z-10"
+              style={{ pointerEvents: 'auto', transform: 'none' }}
+            >
               <ArrowRight className="w-4 h-4 mr-2" />
               Continue Without Face Verification
             </Button>
