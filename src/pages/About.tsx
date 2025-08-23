@@ -131,7 +131,7 @@ const About = () => {
                   {
                     step: 2,
                     title: "Biometric Verification",
-                    description: "Facial recognition technology matches the voter to their government ID to prevent fraud."
+                    description: "Facial recognition technology matches the voter to their registered face to prevent fraud."
                   },
                   {
                     step: 3,

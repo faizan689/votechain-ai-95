@@ -5,14 +5,14 @@ import OTPVerification from '@/components/auth/OTPVerification';
 import { FaceEnrollmentStep } from '@/components/auth/FaceEnrollmentStep';
 import { authService } from '@/services/authService';
 import { useToast } from '@/components/ui/use-toast';
-import KYCUpload from '@/components/kyc/KYCUpload';
+
 
 interface OnboardingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-type Step = 'phone' | 'otp' | 'kyc' | 'face' | 'done';
+type Step = 'phone' | 'otp' | 'face' | 'done';
 
 const OnboardingModal: React.FC<OnboardingModalProps> = ({ open, onOpenChange }) => {
   const { toast } = useToast();
@@ -59,7 +59,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ open, onOpenChange })
       const res = await authService.verifyOTP(phoneNumber, otp);
       if (res.success) {
         toast({ title: 'Verified', description: 'Phone number verified successfully.' });
-        setStep('kyc');
+        setStep('face');
       } else {
         toast({ title: 'Verification failed', description: res.error || 'Please try again.', variant: 'destructive' });
       }
@@ -77,7 +77,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ open, onOpenChange })
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Get started</DialogTitle>
-          <DialogDescription>Register or log in, complete KYC, and enroll your face to vote securely.</DialogDescription>
+          <DialogDescription>Register or log in and enroll your face to vote securely.</DialogDescription>
         </DialogHeader>
 
         {step === 'phone' && (
@@ -104,15 +104,6 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ open, onOpenChange })
           />
         )}
 
-        {step === 'kyc' && (
-          <KYCUpload
-            userId={userId}
-            onComplete={() => {
-              toast({ title: 'KYC submitted', description: 'Your ID has been securely uploaded.' });
-              setStep('face');
-            }}
-          />
-        )}
 
         {step === 'face' && (
           <FaceEnrollmentStep
@@ -129,7 +120,6 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ open, onOpenChange })
             <p className="text-sm">All set! Your account is ready.</p>
             <div className="text-sm grid gap-2">
               <div>• Phone verified</div>
-              <div>• KYC submitted</div>
               <div>• Face enrolled</div>
             </div>
             <a href="/voting" className="underline">Go to Voting</a>
