@@ -75,10 +75,20 @@ const Voting = () => {
     // Enhanced authentication check with debug logging
     console.log('Voting: Checking authentication status');
     const isVerified = authService.isVerified();
-    const hasToken = !!getAuthToken();
     const adminStatus = authService.isAdmin();
     
-    console.log('Voting: Auth status:', { isVerified, hasToken, isAdmin: adminStatus });
+    // Check for both regular and admin tokens
+    const regularToken = getAuthToken();
+    const adminToken = localStorage.getItem('voteguard_admin_token');
+    const hasToken = !!(regularToken || adminToken);
+    
+    console.log('Voting: Auth status:', { 
+      isVerified, 
+      hasToken, 
+      hasRegularToken: !!regularToken,
+      hasAdminToken: !!adminToken,
+      isAdmin: adminStatus 
+    });
     setIsAdmin(adminStatus);
     
     if (!isVerified || !hasToken) {
