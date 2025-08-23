@@ -29,6 +29,8 @@ export function useFacialVerification({
 
   const [initialized, setInitialized] = useState(false);
   const [realtimeVerification, setRealtimeVerification] = useState(false);
+  const [modelReady, setModelReady] = useState(false);
+  const [lastVerificationAttempt, setLastVerificationAttempt] = useState(0);
 
   // Initialize face recognition system
   useEffect(() => {

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { authService } from '@/services/authService';
 import PhoneNumberInput from './auth/PhoneNumberInput';
 import OTPVerification from './auth/OTPVerification';
+import FaceVerificationStep from './auth/FaceVerificationStep';
 
 import { toastMessages } from '@/utils/toastMessages';
 
@@ -20,6 +21,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
   const [isOTPSent, setIsOTPSent] = useState(false);
   const [activeTab, setActiveTab] = useState("phone");
   const [otpSendTime, setOtpSendTime] = useState<Date | null>(null);
+  const [showFaceVerification, setShowFaceVerification] = useState(false);
   const navigate = useNavigate();
 
   // Updated to validate Indian phone numbers (10 digits)
@@ -122,13 +124,9 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
       console.log('OTP verification response:', response);
       
       if (response.success) {
-        console.log('OTP verification successful, proceeding to voting');
-        toast.success('OTP verified! Welcome!');
-        navigate('/voting');
-        
-        if (onVerificationSuccess) {
-          onVerificationSuccess();
-        }
+        console.log('OTP verification successful, proceeding to face verification');
+        toast.success('OTP verified! Setting up facial verification...');
+        setShowFaceVerification(true);
       } else {
         console.log('OTP verification failed:', response.error);
         const errorMessage = response.error || 'OTP verification failed';
@@ -165,6 +163,26 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
     await handlePhoneSubmit();
   };
 
+  const handleFaceVerificationSuccess = () => {
+    console.log('Face verification successful, proceeding to voting');
+    toast.success('Authentication complete! Welcome!');
+    navigate('/voting');
+    
+    if (onVerificationSuccess) {
+      onVerificationSuccess();
+    }
+  };
+
+  const handleSkipFaceVerification = () => {
+    console.log('Face verification skipped, proceeding to voting');
+    toast.success('Authentication complete! You can set up facial verification later.');
+    navigate('/voting');
+    
+    if (onVerificationSuccess) {
+      onVerificationSuccess();
+    }
+  };
+
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     if (value === "otp" && !phoneNumber.trim()) {
@@ -173,6 +191,16 @@ const AuthForm: React.FC<AuthFormProps> = ({ onVerificationSuccess }) => {
       return;
     }
   };
+
+  if (showFaceVerification) {
+    return (
+      <FaceVerificationStep
+        onVerificationSuccess={handleFaceVerificationSuccess}
+        onSkip={handleSkipFaceVerification}
+        isRequired={false}
+      />
+    );
+  }
 
   return (
     <Card className="w-[420px]">

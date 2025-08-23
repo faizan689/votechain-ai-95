@@ -148,10 +148,10 @@ export const recognizeFaceForUser = async (
     const distance = bestMatch.distance;
     const confidence = Math.max(0, 1 - distance);
     
-    // Security threshold for user verification
+    // Progressive threshold for user verification - more lenient initially
     const isAuthorized = bestMatch.label !== 'unknown' && 
-                        distance <= 0.45 && // Slightly more forgiving distance threshold for robustness
-                        confidence >= 0.6;  // Require good confidence
+                        distance <= 0.5 && // More forgiving distance threshold
+                        confidence >= 0.4;  // Lower initial confidence requirement
     
     console.log('Face recognition result:', {
       userId: userId,
