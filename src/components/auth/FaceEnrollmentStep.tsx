@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { UserPlus, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { FaceEnrollment } from '@/components/FaceEnrollment';
+import SimpleFaceEnrollment from '@/components/SimpleFaceEnrollment';
+import { faceEnrollmentService } from '@/services/faceEnrollmentService';
 
 interface FaceEnrollmentStepProps {
   userId: string;
@@ -18,17 +19,39 @@ export const FaceEnrollmentStep: React.FC<FaceEnrollmentStepProps> = ({
 }) => {
   const [showEnrollment, setShowEnrollment] = useState(false);
 
-  const handleSuccess = (faceDescriptor: number[]) => {
-    console.log('Face enrollment successful for user:', userId);
-    onEnrollmentComplete();
+  const handleSuccess = async (faceDescriptors: number[][]) => {
+    console.log('Face enrollment successful for user:', userId, 'descriptors:', faceDescriptors.length);
+    
+    try {
+      // Save the face enrollment to the backend
+      const result = await faceEnrollmentService.enrollFaceMultiple(
+        userId,
+        faceDescriptors,
+        undefined, // enrolledBy - let the service handle this
+        0.6 // confidence threshold
+      );
+
+      if (result.success) {
+        console.log('✅ Face enrollment saved to backend successfully');
+        onEnrollmentComplete();
+      } else {
+        console.error('❌ Failed to save face enrollment:', result.error);
+        // Still proceed with onboarding even if backend save fails
+        onEnrollmentComplete();
+      }
+    } catch (error) {
+      console.error('❌ Error saving face enrollment:', error);
+      // Still proceed with onboarding even if there's an error
+      onEnrollmentComplete();
+    }
   };
 
   if (showEnrollment) {
     return (
-      <FaceEnrollment
+      <SimpleFaceEnrollment
         userId={userId}
         onSuccess={handleSuccess}
-        onSkip={onSkip}
+        onSkip={onSkip || (() => onEnrollmentComplete())}
       />
     );
   }
