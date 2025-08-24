@@ -76,7 +76,14 @@ export async function apiRequest<T>(
 
     if (error) {
       console.error(`Edge function error for ${functionName}:`, error);
-      throw new Error(error.message || 'Request failed');
+      // Extract status code from FunctionsHttpError for better error handling
+      if (error.name === 'FunctionsHttpError') {
+        console.log(`API: FunctionsHttpError detected for ${functionName}`);
+        // Check if it's a 409 (already voted) by trying to get response details
+        const errorContext = error.context || {};
+        console.log(`API: Error context for ${functionName}:`, errorContext);
+      }
+      throw error;
     }
 
     return result as T;

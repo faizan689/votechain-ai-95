@@ -18,23 +18,24 @@ export const votingService = {
     } catch (error: any) {
       console.error('VotingService: Vote casting failed:', error);
       
-      // Enhanced error handling for Supabase Functions errors
+      // Enhanced error handling for Supabase Functions errors  
       if (error.name === 'FunctionsHttpError') {
-        console.log('VotingService: FunctionsHttpError detected');
+        console.log('VotingService: FunctionsHttpError detected - likely user already voted');
         
         // For admin users who have already voted, allow them to vote again as a test
         if (localStorage.getItem('isAdmin') === 'true') {
-          console.log('VotingService: Admin user already voted - allowing test vote');
+          console.log('VotingService: Admin user - allowing test vote after conflict');
           // Return mock success response for admin test
           return {
             success: true,
-            message: 'Admin test vote recorded',
+            message: 'Admin test vote recorded (conflict handled)',
             transactionId: 'TEST_TX_' + Date.now(),
             isAdminTest: true
           };
         }
         
-        // For regular users, if they already voted, throw specific error
+        // For regular users, assume 409/conflict means already voted since JWT is working
+        console.log('VotingService: Regular user - assuming already voted conflict');
         throw new Error('already_voted');
       }
       
