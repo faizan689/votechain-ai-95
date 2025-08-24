@@ -11,7 +11,7 @@ import { votingService } from "@/services/votingService";
 import { authService } from "@/services/authService";
 import { getAuthToken } from "@/services/api";
 import { toast } from "sonner";
-import FacialRecognitionVerification from "@/components/FacialRecognitionVerification";
+import CameraVerification from "@/components/CameraVerification";
 import OTPVerification from "@/components/auth/OTPVerification";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -386,20 +386,15 @@ const Voting = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="mt-2">
-            <FacialRecognitionVerification
+            <CameraVerification
               onSuccess={async () => {
                 console.log('✅ Facial verification successful - proceeding with vote');
                 setVerifyAttempts(0);
                 setShowVerification(false);
                 setFaceVerified(true);
                 toast.success('Facial verification successful');
-                
-                // Add a small delay to ensure UI updates
-                setTimeout(async () => {
-                  console.log('🗳️ Starting vote casting process after facial verification');
-                  await handleCastVoteAfterAuth();
-                  console.log('🎯 Vote casting process completed, should redirect to /confirmation');
-                }, 100);
+                // Immediately cast vote after successful verification
+                await handleCastVoteAfterAuth();
               }}
               onFailure={async () => {
                 const next = verifyAttempts + 1;
@@ -413,7 +408,6 @@ const Voting = () => {
                   await startOtpFlow();
                 }
               }}
-              isRequired={true}
             />
           </div>
         </DialogContent>
