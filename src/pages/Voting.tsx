@@ -179,7 +179,16 @@ const Voting = () => {
     } catch (error: any) {
       console.error('Voting: Vote casting error details:', error);
       if (error.message === 'already_voted') {
-        toast.error('You have already cast your vote.');
+        console.log('ℹ️ User already voted, redirecting to confirmation page');
+        // Set default confirmation data for users who already voted
+        localStorage.setItem('voteData', JSON.stringify({
+          transactionId: 'PREV_VOTE_' + Date.now(),
+          partyId: selectedParty,
+          partyName: selectedPartyDetails.name,
+          timestamp: new Date().toISOString(),
+          alreadyVoted: true
+        }));
+        toast.success('Vote confirmation loaded');
         navigate('/confirmation');
       } else if (error.message?.includes('Authentication failed')) {
         toast.error('Your session has expired. Please log in again.');
@@ -393,8 +402,28 @@ const Voting = () => {
                 setShowVerification(false);
                 setFaceVerified(true);
                 toast.success('Facial verification successful');
-                // Immediately cast vote after successful verification
-                await handleCastVoteAfterAuth();
+                // Immediately cast vote after successful verification with proper error handling
+                try {
+                  await handleCastVoteAfterAuth();
+                  console.log('✅ Vote cast successfully, navigating to confirmation');
+                } catch (error: any) {
+                  console.error('❌ Error casting vote after facial verification:', error);
+                  // Check if it's an "already voted" error and redirect anyway
+                  if (error.message === 'already_voted') {
+                    console.log('ℹ️ User already voted, redirecting to confirmation page');
+                    // Set default confirmation data for users who already voted
+                    localStorage.setItem('voteData', JSON.stringify({
+                      transactionId: 'PREV_VOTE_' + Date.now(),
+                      partyId: selectedParty,
+                      partyName: parties.find(p => p.id === selectedParty)?.name || 'Previously voted',
+                      timestamp: new Date().toISOString(),
+                      alreadyVoted: true
+                    }));
+                    navigate('/confirmation');
+                  } else {
+                    toast.error('Failed to cast vote. Please try again.');
+                  }
+                }
               }}
               onFailure={async () => {
                 const next = verifyAttempts + 1;

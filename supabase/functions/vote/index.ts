@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { verify } from "https://deno.land/x/djwt@v2.8/mod.ts"
 import { corsHeaders } from '../_shared/cors.ts'
 
 const supabase = createClient(
@@ -9,69 +10,31 @@ const supabase = createClient(
 
 const JWT_SECRET = Deno.env.get('JWT_SECRET') || 'secret'
 
-// Fixed JWT verification function to match auth-verify-otp implementation
+// JWT verification using djwt library (consistent with auth functions)
 async function verifyJWT(token: string) {
   try {
-    console.log('Vote - Verifying JWT token, length:', token.length);
+    console.log('Vote - Verifying JWT token using djwt, length:', token.length);
     
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      console.log('Vote - Invalid JWT format, parts count:', parts.length);
-      return null;
-    }
-
-    const [headerB64, payloadB64, signatureB64] = parts;
-    console.log('Vote - JWT parts extracted successfully');
-    
-    // Verify signature using the same method as auth-verify-otp
-    const signatureInput = `${headerB64}.${payloadB64}`;
-    console.log('Vote - Creating verification key');
-    
+    // Create verification key
     const key = await crypto.subtle.importKey(
-      "raw",
+      'raw',
       new TextEncoder().encode(JWT_SECRET),
-      { name: "HMAC", hash: "SHA-256" },
+      { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ["verify"] // Use verify capability, not sign
+      ['sign', 'verify']
     );
     
-    console.log('Vote - Key imported for verification');
+    console.log('Vote - Verification key created');
     
-    // Decode the provided signature for verification
-    const providedSignature = Uint8Array.from(atob(signatureB64), c => c.charCodeAt(0));
-    console.log('Vote - Signature decoded, length:', providedSignature.length);
-    
-    // Use crypto.subtle.verify to check the signature
-    const isValid = await crypto.subtle.verify(
-      "HMAC",
-      key,
-      providedSignature,
-      new TextEncoder().encode(signatureInput)
-    );
-    
-    console.log('Vote - Signature verification result:', isValid);
-    
-    if (!isValid) {
-      console.log('Vote - JWT signature verification failed');
-      return null;
-    }
-    
-    // Parse payload
-    const payload = JSON.parse(atob(payloadB64));
-    console.log('Vote - JWT payload parsed successfully:', { 
+    // Use djwt verify function 
+    const payload = await verify(token, key);
+    console.log('Vote - JWT payload verified successfully:', { 
       sub: payload.sub, 
       exp: payload.exp,
       otp_verified: payload.otp_verified,
       face_verified: payload.face_verified 
     });
     
-    // Check expiration
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-      console.log('Vote - JWT token expired, exp:', payload.exp, 'now:', Math.floor(Date.now() / 1000));
-      return null;
-    }
-    
-    console.log('Vote - JWT verification successful');
     return payload;
   } catch (error) {
     console.error('Vote - JWT verification error:', error);
