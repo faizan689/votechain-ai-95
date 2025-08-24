@@ -80,8 +80,14 @@ export async function apiRequest<T>(
     }
 
     return result as T;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`API request failed for ${functionName}:`, error);
+    
+    // Try to extract more specific error information from Supabase Functions errors
+    if (error.name === 'FunctionsHttpError' && error.context) {
+      console.error(`Edge function ${functionName} context:`, error.context);
+    }
+    
     throw error;
   }
 }

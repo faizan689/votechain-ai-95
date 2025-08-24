@@ -393,14 +393,8 @@ const Voting = () => {
                 setShowVerification(false);
                 setFaceVerified(true);
                 toast.success('Facial verification successful');
-                // Immediately cast vote after successful verification and redirect
-                try {
-                  await handleCastVoteAfterAuth();
-                  // Ensure navigation to confirmation page
-                  console.log('✅ Vote cast successfully, navigating to confirmation');
-                } catch (error) {
-                  console.error('❌ Error casting vote after facial verification:', error);
-                }
+                // Immediately cast vote after successful verification
+                await handleCastVoteAfterAuth();
               }}
               onFailure={async () => {
                 const next = verifyAttempts + 1;
