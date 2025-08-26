@@ -325,15 +325,30 @@ export default function EnhancedAnalyticsCharts() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
-              <ChartContainer className="h-[400px]" config={chartConfig}>
+            <CardContent className="p-4">
+              <ChartContainer className="h-[400px] w-full overflow-hidden" config={chartConfig}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={trendData}>
+                  <ComposedChart 
+                    data={trendData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" />
-                    <YAxis />
+                    <XAxis 
+                      dataKey="time" 
+                      fontSize={12}
+                      tickMargin={8}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis 
+                      fontSize={12}
+                      tickMargin={8}
+                      width={60}
+                    />
                     <Tooltip content={<ChartTooltipContent />} />
-                    <Legend />
+                    <Legend 
+                      wrapperStyle={{ paddingTop: '20px' }}
+                      iconSize={12}
+                    />
                     <Area 
                       type="monotone" 
                       dataKey="cumulative" 
@@ -341,12 +356,17 @@ export default function EnhancedAnalyticsCharts() {
                       fillOpacity={0.3}
                       stroke="hsl(var(--chart-1))"
                     />
-                    <Bar dataKey="hourly" fill="hsl(var(--chart-2))" />
+                    <Bar 
+                      dataKey="hourly" 
+                      fill="hsl(var(--chart-2))"
+                      maxBarSize={40}
+                    />
                     <Line 
                       type="monotone" 
                       dataKey="predicted" 
                       stroke="hsl(var(--chart-3))" 
                       strokeDasharray="5 5"
+                      strokeWidth={2}
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
@@ -371,22 +391,51 @@ export default function EnhancedAnalyticsCharts() {
                 Export
               </Button>
             </CardHeader>
-            <CardContent>
-              <ChartContainer className="h-[400px]" config={chartConfig}>
+            <CardContent className="p-4">
+              <ChartContainer className="h-[400px] w-full overflow-hidden" config={chartConfig}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={demographicData}>
+                  <ComposedChart 
+                    data={demographicData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="category" />
-                    <YAxis />
+                    <XAxis 
+                      dataKey="category" 
+                      fontSize={11}
+                      tickMargin={8}
+                      interval={0}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis 
+                      fontSize={12}
+                      tickMargin={8}
+                      width={60}
+                    />
                     <Tooltip content={<ChartTooltipContent />} />
-                    <Legend />
-                    <Bar dataKey="mobile" stackId="device" fill="hsl(var(--chart-4))" />
-                    <Bar dataKey="desktop" stackId="device" fill="hsl(var(--chart-5))" />
+                    <Legend 
+                      wrapperStyle={{ paddingTop: '20px' }}
+                      iconSize={12}
+                    />
+                    <Bar 
+                      dataKey="mobile" 
+                      stackId="device" 
+                      fill="hsl(var(--chart-4))"
+                      maxBarSize={60}
+                    />
+                    <Bar 
+                      dataKey="desktop" 
+                      stackId="device" 
+                      fill="hsl(var(--chart-5))"
+                      maxBarSize={60}
+                    />
                     <Line 
                       type="monotone" 
                       dataKey="verified" 
                       stroke="hsl(var(--chart-1))" 
                       strokeWidth={3}
+                      dot={{ fill: "hsl(var(--chart-1))", strokeWidth: 2, r: 4 }}
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
@@ -411,19 +460,30 @@ export default function EnhancedAnalyticsCharts() {
                 Export
               </Button>
             </CardHeader>
-            <CardContent>
-              <ChartContainer className="h-[400px]" config={chartConfig}>
+            <CardContent className="p-4">
+              <ChartContainer className="h-[400px] w-full overflow-hidden" config={chartConfig}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={performanceData}>
+                  <RadarChart 
+                    data={performanceData}
+                    margin={{ top: 40, right: 40, bottom: 40, left: 40 }}
+                  >
                     <PolarGrid />
-                    <PolarAngleAxis dataKey="metric" />
-                    <PolarRadiusAxis />
+                    <PolarAngleAxis 
+                      dataKey="metric" 
+                      fontSize={11}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <PolarRadiusAxis 
+                      fontSize={10}
+                      tickCount={4}
+                    />
                     <Radar
                       name="Current"
                       dataKey="value"
                       stroke="hsl(var(--chart-1))"
                       fill="hsl(var(--chart-1))"
                       fillOpacity={0.3}
+                      strokeWidth={2}
                     />
                     <Radar
                       name="Target"
@@ -431,8 +491,12 @@ export default function EnhancedAnalyticsCharts() {
                       stroke="hsl(var(--chart-2))"
                       fill="hsl(var(--chart-2))"
                       fillOpacity={0.1}
+                      strokeWidth={2}
                     />
-                    <Legend />
+                    <Legend 
+                      wrapperStyle={{ paddingTop: '20px' }}
+                      iconSize={12}
+                    />
                   </RadarChart>
                 </ResponsiveContainer>
               </ChartContainer>
@@ -453,11 +517,22 @@ export default function EnhancedAnalyticsCharts() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer className="h-[300px]" config={chartConfig}>
+                <ChartContainer className="h-[300px] w-full overflow-hidden" config={chartConfig}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={trendData.slice(-12)}>
-                      <XAxis dataKey="time" />
-                      <YAxis />
+                    <LineChart 
+                      data={trendData.slice(-12)}
+                      margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+                    >
+                      <XAxis 
+                        dataKey="time" 
+                        fontSize={11}
+                        tickMargin={8}
+                      />
+                      <YAxis 
+                        fontSize={11}
+                        tickMargin={8}
+                        width={50}
+                      />
                       <Tooltip content={<ChartTooltipContent />} />
                       <Line 
                         type="monotone" 
@@ -465,6 +540,7 @@ export default function EnhancedAnalyticsCharts() {
                         stroke="hsl(var(--chart-2))" 
                         strokeWidth={3}
                         dot={{ fill: "hsl(var(--chart-2))", strokeWidth: 2, r: 4 }}
+                        activeDot={{ r: 6, stroke: "hsl(var(--chart-2))", strokeWidth: 2 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -480,9 +556,9 @@ export default function EnhancedAnalyticsCharts() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer className="h-[300px]" config={chartConfig}>
+                <ChartContainer className="h-[300px] w-full overflow-hidden" config={chartConfig}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                    <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                       <Pie
                         data={demographicData.slice(0, 3).map(d => ({
                           name: d.category,
@@ -494,6 +570,7 @@ export default function EnhancedAnalyticsCharts() {
                         fill="hsl(var(--chart-1))"
                         dataKey="value"
                         label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
                       >
                         {demographicData.slice(0, 3).map((_, index) => (
                           <Cell 
