@@ -1,0 +1,8 @@
+{
+  "network": "sepolia",
+  "contractAddress": "0x0000000000000000000000000000000000000000",
+  "transactionHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "deployedAt": "2024-01-01T00:00:00.000Z",
+  "deployer": "0x0000000000000000000000000000000000000000",
+  "note": "This is a placeholder. Run deployment script to get actual values."
+}

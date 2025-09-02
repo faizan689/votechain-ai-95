@@ -17,6 +17,19 @@ export const SEPOLIA_CONFIG = {
 // Contract address (will be updated after deployment)
 export const CONTRACT_ADDRESS = process.env.VITE_CONTRACT_ADDRESS || "0x0000000000000000000000000000000000000000";
 
+// Load contract address from deployment file if available
+let deployedAddress = CONTRACT_ADDRESS;
+try {
+  const deploymentInfo = require('../../public/contract-deployment.json');
+  if (deploymentInfo.contractAddress && deploymentInfo.contractAddress !== "0x0000000000000000000000000000000000000000") {
+    deployedAddress = deploymentInfo.contractAddress;
+  }
+} catch (error) {
+  console.log('No deployment info found, using default address');
+}
+
+export const DEPLOYED_CONTRACT_ADDRESS = deployedAddress;
+
 export class Web3Service {
   private provider: ethers.BrowserProvider | null = null;
   private signer: ethers.Signer | null = null;
@@ -111,7 +124,7 @@ export class Web3Service {
     
     this.signer = await this.provider.getSigner();
     this.contract = new ethers.Contract(
-      CONTRACT_ADDRESS,
+      DEPLOYED_CONTRACT_ADDRESS,
       VotingContractABI.abi,
       this.signer
     );

@@ -169,7 +169,7 @@ const Header = () => {
         </Link>
         
         <nav className="hidden md:flex items-center space-x-8">
-          {['', 'auth', 'about'].map((path, index) => (
+          {['', 'auth', 'blockchain', 'about'].map((path, index) => (
             <motion.div
               key={path}
               initial={{ opacity: 0, y: -10 }}

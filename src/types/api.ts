@@ -50,6 +50,9 @@ export interface PartiesResponse extends ApiResponse {
 // Vote cast response
 export interface VoteCastResponse extends ApiResponse {
   transactionId?: string;
+  voteId?: string;
+  blockchainTxHash?: string;
+  isBlockchainVote?: boolean;
   isAdminTest?: boolean;
 }
 

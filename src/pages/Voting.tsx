@@ -1,19 +1,18 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { ArrowRight, Info, ShieldCheck } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import PartyCard from "@/components/PartyCard";
-import ConfirmationModal from "@/components/ConfirmationModal";
-import MetaMaskConflictWarning from "@/components/MetaMaskConflictWarning";
-import { votingService } from "@/services/votingService";
-import { authService } from "@/services/authService";
-import { getAuthToken } from "@/services/api";
-import { toast } from "sonner";
-import CameraVerification from "@/components/CameraVerification";
-import OTPVerification from "@/components/auth/OTPVerification";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { motion } from 'framer-motion';
+import { ArrowRight, Info, ShieldCheck } from 'lucide-react';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import PartyCard from '@/components/PartyCard';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import { WalletConnection } from '@/components/blockchain/WalletConnection';
+import { BlockchainStatus } from '@/components/blockchain/BlockchainStatus';
+import { votingService } from '@/services/votingService';
+import { authService } from '@/services/authService';
+import { useWeb3 } from '@/hooks/useWeb3';
+import MetaMaskConflictWarning from '@/components/MetaMaskConflictWarning';
 
 type Party = {
   id: string;
@@ -24,22 +23,14 @@ type Party = {
 };
 
 const Voting = () => {
+  const navigate = useNavigate();
+  const { isConnected: isWeb3Connected, address: walletAddress } = useWeb3();
   const [selectedParty, setSelectedParty] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showMetaMaskWarning, setShowMetaMaskWarning] = useState(false);
+  const [hasMetaMaskConflict, setHasMetaMaskConflict] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [showVerification, setShowVerification] = useState(false);
-  const [faceVerified, setFaceVerified] = useState(false);
-  const [verifyAttempts, setVerifyAttempts] = useState(0);
-  // Post-confirmation verification & OTP fallback states
-  const [pendingVote, setPendingVote] = useState(false);
-  const [showOtp, setShowOtp] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [otpSendTime, setOtpSendTime] = useState<Date | null>(null);
-  const [isOtpLoading, setIsOtpLoading] = useState(false);
-  const navigate = useNavigate();
-  
+
   const parties: Party[] = [
     { 
       id: "PTY-001", 
@@ -72,53 +63,34 @@ const Voting = () => {
   ];
 
   useEffect(() => {
-    // Enhanced authentication check with debug logging
-    console.log('Voting: Checking authentication status');
+    // Check authentication
     const isVerified = authService.isVerified();
     const adminStatus = authService.isAdmin();
-    
-    // Check for both regular and admin tokens
-    const regularToken = getAuthToken();
-    const adminToken = localStorage.getItem('voteguard_admin_token');
-    const hasToken = !!(regularToken || adminToken);
-    
-    console.log('Voting: Auth status:', { 
-      isVerified, 
-      hasToken, 
-      hasRegularToken: !!regularToken,
-      hasAdminToken: !!adminToken,
-      isAdmin: adminStatus 
-    });
     setIsAdmin(adminStatus);
     
-    if (!isVerified || !hasToken) {
-      console.log('Voting: User not authenticated, redirecting to auth');
+    if (!isVerified) {
       toast.error('Please complete authentication to access voting');
       navigate('/auth');
       return;
     }
     
-    console.log('Voting: Authentication verified, user can vote');
-    
-    // Check for MetaMask conflicts with proper type checking
+    // Check for MetaMask conflicts
     const checkMetaMaskConflicts = () => {
       if (typeof window !== 'undefined' && window.ethereum) {
         const providers = window.ethereum.providers;
         if (providers && Array.isArray(providers) && providers.length > 1) {
-          console.log('Multiple wallet providers detected:', providers.length);
-          setShowMetaMaskWarning(true);
+          setHasMetaMaskConflict(true);
         }
       }
     };
     
     checkMetaMaskConflicts();
   }, [navigate]);
-  
+
   const handlePartySelect = (id: string) => {
-    console.log('Voting: Party selected:', id);
     setSelectedParty(id);
   };
-  
+
   const handleContinue = () => {
     if (!selectedParty) {
       toast.error('Please select a party first');
@@ -126,21 +98,12 @@ const Voting = () => {
     }
     setIsModalOpen(true);
   };
-  
-  const handleVoteConfirm = () => {
+
+  const handleVoteConfirm = async () => {
     if (!selectedParty) {
       toast.error('No party selected');
       return;
     }
-    // Trigger post-confirmation face verification
-    setIsModalOpen(false);
-    setPendingVote(true);
-    setVerifyAttempts(0);
-    setShowVerification(true);
-  };
-
-  const handleCastVoteAfterAuth = async () => {
-    if (!selectedParty) return;
 
     const selectedPartyDetails = parties.find(party => party.id === selectedParty);
     if (!selectedPartyDetails) {
@@ -148,39 +111,41 @@ const Voting = () => {
       return;
     }
 
+    setIsModalOpen(false);
     setIsLoading(true);
-
-    const currentToken = getAuthToken();
-    console.log('Voting: Current auth token present:', !!currentToken);
 
     try {
       console.log('Voting: Attempting to cast vote for:', selectedPartyDetails);
+      
+      // Store biometric hash for blockchain voting
+      const biometricHash = `${selectedParty}-${Date.now()}`;
+      localStorage.setItem('currentBiometricHash', biometricHash);
+      
       const response = await votingService.castVote(selectedPartyDetails.id, selectedPartyDetails.name);
       console.log('Voting: Vote response received:', response);
 
       if (response.success) {
-        const successMessage = response.isAdminTest
-          ? 'Admin test vote cast successfully! You can vote again.'
-          : 'Vote cast successfully!';
-        toast.success(successMessage);
-
+        toast.success(response.message);
+        
         localStorage.setItem('voteData', JSON.stringify({
           transactionId: response.transactionId,
+          blockchainTxHash: response.blockchainTxHash,
           partyId: selectedParty,
           partyName: selectedPartyDetails.name,
           timestamp: new Date().toISOString(),
+          isBlockchainVote: response.isBlockchainVote,
           isAdminTest: response.isAdminTest
         }));
-        navigate('/confirmation');
+        
+        setTimeout(() => {
+          navigate('/confirmation');
+        }, 1500);
       } else {
-        console.error('Voting: Vote failed with response error:', response.error);
-        toast.error(response.error || 'Failed to cast vote');
+        toast.error(response.message || 'Failed to cast vote');
       }
     } catch (error: any) {
-      console.error('Voting: Vote casting error details:', error);
+      console.error('Voting: Vote casting error:', error);
       if (error.message === 'already_voted') {
-        console.log('ℹ️ User already voted, redirecting to confirmation page');
-        // Set default confirmation data for users who already voted
         localStorage.setItem('voteData', JSON.stringify({
           transactionId: 'PREV_VOTE_' + Date.now(),
           partyId: selectedParty,
@@ -194,83 +159,56 @@ const Voting = () => {
         toast.error('Your session has expired. Please log in again.');
         authService.logout();
         navigate('/auth');
-      } else if (error.message?.includes('Invalid vote request')) {
-        toast.error('There was a problem with your vote. Please try again.');
       } else {
         toast.error(error.message || 'Failed to cast vote. Please try again.');
       }
     } finally {
       setIsLoading(false);
-      setPendingVote(false);
     }
   };
 
-  const formatPhoneDisplay = (phone: string) =>
-    phone.replace(/(\d{2})(\d{5})(\d{3})/, '+$1 **** $3');
-
-  const getTimeSinceOTP = () => {
-    if (!otpSendTime) return '';
-    const seconds = Math.floor((Date.now() - otpSendTime.getTime()) / 1000);
-    if (seconds < 60) return `${seconds}s ago`;
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes}m ago`;
-  };
-
-  const startOtpFlow = async () => {
-    const userPhone = localStorage.getItem('userPhone') || '';
-    if (!userPhone) {
-      toast.error('No phone number found for OTP.');
-      return;
-    }
-    try {
-      setIsOtpLoading(true);
-      await authService.requestOTP(userPhone);
-      setOtp('');
-      setOtpSendTime(new Date());
-      setShowOtp(true);
-      toast.success('OTP sent for secondary verification');
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to send OTP');
-    } finally {
-      setIsOtpLoading(false);
-    }
-  };
-
-  const verifyOtpAndCast = async () => {
-    const userPhone = localStorage.getItem('userPhone') || '';
-    if (!userPhone) return;
-    try {
-      setIsOtpLoading(true);
-      await authService.verifyOTP(userPhone, otp);
-      setShowOtp(false);
-      toast.success('OTP verified');
-      await handleCastVoteAfterAuth();
-    } catch (e: any) {
-      toast.error(e.message || 'Invalid OTP, please try again');
-    } finally {
-      setIsOtpLoading(false);
-    }
-  };
-  
   const closeModal = () => {
-    console.log('Voting: Closing confirmation modal');
     setIsModalOpen(false);
   };
-  
+
   const selectedPartyDetails = selectedParty 
     ? parties.find(party => party.id === selectedParty) || null
     : null;
-  
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       
       <section className="flex-1 pt-32 pb-20 bg-gradient-to-b from-background to-secondary/30">
         <div className="container mx-auto px-6">
-          {showMetaMaskWarning && (
+          {hasMetaMaskConflict && (
             <div className="max-w-4xl mx-auto mb-6">
               <MetaMaskConflictWarning />
             </div>
+          )}
+          
+          {/* Blockchain Status Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 max-w-4xl mx-auto">
+            <WalletConnection />
+            <BlockchainStatus />
+          </div>
+          
+          {isWeb3Connected && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 max-w-4xl mx-auto"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-green-800 font-medium">
+                  Blockchain Connected - Your vote will be recorded on Ethereum Sepolia
+                </span>
+              </div>
+              <p className="text-green-700 text-sm mt-1">
+                Wallet: {walletAddress?.slice(0, 6)}...{walletAddress?.slice(-4)}
+              </p>
+            </motion.div>
           )}
           
           {isAdmin && (
@@ -306,7 +244,7 @@ const Voting = () => {
             </h1>
             <p className="text-muted-foreground max-w-xl mx-auto">
               Select your preferred candidate or party from the options below.
-              Your vote will be secured using blockchain technology.
+              {isWeb3Connected ? ' Your vote will be secured using blockchain technology.' : ' Connect your wallet for blockchain voting.'}
             </p>
           </motion.div>
           
@@ -359,8 +297,8 @@ const Voting = () => {
                     : "bg-secondary text-muted-foreground cursor-not-allowed"}
                 `}
               >
-                <span>Continue to Confirm</span>
-                <ArrowRight size={18} />
+                <span>{isLoading ? 'Casting Vote...' : 'Continue to Confirm'}</span>
+                {!isLoading && <ArrowRight size={18} />}
               </motion.button>
             </motion.div>
           </div>
@@ -385,84 +323,6 @@ const Voting = () => {
         onConfirm={handleVoteConfirm}
         isLoading={isLoading}
       />
-
-      <Dialog open={showVerification} onOpenChange={setShowVerification}>
-        <DialogContent className="sm:max-w-[560px]">
-          <DialogHeader>
-            <DialogTitle>Facial Verification</DialogTitle>
-            <DialogDescription>
-              Please verify your identity to continue to vote confirmation.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-2">
-            <CameraVerification
-              onSuccess={async () => {
-                console.log('✅ Facial verification successful - proceeding with vote');
-                setVerifyAttempts(0);
-                setShowVerification(false);
-                setFaceVerified(true);
-                toast.success('Facial verification successful');
-                // Immediately cast vote after successful verification with proper error handling
-                try {
-                  await handleCastVoteAfterAuth();
-                  console.log('✅ Vote cast successfully, navigating to confirmation');
-                } catch (error: any) {
-                  console.error('❌ Error casting vote after facial verification:', error);
-                  // Check if it's an "already voted" error and redirect anyway
-                  if (error.message === 'already_voted') {
-                    console.log('ℹ️ User already voted, redirecting to confirmation page');
-                    // Set default confirmation data for users who already voted
-                    localStorage.setItem('voteData', JSON.stringify({
-                      transactionId: 'PREV_VOTE_' + Date.now(),
-                      partyId: selectedParty,
-                      partyName: parties.find(p => p.id === selectedParty)?.name || 'Previously voted',
-                      timestamp: new Date().toISOString(),
-                      alreadyVoted: true
-                    }));
-                    navigate('/confirmation');
-                  } else {
-                    toast.error('Failed to cast vote. Please try again.');
-                  }
-                }
-              }}
-              onFailure={async () => {
-                const next = verifyAttempts + 1;
-                setVerifyAttempts(next);
-                if (next < 2) {
-                  toast.error('Face verification failed. Please adjust lighting and try again.');
-                  // Keep dialog open for retry
-                } else {
-                  setShowVerification(false);
-                  toast.error('Verification failed twice. Switching to OTP verification.');
-                  await startOtpFlow();
-                }
-              }}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showOtp} onOpenChange={setShowOtp}>
-        <DialogContent className="sm:max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle>Secondary Verification</DialogTitle>
-            <DialogDescription>
-              Enter the OTP sent to your phone to confirm your vote.
-            </DialogDescription>
-          </DialogHeader>
-          <OTPVerification
-            otp={otp}
-            onOtpChange={setOtp}
-            onVerify={verifyOtpAndCast}
-            onResend={startOtpFlow}
-            phoneNumber={localStorage.getItem('userPhone') || ''}
-            formatPhoneDisplay={formatPhoneDisplay}
-            getTimeSinceOTP={getTimeSinceOTP}
-            otpSendTime={otpSendTime}
-            isLoading={isOtpLoading}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

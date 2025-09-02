@@ -12,35 +12,40 @@ import SettingsPage from "./pages/admin/SettingsPage";
 import FaceEnrollmentPage from "./pages/admin/FaceEnrollmentPage";
 import AdminRoute from "./components/AdminRoute";
 import Voting from "./pages/Voting";
+import Blockchain from "./pages/Blockchain";
 import Confirmation from "./pages/Confirmation";
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/toaster";
+import { MetaMaskProvider } from "@/components/MetaMaskProvider";
 
 function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/voting" element={<Voting />} />
-          <Route path="/confirmation" element={<Confirmation />} />
-          
-          {/* Admin Routes */}
-          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-          <Route path="/admin/security" element={<AdminRoute><SecurityPage /></AdminRoute>} />
-          <Route path="/admin/users" element={<AdminRoute><UsersPage /></AdminRoute>} />
-          <Route path="/admin/face-enrollment" element={<AdminRoute><FaceEnrollmentPage /></AdminRoute>} />
-          <Route path="/admin/analytics" element={<AdminRoute><AnalyticsPage /></AdminRoute>} />
-          <Route path="/admin/notifications" element={<AdminRoute><NotificationsPage /></AdminRoute>} />
-          <Route path="/admin/settings" element={<AdminRoute><SettingsPage /></AdminRoute>} />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <Toaster />
-      </BrowserRouter>
+      <MetaMaskProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/voting" element={<Voting />} />
+            <Route path="/blockchain" element={<Blockchain />} />
+            <Route path="/confirmation" element={<Confirmation />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+            <Route path="/admin/security" element={<AdminRoute><SecurityPage /></AdminRoute>} />
+            <Route path="/admin/users" element={<AdminRoute><UsersPage /></AdminRoute>} />
+            <Route path="/admin/face-enrollment" element={<AdminRoute><FaceEnrollmentPage /></AdminRoute>} />
+            <Route path="/admin/analytics" element={<AdminRoute><AnalyticsPage /></AdminRoute>} />
+            <Route path="/admin/notifications" element={<AdminRoute><NotificationsPage /></AdminRoute>} />
+            <Route path="/admin/settings" element={<AdminRoute><SettingsPage /></AdminRoute>} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Toaster />
+        </BrowserRouter>
+      </MetaMaskProvider>
     </ThemeProvider>
   );
 }

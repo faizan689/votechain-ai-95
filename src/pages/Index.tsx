@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import HeroSection from "@/components/home/HeroSection";
 import FeaturesSection from "@/components/home/FeaturesSection";
 import CTASection from "@/components/home/CTASection";
+import { BlockchainSection } from "@/components/home/BlockchainSection";
 import { useState } from "react";
 import OnboardingModal from "@/components/home/OnboardingModal";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ const Index = () => {
       
       <HeroSection />
       <FeaturesSection />
+      <BlockchainSection />
       <CTASection />
       
       <Footer />

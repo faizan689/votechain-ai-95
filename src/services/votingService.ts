@@ -1,20 +1,67 @@
 
 import { apiRequest } from './api';
+import { web3Service } from './web3Service';
 import { VoteCastResponse } from '@/types/api';
 
 export const votingService = {
   /**
-   * Cast a vote for a party
+   * Cast a vote for a party with blockchain integration
    */
   castVote: async (partyId: string, partyName: string): Promise<VoteCastResponse> => {
     console.log('VotingService: Casting vote for:', { partyId, partyName });
     
     try {
-      // For admin users, explicitly use admin token
-      const isAdminUser = localStorage.getItem('isAdmin') === 'true';
-      const response = await apiRequest<VoteCastResponse>('vote', { partyId, partyName }, isAdminUser);
-      console.log('VotingService: Vote response received:', response);
-      return response;
+      // Check if user is connected to blockchain
+      const isWeb3Connected = web3Service.getConnectionStatus();
+      
+      if (isWeb3Connected) {
+        console.log('VotingService: Casting vote on blockchain...');
+        
+        // Get biometric hash from localStorage or use default
+        const biometricHash = localStorage.getItem('currentBiometricHash') || 'default-hash';
+        
+        const blockchainResult = await web3Service.castVote(partyId, partyName, biometricHash);
+        
+        if (blockchainResult.success) {
+          console.log('VotingService: Blockchain vote successful:', blockchainResult);
+          
+          // Also record in traditional database for analytics
+          try {
+            const response = await apiRequest<VoteCastResponse>('vote', {
+              partyId,
+              partyName,
+              blockchainTxHash: blockchainResult.txHash,
+              voteHash: blockchainResult.voteHash
+            });
+            
+            return {
+              ...response,
+              blockchainTxHash: blockchainResult.txHash,
+              isBlockchainVote: true
+            };
+          } catch (dbError) {
+            console.warn('VotingService: Database recording failed, but blockchain vote succeeded:', dbError);
+            
+            return {
+              success: true,
+              message: 'Vote recorded on blockchain successfully!',
+              transactionId: blockchainResult.txHash,
+              blockchainTxHash: blockchainResult.txHash,
+              isBlockchainVote: true
+            };
+          }
+        } else {
+          throw new Error(blockchainResult.error || 'Blockchain vote failed');
+        }
+      } else {
+        console.log('VotingService: Falling back to traditional vote...');
+        
+        // For admin users, explicitly use admin token
+        const isAdminUser = localStorage.getItem('isAdmin') === 'true';
+        const response = await apiRequest<VoteCastResponse>('vote', { partyId, partyName }, isAdminUser);
+        console.log('VotingService: Vote response received:', response);
+        return response;
+      }
     } catch (error: any) {
       console.error('VotingService: Vote casting failed:', error);
       
