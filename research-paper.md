@@ -2,9 +2,9 @@
 
 ## Abstract
 
-This paper presents the design, implementation, and analysis of VoteGuard, a comprehensive digital voting system that addresses critical security challenges in electronic elections through biometric facial recognition, real-time monitoring, and blockchain-inspired transaction verification. The system demonstrates significant improvements in voter verification, fraud prevention, and electoral transparency through the integration of modern web technologies and advanced security protocols.
+This paper presents the design, implementation, and analysis of VoteGuard, a comprehensive digital voting system that addresses critical security challenges in electronic elections through biometric facial recognition, real-time monitoring, and cryptographic vote verification. The system demonstrates significant improvements in voter verification, fraud prevention, and electoral transparency through the integration of modern web technologies and advanced security protocols.
 
-**Keywords:** Digital Voting, Biometric Authentication, Facial Recognition, Election Security, Real-time Analytics, Blockchain Integration
+**Keywords:** Digital Voting, Biometric Authentication, Facial Recognition, Election Security, Real-time Analytics, Cryptographic Verification
 
 ## 1. Introduction
 
@@ -13,7 +13,7 @@ Electronic voting systems have emerged as a critical technology for modernizing 
 This research presents VoteGuard, a novel digital voting platform that addresses these challenges through:
 - Multi-factor biometric authentication using facial recognition
 - Real-time security monitoring and anomaly detection
-- Blockchain-inspired vote verification and immutable record keeping
+- Cryptographic vote hashing and transaction simulation for integrity verification
 - Advanced analytics for election transparency and fraud detection
 
 ### 1.1 Research Objectives
@@ -74,7 +74,7 @@ VoteGuard employs a three-tier architecture:
 | Biometrics | TensorFlow.js + Face-API.js | Facial recognition processing |
 | Real-time Updates | Supabase Realtime | Live data synchronization |
 | SMS/OTP | Twilio | Phone number verification |
-| Blockchain Simulation | Custom implementation | Vote integrity verification |
+| Transaction Simulation | Custom implementation | Vote integrity and traceability |
 
 ### 3.3 Security Architecture
 
@@ -87,7 +87,7 @@ The system implements multiple security layers:
 
 #### 3.3.2 Vote Integrity Mechanisms
 - **Hash Generation**: SHA-256 hashing of vote data
-- **Blockchain Simulation**: Immutable transaction records
+- **Transaction Simulation**: Cryptographic transaction records with unique identifiers
 - **Duplicate Prevention**: Database constraints and verification logic
 
 #### 3.3.3 Real-time Security Monitoring
@@ -157,7 +157,7 @@ CREATE TABLE votes (
   party_name TEXT NOT NULL,
   vote_hash TEXT NOT NULL,
   tx_hash TEXT,
-  blockchain_confirmed BOOLEAN DEFAULT false,
+  blockchain_confirmed BOOLEAN DEFAULT false, -- Reserved for future blockchain integration
   timestamp TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ```
@@ -329,7 +329,7 @@ The serverless architecture demonstrates excellent scalability characteristics:
 |---------|-------------------|-----------|-------------|
 | Voter Authentication | Single-factor (ID card) | Multi-factor (Phone + Biometric) | 300% more secure |
 | Real-time Monitoring | Manual observation | Automated AI monitoring | 24/7 coverage |
-| Vote Verification | Paper receipts | Blockchain verification | Immutable records |
+| Vote Verification | Paper receipts | Cryptographic hashing | Tamper-evident records |
 | Fraud Detection | Post-election audits | Real-time detection | Immediate response |
 
 #### 6.2.2 Usability Analysis
@@ -397,7 +397,7 @@ The serverless architecture demonstrates excellent scalability characteristics:
 
 ## 8. Conclusion
 
-This research presents VoteGuard, a comprehensive digital voting system that successfully addresses key challenges in electronic elections through innovative integration of biometric authentication, real-time monitoring, and blockchain-inspired verification mechanisms. The system demonstrates significant improvements in security, transparency, and user experience compared to traditional voting methods.
+This research presents VoteGuard, a comprehensive digital voting system that successfully addresses key challenges in electronic elections through innovative integration of biometric authentication, real-time monitoring, and cryptographic verification mechanisms. The system demonstrates significant improvements in security, transparency, and user experience compared to traditional voting methods.
 
 ### 8.1 Key Achievements
 
