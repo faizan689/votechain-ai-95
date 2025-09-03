@@ -25,7 +25,7 @@ export function MetaMaskProvider({ children }: MetaMaskProviderProps) {
           url: window.location.host,
           iconUrl: "/favicon.ico",
         },
-        infuraAPIKey: process.env.VITE_INFURA_API_KEY,
+        infuraAPIKey: process.env.VITE_INFURA_API_KEY || undefined,
         checkInstallationImmediately: false,
         checkInstallationOnAllCalls: true,
       }}
