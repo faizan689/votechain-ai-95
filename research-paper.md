@@ -74,7 +74,9 @@ VoteGuard employs a three-tier architecture:
 | Biometrics | TensorFlow.js + Face-API.js | Facial recognition processing |
 | Real-time Updates | Supabase Realtime | Live data synchronization |
 | SMS/OTP | Twilio | Phone number verification |
-| Transaction Simulation | Custom implementation | Vote integrity and traceability |
+| **Blockchain** | **Ethereum Sepolia + Ethers.js** | **On-chain vote storage and verification** |
+| **Smart Contracts** | **Solidity 0.8.19** | **Decentralized election management** |
+| **Wallet Integration** | **MetaMask SDK** | **Seamless blockchain interaction** |
 
 ### 3.3 Security Architecture
 
@@ -87,8 +89,11 @@ The system implements multiple security layers:
 
 #### 3.3.2 Vote Integrity Mechanisms
 - **Hash Generation**: SHA-256 hashing of vote data
-- **Transaction Simulation**: Cryptographic transaction records with unique identifiers
-- **Duplicate Prevention**: Database constraints and verification logic
+- **Blockchain Storage**: Immutable on-chain vote records on Ethereum Sepolia
+- **Smart Contract Verification**: Automated validation through VotingContract.sol
+- **Cryptographic Proofs**: Biometric hash verification for voter authentication
+- **Duplicate Prevention**: Smart contract enforcement and database constraints
+- **Transaction Tracking**: Full audit trail with Ethereum transaction hashes
 
 #### 3.3.3 Real-time Security Monitoring
 - **Anomaly Detection**: Monitoring for suspicious voting patterns
@@ -148,7 +153,7 @@ CREATE TABLE users (
 );
 ```
 
-#### 4.1.2 Vote Recording
+#### 4.1.2 Vote Recording with Blockchain Integration
 ```sql
 CREATE TABLE votes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -156,8 +161,11 @@ CREATE TABLE votes (
   party_id TEXT NOT NULL,
   party_name TEXT NOT NULL,
   vote_hash TEXT NOT NULL,
-  tx_hash TEXT,
-  blockchain_confirmed BOOLEAN DEFAULT false, -- Reserved for future blockchain integration
+  tx_hash TEXT, -- Ethereum transaction hash
+  blockchain_confirmed BOOLEAN DEFAULT false, -- ✅ Active blockchain confirmation
+  biometric_hash TEXT, -- Hash for on-chain verification
+  gas_used BIGINT, -- Transaction gas consumption
+  block_number BIGINT, -- Block number of confirmation
   timestamp TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ```
@@ -361,10 +369,13 @@ The serverless architecture demonstrates excellent scalability characteristics:
 - **Continuous Authentication**: Monitoring user behavior throughout session
 - **Deepfake Detection**: Advanced algorithms to detect synthetic media attacks
 
-#### 7.1.2 Blockchain Integration
-- **Full Blockchain Implementation**: Moving from simulation to actual blockchain
-- **Smart Contracts**: Automated election management and vote counting
-- **Distributed Consensus**: Multi-node verification for enhanced security
+#### 7.1.2 Blockchain Integration ✅ IMPLEMENTED
+- **Full Blockchain Implementation**: ✅ Complete Ethereum Sepolia integration with smart contracts
+- **Smart Contracts**: ✅ VotingContract.sol deployed with voter registration and vote casting
+- **Distributed Consensus**: ✅ Multi-signature admin functions and blockchain verification
+- **MetaMask Integration**: ✅ Seamless wallet connection and transaction management
+- **Vote Verification**: ✅ On-chain vote storage with cryptographic hashing
+- **Gas Optimization**: ✅ Efficient contract design with minimal transaction costs
 
 #### 7.1.3 AI and Machine Learning
 - **Predictive Analytics**: Forecasting voting patterns and system load
