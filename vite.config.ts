@@ -20,4 +20,8 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom"],
   },
+  define: {
+    global: 'globalThis',
+    'process.env': {}
+  },
 }));
