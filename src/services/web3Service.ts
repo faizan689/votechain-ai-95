@@ -15,29 +15,41 @@ export const SEPOLIA_CONFIG = {
 };
 
 // Contract address (will be updated after deployment)
-export const CONTRACT_ADDRESS = process.env.VITE_CONTRACT_ADDRESS || "0x0000000000000000000000000000000000000000";
+export const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || "0x0000000000000000000000000000000000000000";
 
-// Load contract address from deployment file if available
-let deployedAddress = CONTRACT_ADDRESS;
-try {
-  const deploymentInfo = require('../../public/contract-deployment.json');
-  if (deploymentInfo.contractAddress && deploymentInfo.contractAddress !== "0x0000000000000000000000000000000000000000") {
-    deployedAddress = deploymentInfo.contractAddress;
+// Function to load contract address from deployment file
+async function loadDeployedAddress(): Promise<string> {
+  try {
+    const response = await fetch('/contract-deployment.json');
+    if (response.ok) {
+      const deploymentInfo = await response.json();
+      if (deploymentInfo.contractAddress && deploymentInfo.contractAddress !== "0x0000000000000000000000000000000000000000") {
+        return deploymentInfo.contractAddress;
+      }
+    }
+  } catch (error) {
+    console.log('No deployment info found, using default address');
   }
-} catch (error) {
-  console.log('No deployment info found, using default address');
+  return CONTRACT_ADDRESS;
 }
 
-export const DEPLOYED_CONTRACT_ADDRESS = deployedAddress;
+export let DEPLOYED_CONTRACT_ADDRESS = CONTRACT_ADDRESS;
 
 export class Web3Service {
   private provider: ethers.BrowserProvider | null = null;
   private signer: ethers.Signer | null = null;
   private contract: ethers.Contract | null = null;
   private isConnected = false;
+  private contractAddress: string = CONTRACT_ADDRESS;
 
   constructor() {
     this.initializeProvider();
+    this.loadContractAddress();
+  }
+
+  private async loadContractAddress() {
+    this.contractAddress = await loadDeployedAddress();
+    DEPLOYED_CONTRACT_ADDRESS = this.contractAddress;
   }
 
   private async initializeProvider() {
@@ -124,7 +136,7 @@ export class Web3Service {
     
     this.signer = await this.provider.getSigner();
     this.contract = new ethers.Contract(
-      DEPLOYED_CONTRACT_ADDRESS,
+      this.contractAddress,
       VotingContractABI.abi,
       this.signer
     );
