@@ -10,7 +10,11 @@ export const SEPOLIA_CONFIG = {
     symbol: 'SEP',
     decimals: 18
   },
-  rpcUrls: ['https://sepolia.infura.io/v3/YOUR_PROJECT_ID'],
+  rpcUrls: [
+    'https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
+    'https://rpc.sepolia.org',
+    'https://rpc2.sepolia.org'
+  ],
   blockExplorerUrls: ['https://sepolia.etherscan.io']
 };
 
@@ -202,6 +206,9 @@ export class Web3Service {
   ): Promise<{ success: boolean; txHash?: string; voteHash?: string; error?: string }> {
     try {
       if (!this.contract) throw new Error('Contract not initialized');
+      if (this.contractAddress === "0x0000000000000000000000000000000000000000") {
+        throw new Error('Smart contract not deployed. Please deploy the contract first.');
+      }
       
       const voterAddress = await this.signer?.getAddress();
       const voteData = `${voterAddress}-${partyId}-${Date.now()}`;
@@ -237,6 +244,16 @@ export class Web3Service {
   } | null> {
     try {
       if (!this.contract) return null;
+      if (this.contractAddress === "0x0000000000000000000000000000000000000000") {
+        console.warn('Contract not deployed. Using mock data.');
+        return {
+          name: "Mock Election",
+          startTime: Date.now(),
+          endTime: Date.now() + 86400000,
+          isActive: true,
+          partyIds: ["1", "2", "3"]
+        };
+      }
       
       const info = await this.contract.getElectionInfo();
       return {
@@ -286,6 +303,10 @@ export class Web3Service {
   async getTotalVotes(): Promise<number> {
     try {
       if (!this.contract) return 0;
+      if (this.contractAddress === "0x0000000000000000000000000000000000000000") {
+        console.warn('Contract not deployed. Using mock data.');
+        return 0;
+      }
       const total = await this.contract.getTotalVotes();
       return Number(total);
     } catch (error) {
@@ -297,6 +318,10 @@ export class Web3Service {
   async getTotalRegisteredVoters(): Promise<number> {
     try {
       if (!this.contract) return 0;
+      if (this.contractAddress === "0x0000000000000000000000000000000000000000") {
+        console.warn('Contract not deployed. Using mock data.');
+        return 0;
+      }
       const total = await this.contract.getTotalRegisteredVoters();
       return Number(total);
     } catch (error) {

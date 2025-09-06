@@ -5,6 +5,7 @@ import Footer from '@/components/Footer';
 import { WalletConnection } from '@/components/blockchain/WalletConnection';
 import { BlockchainStatus } from '@/components/blockchain/BlockchainStatus';
 import { TransactionMonitor } from '@/components/blockchain/TransactionMonitor';
+import { ContractDeploymentStatus } from '@/components/blockchain/ContractDeploymentStatus';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -175,16 +176,25 @@ export default function Blockchain() {
             <BlockchainStatus />
           </motion.div>
 
-          {/* Transaction Monitor */}
+          {/* Contract Deployment Status */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
-            className="lg:col-span-2 xl:col-span-1"
           >
-            <TransactionMonitor />
+            <ContractDeploymentStatus />
           </motion.div>
         </div>
+
+        {/* Transaction Monitor - Full Width */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mt-8"
+        >
+          <TransactionMonitor />
+        </motion.div>
 
         {/* Smart Contract Information */}
         <motion.div
