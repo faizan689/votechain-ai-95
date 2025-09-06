@@ -17,64 +17,41 @@ export const votingService = {
       if (isWeb3Connected) {
         console.log('VotingService: Casting vote on blockchain...');
         
-        try {
-          // Get biometric hash from localStorage or use default
-          const biometricHash = localStorage.getItem('currentBiometricHash') || 'default-hash';
+        // Get biometric hash from localStorage or use default
+        const biometricHash = localStorage.getItem('currentBiometricHash') || 'default-hash';
+        
+        const blockchainResult = await web3Service.castVote(partyId, partyName, biometricHash);
+        
+        if (blockchainResult.success) {
+          console.log('VotingService: Blockchain vote successful:', blockchainResult);
           
-          const blockchainResult = await web3Service.castVote(partyId, partyName, biometricHash);
-          
-          if (blockchainResult.success) {
-            console.log('VotingService: Blockchain vote successful:', blockchainResult);
+          // Also record in traditional database for analytics
+          try {
+            const response = await apiRequest<VoteCastResponse>('vote', {
+              partyId,
+              partyName,
+              blockchainTxHash: blockchainResult.txHash,
+              voteHash: blockchainResult.voteHash
+            });
             
-            // Also record in traditional database for analytics
-            try {
-              const response = await apiRequest<VoteCastResponse>('vote', {
-                partyId,
-                partyName,
-                blockchainTxHash: blockchainResult.txHash,
-                voteHash: blockchainResult.voteHash
-              });
-              
-              return {
-                ...response,
-                blockchainTxHash: blockchainResult.txHash,
-                isBlockchainVote: true
-              };
-            } catch (dbError) {
-              console.warn('VotingService: Database recording failed, but blockchain vote succeeded:', dbError);
-              
-              return {
-                success: true,
-                message: 'Vote recorded on blockchain successfully!',
-                transactionId: blockchainResult.txHash,
-                blockchainTxHash: blockchainResult.txHash,
-                isBlockchainVote: true
-              };
-            }
-          } else {
-            throw new Error(blockchainResult.error || 'Blockchain vote failed');
-          }
-        } catch (blockchainError: any) {
-          console.warn('VotingService: Blockchain voting failed, falling back to database vote:', blockchainError);
-          
-          // Check if it's a contract deployment issue
-          if (blockchainError.message?.includes('Smart contract not deployed') || 
-              blockchainError.message?.includes('could not decode result data')) {
-            console.log('VotingService: Contract not deployed, using database-only voting...');
-            
-            // Fall back to traditional database vote
-            const isAdminUser = localStorage.getItem('isAdmin') === 'true';
-            const response = await apiRequest<VoteCastResponse>('vote', { partyId, partyName }, isAdminUser);
-            console.log('VotingService: Database vote successful (blockchain fallback):', response);
             return {
               ...response,
-              message: response.message + ' (Database only - blockchain contract not deployed)',
-              isBlockchainVote: false
+              blockchainTxHash: blockchainResult.txHash,
+              isBlockchainVote: true
             };
-          } else {
-            // Re-throw other blockchain errors
-            throw blockchainError;
+          } catch (dbError) {
+            console.warn('VotingService: Database recording failed, but blockchain vote succeeded:', dbError);
+            
+            return {
+              success: true,
+              message: 'Vote recorded on blockchain successfully!',
+              transactionId: blockchainResult.txHash,
+              blockchainTxHash: blockchainResult.txHash,
+              isBlockchainVote: true
+            };
           }
+        } else {
+          throw new Error(blockchainResult.error || 'Blockchain vote failed');
         }
       } else {
         console.log('VotingService: Falling back to traditional vote...');
