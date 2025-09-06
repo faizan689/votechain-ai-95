@@ -58,13 +58,17 @@ export class Web3Service {
 
   private async initializeProvider() {
     if (typeof window !== 'undefined' && window.ethereum) {
+      console.log('Initializing Web3 provider...');
       this.provider = new ethers.BrowserProvider(window.ethereum);
       
       // Listen for account changes
       window.ethereum.on('accountsChanged', (accounts: string[]) => {
+        console.log('Accounts changed:', accounts);
         if (accounts.length === 0) {
+          console.log('No accounts found, disconnecting...');
           this.disconnect();
         } else {
+          console.log('Account changed, reinitializing...');
           this.initializeSigner();
         }
       });
@@ -73,77 +77,164 @@ export class Web3Service {
       window.ethereum.on('chainChanged', (chainId: string) => {
         console.log('Chain changed to:', chainId);
         if (chainId !== SEPOLIA_CONFIG.chainId) {
+          console.log('Not on Sepolia, attempting to switch...');
           this.switchToSepolia();
+        } else {
+          console.log('Successfully connected to Sepolia network');
         }
+        // Reload the page to refresh all data
+        window.location.reload();
       });
+
+      // Listen for connection events
+      window.ethereum.on('connect', (connectInfo: any) => {
+        console.log('MetaMask connected:', connectInfo);
+      });
+
+      window.ethereum.on('disconnect', (error: any) => {
+        console.log('MetaMask disconnected:', error);
+        this.disconnect();
+      });
+    } else {
+      console.warn('MetaMask not detected');
     }
   }
 
   async connectWallet(): Promise<{ success: boolean; address?: string; error?: string }> {
     try {
       if (!window.ethereum) {
-        return { success: false, error: 'MetaMask not installed' };
+        return { success: false, error: 'MetaMask not installed. Please install MetaMask to continue.' };
       }
 
-      // Request account access
-      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      // First, request account access
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       
-      // Switch to Sepolia if not already
-      await this.switchToSepolia();
+      if (accounts.length === 0) {
+        return { success: false, error: 'No accounts found. Please unlock MetaMask.' };
+      }
+
+      // Check current network
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      console.log('Current network:', chainId, 'Expected:', SEPOLIA_CONFIG.chainId);
       
+      // Switch to Sepolia if not already connected
+      if (chainId !== SEPOLIA_CONFIG.chainId) {
+        const switched = await this.switchToSepolia();
+        if (!switched) {
+          return { success: false, error: 'Failed to switch to Sepolia network' };
+        }
+      }
+      
+      // Initialize provider and signer
       await this.initializeSigner();
       
       const address = await this.signer?.getAddress();
+      if (!address) {
+        return { success: false, error: 'Failed to get wallet address' };
+      }
+
       this.isConnected = true;
+      console.log('Successfully connected to Sepolia with address:', address);
       
       return { success: true, address };
     } catch (error: any) {
       console.error('Failed to connect wallet:', error);
+      
+      // Handle specific MetaMask errors
+      if (error.code === 4001) {
+        return { success: false, error: 'User rejected the connection request' };
+      } else if (error.code === -32002) {
+        return { success: false, error: 'Connection request already pending. Please check MetaMask.' };
+      }
+      
       return { 
         success: false, 
-        error: error.message || 'Failed to connect wallet' 
+        error: error.message || 'Failed to connect wallet. Please try again.' 
       };
     }
   }
 
   async switchToSepolia(): Promise<boolean> {
     try {
-      if (!window.ethereum) return false;
+      if (!window.ethereum) {
+        console.error('MetaMask not available');
+        return false;
+      }
 
+      console.log('Attempting to switch to Sepolia network...');
+      
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: SEPOLIA_CONFIG.chainId }],
       });
 
+      console.log('Successfully switched to Sepolia network');
       return true;
     } catch (switchError: any) {
+      console.log('Switch error:', switchError);
+      
       // Chain not added to MetaMask
       if (switchError.code === 4902) {
+        console.log('Sepolia network not found, attempting to add...');
         try {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
-            params: [SEPOLIA_CONFIG],
+            params: [{
+              chainId: SEPOLIA_CONFIG.chainId,
+              chainName: SEPOLIA_CONFIG.chainName,
+              nativeCurrency: SEPOLIA_CONFIG.nativeCurrency,
+              rpcUrls: SEPOLIA_CONFIG.rpcUrls,
+              blockExplorerUrls: SEPOLIA_CONFIG.blockExplorerUrls
+            }],
           });
+          console.log('Successfully added Sepolia network');
           return true;
-        } catch (addError) {
+        } catch (addError: any) {
           console.error('Failed to add Sepolia network:', addError);
           return false;
         }
+      } else if (switchError.code === 4001) {
+        console.log('User rejected network switch');
+        return false;
       }
+      
       console.error('Failed to switch to Sepolia:', switchError);
       return false;
     }
   }
 
   private async initializeSigner() {
-    if (!this.provider) return;
+    if (!this.provider) {
+      console.error('Provider not initialized');
+      return;
+    }
     
-    this.signer = await this.provider.getSigner();
-    this.contract = new ethers.Contract(
-      this.contractAddress,
-      VotingContractABI.abi,
-      this.signer
-    );
+    try {
+      console.log('Initializing signer...');
+      this.signer = await this.provider.getSigner();
+      
+      // Verify we're on the correct network
+      const network = await this.provider.getNetwork();
+      console.log('Connected to network:', network.name, 'chainId:', network.chainId);
+      
+      if (network.chainId.toString() !== parseInt(SEPOLIA_CONFIG.chainId, 16).toString()) {
+        console.warn('Not connected to Sepolia network');
+        await this.switchToSepolia();
+        return;
+      }
+      
+      this.contract = new ethers.Contract(
+        this.contractAddress,
+        VotingContractABI.abi,
+        this.signer
+      );
+      
+      console.log('Signer and contract initialized successfully');
+      console.log('Contract address:', this.contractAddress);
+    } catch (error) {
+      console.error('Failed to initialize signer:', error);
+      throw error;
+    }
   }
 
   disconnect() {
