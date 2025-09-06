@@ -9,11 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Shield, Lock, Users, Vote, Activity } from 'lucide-react';
-import { useRealtimeElectionData } from '@/hooks/useRealtimeElectionData';
 
 export default function Blockchain() {
-  const electionData = useRealtimeElectionData();
-  
   const features = [
     {
       icon: <Shield className="w-6 h-6" />,
@@ -47,25 +44,16 @@ export default function Blockchain() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-12"
         >
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <h1 className="text-4xl font-bold">Blockchain Voting Dashboard</h1>
-            <Badge className="bg-green-100 text-green-800 border-green-200 animate-pulse">
-              <Activity className="w-4 h-4 mr-2" />
-              LIVE
-            </Badge>
-          </div>
+          <h1 className="text-4xl font-bold mb-4">Blockchain Voting Dashboard</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Experience the future of democratic participation with our blockchain-powered voting system
             running on Ethereum Sepolia Testnet.
           </p>
-          <div className="flex justify-center items-center gap-4 mt-6">
+          <div className="flex justify-center mt-6">
             <Badge className="bg-blue-100 text-blue-800 border-blue-200">
               <Activity className="w-4 h-4 mr-2" />
               Live on Ethereum Sepolia
             </Badge>
-            <div className="text-sm text-muted-foreground">
-              Last updated: {electionData.lastUpdated.toLocaleTimeString()}
-            </div>
           </div>
         </motion.div>
 
@@ -87,72 +75,6 @@ export default function Blockchain() {
               </CardContent>
             </Card>
           ))}
-        </motion.div>
-
-        {/* Real-time Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-8"
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Live Election Statistics</span>
-                <Badge variant="outline" className="animate-pulse">
-                  <Activity className="w-3 h-3 mr-1" />
-                  Real-time
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-primary">
-                    {electionData.loading ? '...' : electionData.totalVotes}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Database Votes</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">
-                    {electionData.loading ? '...' : electionData.blockchainTotalVotes}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Blockchain Votes</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">
-                    {electionData.loading ? '...' : electionData.totalUsers}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Registered Users</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600">
-                    {electionData.loading ? '...' : `${electionData.voterTurnout.toFixed(1)}%`}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Voter Turnout</div>
-                </div>
-              </div>
-              
-              {/* Party-wise breakdown */}
-              {electionData.partyWiseVotes.length > 0 && (
-                <div className="mt-6 pt-6 border-t">
-                  <h3 className="text-lg font-medium mb-3">Live Vote Distribution</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {electionData.partyWiseVotes.map((party) => (
-                      <div key={party.partyId} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                        <span className="font-medium">{party.partyName}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">{party.votes} votes</span>
-                          <Badge variant="secondary">{party.percentage.toFixed(1)}%</Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </motion.div>
 
         {/* Main Dashboard Grid */}
