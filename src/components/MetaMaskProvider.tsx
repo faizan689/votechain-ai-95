@@ -25,7 +25,7 @@ export function MetaMaskProvider({ children }: MetaMaskProviderProps) {
           url: window.location.host,
           iconUrl: "/favicon.ico",
         },
-        infuraAPIKey: process.env.VITE_INFURA_API_KEY || undefined,
+        infuraAPIKey: undefined, // Infura API key not available in Lovable environment
         checkInstallationImmediately: false,
         checkInstallationOnAllCalls: true,
       }}
