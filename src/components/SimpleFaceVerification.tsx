@@ -36,84 +36,36 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
     };
   }, []);
 
-  const drawFaceOverlay = (detection: any) => {
-    if (!canvasRef.current || !videoRef.current) return;
-    
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const video = videoRef.current;
-    if (!ctx || !video.videoWidth || !video.videoHeight) return;
-
-    // Set canvas dimensions to match video display size
-    const rect = video.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-    
-    // Calculate scaling factors
-    const scaleX = rect.width / video.videoWidth;
-    const scaleY = rect.height / video.videoHeight;
-    
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw bounding box with proper scaling
-    const { x, y, width, height } = detection.box;
-    const scaledX = x * scaleX;
-    const scaledY = y * scaleY;
-    const scaledWidth = width * scaleX;
-    const scaledHeight = height * scaleY;
-    
-    ctx.strokeStyle = faceDetected && confidence > 0.7 ? '#10b981' : '#f59e0b';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
-    
-    // Draw confidence with proper scaling
-    ctx.fillStyle = ctx.strokeStyle;
-    ctx.font = '14px Arial';
-    ctx.fillText(`${Math.round(confidence * 100)}%`, scaledX, Math.max(scaledY - 5, 15));
-  };
-
-  const clearCanvas = () => {
-    if (!canvasRef.current) return;
-    const ctx = canvasRef.current.getContext('2d');
-    if (ctx) {
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    }
-  };
-
   // Real-time face detection
   useEffect(() => {
     let animationFrame: number;
     
     const detectFaceInRealTime = async () => {
-      if (videoRef.current && cameraReady && !isVerifying && videoRef.current.readyState >= 2) {
+      if (videoRef.current && cameraReady && !isVerifying) {
         try {
           const video = videoRef.current;
+          const detection = await faceRecognitionService.detectFaceInVideo(video);
           
-          // Ensure video is actually playing
-          if (video.videoWidth > 0 && video.videoHeight > 0) {
-            const detection = await faceRecognitionService.detectFaceInVideo(video);
+          if (detection) {
+            setFaceDetected(true);
+            setConfidence(detection.confidence);
             
-            if (detection) {
-              setFaceDetected(true);
-              setConfidence(detection.confidence);
-              
-              // Draw detection overlay
-              drawFaceOverlay(detection);
-            } else {
-              setFaceDetected(false);
-              setConfidence(0);
-              clearCanvas();
-            }
+            // Draw detection overlay
+            drawFaceOverlay(detection);
+          } else {
+            setFaceDetected(false);
+            setConfidence(0);
+            clearCanvas();
           }
         } catch (error) {
-          console.warn('Face detection error:', error);
+          // Silently handle detection errors
         }
       }
       
       animationFrame = requestAnimationFrame(detectFaceInRealTime);
     };
 
-    if (cameraReady) {
+    if (cameraReady && !isVerifying) {
       detectFaceInRealTime();
     }
 
@@ -123,6 +75,39 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
       }
     };
   }, [cameraReady, isVerifying]);
+
+  const drawFaceOverlay = (detection: any) => {
+    if (!canvasRef.current || !videoRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const video = videoRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw bounding box
+    const { x, y, width, height } = detection.box;
+    ctx.strokeStyle = faceDetected && confidence > 0.7 ? '#10b981' : '#f59e0b';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x, y, width, height);
+    
+    // Draw confidence
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.font = '16px Arial';
+    ctx.fillText(`${Math.round(confidence * 100)}%`, x, y - 10);
+  };
+
+  const clearCanvas = () => {
+    if (!canvasRef.current) return;
+    const ctx = canvasRef.current.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
+  };
 
   const initializeSystem = async () => {
     setIsLoading(true);
@@ -150,7 +135,6 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
 
   const startCamera = async () => {
     try {
-      console.log('Starting camera...');
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 640 },
@@ -159,74 +143,27 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
         }
       });
 
-      console.log('Camera stream obtained:', mediaStream);
       setStream(mediaStream);
       
       if (videoRef.current) {
-        const video = videoRef.current;
-        video.srcObject = mediaStream;
+        videoRef.current.srcObject = mediaStream;
         
-        // Force video to play
-        video.muted = true;
-        video.playsInline = true;
-        video.autoplay = true;
-        
-        // Wait for video to be ready and start playing
-        await new Promise<void>((resolve, reject) => {
-          const timeoutId = setTimeout(() => {
-            console.error('Video load timeout');
-            reject(new Error('Video load timeout'));
-          }, 10000);
-          
-          const onCanPlay = () => {
-            clearTimeout(timeoutId);
-            video.removeEventListener('canplay', onCanPlay);
-            video.removeEventListener('error', onError);
-            
-            console.log('Video can play, attempting to start...');
-            
-            video.play()
-              .then(() => {
-                console.log('Video is now playing successfully');
-                // Small delay to ensure video is actually displaying
-                setTimeout(() => {
-                  if (video.videoWidth > 0 && video.videoHeight > 0) {
-                    console.log(`Video dimensions: ${video.videoWidth}x${video.videoHeight}`);
-                    resolve();
-                  } else {
-                    console.warn('Video dimensions are 0, but continuing...');
-                    resolve();
-                  }
-                }, 500);
-              })
-              .catch((err) => {
-                console.error('Error playing video:', err);
-                clearTimeout(timeoutId);
-                reject(err);
-              });
+        // Wait for video to be ready
+        await new Promise<void>((resolve) => {
+          const onLoaded = () => {
+            videoRef.current?.removeEventListener('loadedmetadata', onLoaded);
+            resolve();
           };
           
-          const onError = (err: any) => {
-            clearTimeout(timeoutId);
-            video.removeEventListener('canplay', onCanPlay);
-            video.removeEventListener('error', onError);
-            console.error('Video error:', err);
-            reject(new Error('Video failed to load'));
-          };
-          
-          if (video.readyState >= 3) { // HAVE_FUTURE_DATA
-            console.log('Video already ready, playing immediately');
-            onCanPlay();
+          if (videoRef.current!.readyState >= 1) {
+            resolve();
           } else {
-            video.addEventListener('canplay', onCanPlay);
-            video.addEventListener('error', onError);
-            console.log('Waiting for video to be ready...');
+            videoRef.current!.addEventListener('loadedmetadata', onLoaded);
           }
         });
       }
     } catch (err) {
-      console.error('Camera error:', err);
-      throw new Error('Camera access denied. Please allow camera permissions and refresh the page.');
+      throw new Error('Camera access denied. Please allow camera permissions.');
     }
   };
 
@@ -339,27 +276,15 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
             autoPlay
             playsInline
             muted
-            className="w-full rounded-lg border-2 border-dashed border-primary/30 bg-black"
-            style={{ 
-              height: '360px', 
-              objectFit: 'cover',
-              transform: 'scaleX(-1)' // Mirror the video for better UX
-            }}
-            onLoadedMetadata={() => console.log('Video metadata loaded')}
-            onCanPlay={() => console.log('Video can play')}
-            onPlay={() => console.log('Video started playing')}
-            onError={(e) => console.error('Video element error:', e)}
+            className="w-full rounded-lg border-2 border-dashed border-primary/30"
+            style={{ maxHeight: '360px' }}
           />
           
           {/* Canvas overlay for face detection */}
           <canvas
             ref={canvasRef}
-            className="absolute top-0 left-0 rounded-lg pointer-events-none"
-            style={{ 
-              width: '100%', 
-              height: '360px',
-              transform: 'scaleX(-1)' // Mirror the canvas to match video
-            }}
+            className="absolute top-0 left-0 w-full h-full pointer-events-none"
+            style={{ maxHeight: '360px' }}
           />
           
           {/* Status indicators */}
