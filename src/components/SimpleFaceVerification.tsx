@@ -150,6 +150,7 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
 
   const startCamera = async () => {
     try {
+      console.log('Starting camera...');
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 640 },
@@ -158,36 +159,74 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
         }
       });
 
+      console.log('Camera stream obtained:', mediaStream);
       setStream(mediaStream);
       
       if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
+        const video = videoRef.current;
+        video.srcObject = mediaStream;
+        
+        // Force video to play
+        video.muted = true;
+        video.playsInline = true;
+        video.autoplay = true;
         
         // Wait for video to be ready and start playing
-        await new Promise<void>((resolve) => {
-          const video = videoRef.current!;
+        await new Promise<void>((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            console.error('Video load timeout');
+            reject(new Error('Video load timeout'));
+          }, 10000);
           
           const onCanPlay = () => {
+            clearTimeout(timeoutId);
             video.removeEventListener('canplay', onCanPlay);
-            video.play().then(() => {
-              console.log('Video is now playing');
-              resolve();
-            }).catch((err) => {
-              console.error('Error playing video:', err);
-              resolve(); // Resolve anyway to continue
-            });
+            video.removeEventListener('error', onError);
+            
+            console.log('Video can play, attempting to start...');
+            
+            video.play()
+              .then(() => {
+                console.log('Video is now playing successfully');
+                // Small delay to ensure video is actually displaying
+                setTimeout(() => {
+                  if (video.videoWidth > 0 && video.videoHeight > 0) {
+                    console.log(`Video dimensions: ${video.videoWidth}x${video.videoHeight}`);
+                    resolve();
+                  } else {
+                    console.warn('Video dimensions are 0, but continuing...');
+                    resolve();
+                  }
+                }, 500);
+              })
+              .catch((err) => {
+                console.error('Error playing video:', err);
+                clearTimeout(timeoutId);
+                reject(err);
+              });
+          };
+          
+          const onError = (err: any) => {
+            clearTimeout(timeoutId);
+            video.removeEventListener('canplay', onCanPlay);
+            video.removeEventListener('error', onError);
+            console.error('Video error:', err);
+            reject(new Error('Video failed to load'));
           };
           
           if (video.readyState >= 3) { // HAVE_FUTURE_DATA
-            video.play().then(() => resolve()).catch(() => resolve());
+            console.log('Video already ready, playing immediately');
+            onCanPlay();
           } else {
             video.addEventListener('canplay', onCanPlay);
+            video.addEventListener('error', onError);
+            console.log('Waiting for video to be ready...');
           }
         });
       }
     } catch (err) {
       console.error('Camera error:', err);
-      throw new Error('Camera access denied. Please allow camera permissions.');
+      throw new Error('Camera access denied. Please allow camera permissions and refresh the page.');
     }
   };
 
@@ -301,14 +340,26 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
             playsInline
             muted
             className="w-full rounded-lg border-2 border-dashed border-primary/30 bg-black"
-            style={{ height: '360px', objectFit: 'cover' }}
+            style={{ 
+              height: '360px', 
+              objectFit: 'cover',
+              transform: 'scaleX(-1)' // Mirror the video for better UX
+            }}
+            onLoadedMetadata={() => console.log('Video metadata loaded')}
+            onCanPlay={() => console.log('Video can play')}
+            onPlay={() => console.log('Video started playing')}
+            onError={(e) => console.error('Video element error:', e)}
           />
           
           {/* Canvas overlay for face detection */}
           <canvas
             ref={canvasRef}
             className="absolute top-0 left-0 rounded-lg pointer-events-none"
-            style={{ width: '100%', height: '360px' }}
+            style={{ 
+              width: '100%', 
+              height: '360px',
+              transform: 'scaleX(-1)' // Mirror the canvas to match video
+            }}
           />
           
           {/* Status indicators */}
