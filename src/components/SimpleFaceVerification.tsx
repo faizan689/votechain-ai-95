@@ -36,69 +36,40 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
     };
   }, []);
 
-  // Real-time face detection
-  useEffect(() => {
-    let animationFrame: number;
-    
-    const detectFaceInRealTime = async () => {
-      if (videoRef.current && cameraReady && !isVerifying) {
-        try {
-          const video = videoRef.current;
-          const detection = await faceRecognitionService.detectFaceInVideo(video);
-          
-          if (detection) {
-            setFaceDetected(true);
-            setConfidence(detection.confidence);
-            
-            // Draw detection overlay
-            drawFaceOverlay(detection);
-          } else {
-            setFaceDetected(false);
-            setConfidence(0);
-            clearCanvas();
-          }
-        } catch (error) {
-          // Silently handle detection errors
-        }
-      }
-      
-      animationFrame = requestAnimationFrame(detectFaceInRealTime);
-    };
-
-    if (cameraReady && !isVerifying) {
-      detectFaceInRealTime();
-    }
-
-    return () => {
-      if (animationFrame) {
-        cancelAnimationFrame(animationFrame);
-      }
-    };
-  }, [cameraReady, isVerifying]);
-
   const drawFaceOverlay = (detection: any) => {
     if (!canvasRef.current || !videoRef.current) return;
     
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
     const video = videoRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    if (!ctx || !video.videoWidth || !video.videoHeight) return;
+
+    // Set canvas dimensions to match video display size
+    const rect = video.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    
+    // Calculate scaling factors
+    const scaleX = rect.width / video.videoWidth;
+    const scaleY = rect.height / video.videoHeight;
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw bounding box
+    // Draw bounding box with proper scaling
     const { x, y, width, height } = detection.box;
-    ctx.strokeStyle = faceDetected && confidence > 0.7 ? '#10b981' : '#f59e0b';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(x, y, width, height);
+    const scaledX = x * scaleX;
+    const scaledY = y * scaleY;
+    const scaledWidth = width * scaleX;
+    const scaledHeight = height * scaleY;
     
-    // Draw confidence
+    ctx.strokeStyle = faceDetected && confidence > 0.7 ? '#10b981' : '#f59e0b';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+    
+    // Draw confidence with proper scaling
     ctx.fillStyle = ctx.strokeStyle;
-    ctx.font = '16px Arial';
-    ctx.fillText(`${Math.round(confidence * 100)}%`, x, y - 10);
+    ctx.font = '14px Arial';
+    ctx.fillText(`${Math.round(confidence * 100)}%`, scaledX, Math.max(scaledY - 5, 15));
   };
 
   const clearCanvas = () => {
@@ -108,6 +79,50 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
       ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     }
   };
+
+  // Real-time face detection
+  useEffect(() => {
+    let animationFrame: number;
+    
+    const detectFaceInRealTime = async () => {
+      if (videoRef.current && cameraReady && !isVerifying && videoRef.current.readyState >= 2) {
+        try {
+          const video = videoRef.current;
+          
+          // Ensure video is actually playing
+          if (video.videoWidth > 0 && video.videoHeight > 0) {
+            const detection = await faceRecognitionService.detectFaceInVideo(video);
+            
+            if (detection) {
+              setFaceDetected(true);
+              setConfidence(detection.confidence);
+              
+              // Draw detection overlay
+              drawFaceOverlay(detection);
+            } else {
+              setFaceDetected(false);
+              setConfidence(0);
+              clearCanvas();
+            }
+          }
+        } catch (error) {
+          console.warn('Face detection error:', error);
+        }
+      }
+      
+      animationFrame = requestAnimationFrame(detectFaceInRealTime);
+    };
+
+    if (cameraReady) {
+      detectFaceInRealTime();
+    }
+
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [cameraReady, isVerifying]);
 
   const initializeSystem = async () => {
     setIsLoading(true);
@@ -148,21 +163,30 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         
-        // Wait for video to be ready
+        // Wait for video to be ready and start playing
         await new Promise<void>((resolve) => {
-          const onLoaded = () => {
-            videoRef.current?.removeEventListener('loadedmetadata', onLoaded);
-            resolve();
+          const video = videoRef.current!;
+          
+          const onCanPlay = () => {
+            video.removeEventListener('canplay', onCanPlay);
+            video.play().then(() => {
+              console.log('Video is now playing');
+              resolve();
+            }).catch((err) => {
+              console.error('Error playing video:', err);
+              resolve(); // Resolve anyway to continue
+            });
           };
           
-          if (videoRef.current!.readyState >= 1) {
-            resolve();
+          if (video.readyState >= 3) { // HAVE_FUTURE_DATA
+            video.play().then(() => resolve()).catch(() => resolve());
           } else {
-            videoRef.current!.addEventListener('loadedmetadata', onLoaded);
+            video.addEventListener('canplay', onCanPlay);
           }
         });
       }
     } catch (err) {
+      console.error('Camera error:', err);
       throw new Error('Camera access denied. Please allow camera permissions.');
     }
   };
@@ -276,15 +300,15 @@ const SimpleFaceVerification: React.FC<SimpleFaceVerificationProps> = ({
             autoPlay
             playsInline
             muted
-            className="w-full rounded-lg border-2 border-dashed border-primary/30"
-            style={{ maxHeight: '360px' }}
+            className="w-full rounded-lg border-2 border-dashed border-primary/30 bg-black"
+            style={{ height: '360px', objectFit: 'cover' }}
           />
           
           {/* Canvas overlay for face detection */}
           <canvas
             ref={canvasRef}
-            className="absolute top-0 left-0 w-full h-full pointer-events-none"
-            style={{ maxHeight: '360px' }}
+            className="absolute top-0 left-0 rounded-lg pointer-events-none"
+            style={{ width: '100%', height: '360px' }}
           />
           
           {/* Status indicators */}
