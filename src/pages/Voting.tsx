@@ -9,6 +9,8 @@ import PartyCard from '@/components/PartyCard';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import { WalletConnection } from '@/components/blockchain/WalletConnection';
 import { BlockchainStatus } from '@/components/blockchain/BlockchainStatus';
+import SimpleFaceVerification from '@/components/SimpleFaceVerification';
+import { Button } from '@/components/ui/button';
 import { votingService } from '@/services/votingService';
 import { authService } from '@/services/authService';
 import { useWeb3 } from '@/hooks/useWeb3';
@@ -30,6 +32,8 @@ const Voting = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasMetaMaskConflict, setHasMetaMaskConflict] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showFaceAuth, setShowFaceAuth] = useState(false);
+  const [voteData, setVoteData] = useState<any>(null);
 
   const parties: Party[] = [
     { 
@@ -127,7 +131,8 @@ const Voting = () => {
       if (response.success) {
         toast.success(response.message);
         
-        localStorage.setItem('voteData', JSON.stringify({
+        // Store vote data for later use
+        const voteInfo = {
           transactionId: response.transactionId,
           blockchainTxHash: response.blockchainTxHash,
           partyId: selectedParty,
@@ -135,26 +140,25 @@ const Voting = () => {
           timestamp: new Date().toISOString(),
           isBlockchainVote: response.isBlockchainVote,
           isAdminTest: response.isAdminTest
-        }));
+        };
         
-        setTimeout(() => {
-          navigate('/confirmation');
-        }, 1500);
+        setVoteData(voteInfo);
+        setShowFaceAuth(true); // Show facial authentication after successful vote
       } else {
         toast.error(response.message || 'Failed to cast vote');
       }
     } catch (error: any) {
       console.error('Voting: Vote casting error:', error);
       if (error.message === 'already_voted') {
-        localStorage.setItem('voteData', JSON.stringify({
+        const voteInfo = {
           transactionId: 'PREV_VOTE_' + Date.now(),
           partyId: selectedParty,
           partyName: selectedPartyDetails.name,
           timestamp: new Date().toISOString(),
           alreadyVoted: true
-        }));
-        toast.success('Vote confirmation loaded');
-        navigate('/confirmation');
+        };
+        setVoteData(voteInfo);
+        setShowFaceAuth(true); // Show facial authentication even for already voted case
       } else if (error.message?.includes('Authentication failed')) {
         toast.error('Your session has expired. Please log in again.');
         authService.logout();
@@ -169,6 +173,31 @@ const Voting = () => {
 
   const closeModal = () => {
     setIsModalOpen(false);
+  };
+
+  const handleFaceAuthSuccess = (confidence: number) => {
+    toast.success(`Face verification successful! Confidence: ${(confidence * 100).toFixed(1)}%`);
+    
+    // Store vote data and navigate to confirmation
+    if (voteData) {
+      localStorage.setItem('voteData', JSON.stringify(voteData));
+      setTimeout(() => {
+        navigate('/confirmation');
+      }, 1500);
+    }
+  };
+
+  const handleFaceAuthFailure = (error: string) => {
+    toast.error('Face verification failed. Vote not confirmed.');
+    setShowFaceAuth(false);
+    setVoteData(null);
+    setIsLoading(false);
+  };
+
+  const closeFaceAuth = () => {
+    setShowFaceAuth(false);
+    setVoteData(null);
+    setIsLoading(false);
   };
 
   const selectedPartyDetails = selectedParty 
@@ -323,6 +352,47 @@ const Voting = () => {
         onConfirm={handleVoteConfirm}
         isLoading={isLoading}
       />
+
+      {/* Face Authentication Modal */}
+      {showFaceAuth && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="w-16 h-16 bg-gradient-to-r from-orange-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4"
+                >
+                  <ShieldCheck className="w-8 h-8 text-white" />
+                </motion.div>
+                
+                <h3 className="text-xl font-semibold text-foreground mb-2">
+                  Verify Your Identity
+                </h3>
+                <p className="text-muted-foreground text-sm">
+                  Please complete face verification to confirm your vote
+                </p>
+              </div>
+              
+              <SimpleFaceVerification
+                onSuccess={handleFaceAuthSuccess}
+                onFailure={handleFaceAuthFailure}
+              />
+              
+              <div className="mt-6 pt-4 border-t border-border">
+                <Button
+                  variant="outline"
+                  onClick={closeFaceAuth}
+                  className="w-full"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
