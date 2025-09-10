@@ -36,8 +36,11 @@ export function useRealtimeVotingSchedule() {
   useEffect(() => {
     fetchSchedule();
     
+    // Create unique channel name to prevent conflicts
+    const channelId = Math.random().toString(36).substr(2, 9);
+    
     const channel = supabase
-      .channel("realtime-voting-schedule")
+      .channel(`realtime-voting-schedule-${channelId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "voting_schedule" },

@@ -108,8 +108,11 @@ export function useRealtimeAnalytics() {
   useEffect(() => {
     fetchAll();
     
+    // Create unique channel name to prevent conflicts
+    const channelId = Math.random().toString(36).substr(2, 9);
+    
     const channel = supabase
-      .channel("realtime-analytics-comprehensive")
+      .channel(`realtime-analytics-comprehensive-${channelId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "votes" },

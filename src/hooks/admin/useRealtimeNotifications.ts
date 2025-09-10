@@ -85,8 +85,11 @@ export function useRealtimeNotifications() {
   useEffect(() => {
     fetchInitial();
     
+    // Create unique channel name to prevent conflicts
+    const channelId = Math.random().toString(36).substr(2, 9);
+    
     const channel = supabase
-      .channel("realtime-notifications-comprehensive")
+      .channel(`realtime-notifications-comprehensive-${channelId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "security_alerts" },

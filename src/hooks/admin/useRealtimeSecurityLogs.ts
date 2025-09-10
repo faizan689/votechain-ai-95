@@ -68,8 +68,11 @@ export function useRealtimeSecurityLogs(limit: number = 50) {
   useEffect(() => {
     fetchLogs();
     
+    // Create unique channel name to prevent conflicts
+    const channelId = Math.random().toString(36).substr(2, 9);
+    
     const channel = supabase
-      .channel("realtime-security-logs-comprehensive")
+      .channel(`realtime-security-logs-comprehensive-${channelId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "security_alerts" },

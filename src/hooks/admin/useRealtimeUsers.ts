@@ -60,8 +60,11 @@ export function useRealtimeUsers() {
   useEffect(() => {
     fetchUsers();
     
+    // Create unique channel name to prevent conflicts
+    const channelId = Math.random().toString(36).substr(2, 9);
+    
     const channel = supabase
-      .channel("realtime-users-comprehensive")
+      .channel(`realtime-users-comprehensive-${channelId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "users" },

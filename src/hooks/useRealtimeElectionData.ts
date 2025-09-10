@@ -139,9 +139,12 @@ export function useRealtimeElectionData() {
   useEffect(() => {
     fetchAllData();
 
+    // Create unique channel names to prevent conflicts
+    const channelId = Math.random().toString(36).substr(2, 9);
+    
     // Set up realtime subscriptions for database changes
     const votesChannel = supabase
-      .channel("election-data-votes")
+      .channel(`election-data-votes-${channelId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "votes" },
@@ -153,7 +156,7 @@ export function useRealtimeElectionData() {
       .subscribe();
 
     const usersChannel = supabase
-      .channel("election-data-users")
+      .channel(`election-data-users-${channelId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "users" },

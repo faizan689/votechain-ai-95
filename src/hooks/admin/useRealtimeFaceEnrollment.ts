@@ -56,8 +56,11 @@ export function useRealtimeFaceEnrollment() {
   useEffect(() => {
     fetchData();
     
+    // Create unique channel name to prevent conflicts
+    const channelId = Math.random().toString(36).substr(2, 9);
+    
     const channel = supabase
-      .channel("realtime-face-enrollment")
+      .channel(`realtime-face-enrollment-${channelId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "users" },
