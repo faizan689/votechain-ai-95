@@ -141,7 +141,7 @@ export function useRealtimeElectionData() {
 
     // Set up realtime subscriptions for database changes
     const votesChannel = supabase
-      .channel("realtime-votes")
+      .channel("election-data-votes")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "votes" },
@@ -153,7 +153,7 @@ export function useRealtimeElectionData() {
       .subscribe();
 
     const usersChannel = supabase
-      .channel("realtime-users")
+      .channel("election-data-users")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "users" },
